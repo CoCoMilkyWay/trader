@@ -1,0 +1,10 @@
+Class	Sub-Class	Factors
+Economic Indicators	General Economic Performance	"GDP, GNP, Industrial Production, Business Inventories, Trade Balance, Current Account Balance, Construction Spending"
+	Labor Market	"Unemployment Rate, Non-farm Payrolls, Jobless Claims, ADP Employment Change, Employment Cost Index, Labor Cost Index, Underemployment Rate, Labor Market Conditions Index"
+	Consumer Metrics	"Retail Sales, CPI, Core CPI, PPI, Core PPI, Personal Income, Personal Spending, Consumer Confidence Index, Consumer Sentiment, Auto Sales, New Home Sales, Existing Home Sales, Housing Starts, Building Permits"
+	Business Metrics	"PMI, Services PMI, Manufacturing PMI, Factory Orders, Durable Goods Orders, Business Confidence, Wholesale Inventories"
+	Price & Inflation Metrics	"Inflation Expectations, GDP Deflator, Core PCE, Import Price Index, Export Price Index"
+Financial Indicators	Market Conditions	"Interest Rates, Central Bank Policy Changes, QE, Government Bond Yields, Corporate Bond Yields, Money Supply (M1, M2, M3), Credit Market Conditions, Bank Lending Survey, Currency Exchange Rates, Commodity Prices, VIX, CDS, LIBOR Rates, Interbank Offered Rates, Mortgage Rates, Repo Rate, Reverse Repo Rate, Liquidity Levels, Financial Stability Reports"
+	Corporate Activities	"Corporate Earnings Reports, Dividend Announcements, M&A Activity, IPO Activity, Stock Buybacks, Stock Splits, Hedge Fund Activity, Private Equity Deals"
+Political & Global Factors	Domestic Politics	"Election Results, Changes in Government, Political Stability/Instability, Legislative Changes, Tax Policy Changes, Regulatory Changes, Government Debt Levels, Fiscal Policy, Budget Announcements, Public Sector Investment, Defense Spending, Energy Policy"
+	Global Influence	"Global Economic Growth, International Trade Trends, Economic Sanctions, FDI, Global Market Trends, Emerging Market Performance, Global Inflation Trends, World Bank/IMF Forecasts, International Monetary Policy, Cross-Border Tax Changes, Global Health Crises, International Climate Agreements, Migration Trends, Trade Policy, Trade Agreements, International Sanctions"

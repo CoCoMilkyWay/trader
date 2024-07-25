@@ -11,7 +11,6 @@ class _a():
 A = _a()
 A.bought_list = []
 A.hsa = xtdata.get_stock_list_in_sector('沪深A股')
-print(A.hsa)
 
 def interact():
     """执行后进入repl模式"""
@@ -124,11 +123,11 @@ if __name__ == '__main__':
     # 对交易回调进行订阅，订阅后可以收到交易主推，返回0表示订阅成功
     subscribe_result = xt_trader.subscribe(acc)
     print('对交易回调进行订阅，订阅后可以收到交易主推，返回0表示订阅成功', subscribe_result)
-
+    
     #这一行是注册全推回调函数 包括下单判断 安全起见处于注释状态 确认理解效果后再放开
-    xtdata.subscribe_whole_quote(["SH", "SZ"], callback=f)
+    # xtdata.subscribe_whole_quote(["SH", "SZ"], callback=f)
     # 阻塞主线程退出
-    xt_trader.run_forever()
+    # xt_trader.run_forever()
     
     # 如果使用vscode pycharm等本地编辑器 可以进入交互模式 方便调试 （把上一行的run_forever注释掉 否则不会执行到这里）
-    interact()
+    # interact()
