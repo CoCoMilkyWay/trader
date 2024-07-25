@@ -1,6 +1,6 @@
 # common
 */build
-*/*.egg-info
+*.egg-info/*
 
 # wtcpp
 */dist

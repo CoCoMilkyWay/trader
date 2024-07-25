@@ -1,0 +1,16 @@
+- https://wtdocs.readthedocs.io/zh/latest/docs/usage/common_files.html
+
+- commodities.json: 品种信息表
+- contracts.json: 合约信息表
+- etfs.json: etf信息表 (etf_comms.json)
+- stocks.json: 股票信息表 (stk_comms.json)
+
+- 期货:个股期货（国内市场不发行）、股指期货、利率期权、外汇期货和商品期货
+- 期权:个股期权、股指期权（包括特殊的股指期货期权）、利率期权、外汇期权和商品期权（包括特殊的商品期货期权）
+    - 特殊的期货期权类型，主要被用来保证期货合约换月下的期货持仓，作为更细粒度的对冲稳定手段
+    - stk_options.json: 个股期权信息表 (sopt_comms.json)
+    - fut_options.json: 商品期货期权信息表 (fopt_comms.json)
+    - if_options.json: 股指期货期权信息表 (ifopt_comms.json)
+
+-　hots.json: 主力合约换月信息表
+-　seconds.json: 次主力合约换月信息表

@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import requests
 
 setup(
     name='xtquant',
@@ -18,7 +17,6 @@ setup(
     python_requires='>=3.6, <3.13',
     license='GNU GPLv3 ',
     install_requires=[
-        # 依赖列表
         "requests",
         "pandas",
         "numpy"

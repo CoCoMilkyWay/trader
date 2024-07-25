@@ -2527,6 +2527,7 @@ def watch_quote_server_status(callback):
     if callback:
         callback = subscribe_callback_wrapper(callback)
 
+    print("Data to be encoded:", repr(_BSON_.BSON))
     cl.subscribeCommonControl("watchquoteserverstatus", _BSON_.BSON.encode({}), callback)
     return
 
