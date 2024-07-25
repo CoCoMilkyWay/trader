@@ -1,0 +1,235 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Includes\CtaStrategyDefs.h" />
+    <ClInclude Include="..\Includes\ExecuteDefs.h" />
+    <ClInclude Include="..\Includes\HftStrategyDefs.h" />
+    <ClInclude Include="..\Includes\ICtaStraCtx.h" />
+    <ClInclude Include="..\Includes\IDataReader.h" />
+    <ClInclude Include="..\Includes\IHftStraCtx.h" />
+    <ClInclude Include="..\Includes\ISelStraCtx.h" />
+    <ClInclude Include="..\Includes\RiskMonDefs.h" />
+    <ClInclude Include="ActionPolicyMgr.h" />
+    <ClInclude Include="EventNotifier.h" />
+    <ClInclude Include="WtArbiExecuter.h" />
+    <ClInclude Include="WtDiffExecuter.h" />
+    <ClInclude Include="WtExecuterFactory.h" />
+    <ClInclude Include="WtFilterMgr.h" />
+    <ClInclude Include="HftStraBaseCtx.h" />
+    <ClInclude Include="HftStraContext.h" />
+    <ClInclude Include="HftStrategyMgr.h" />
+    <ClInclude Include="CtaStrategyMgr.h" />
+    <ClInclude Include="CtaStraBaseCtx.h" />
+    <ClInclude Include="IExecCommand.h" />
+    <ClInclude Include="ITrdNotifySink.h" />
+    <ClInclude Include="SelStraBaseCtx.h" />
+    <ClInclude Include="SelStraContext.h" />
+    <ClInclude Include="SelStrategyMgr.h" />
+    <ClInclude Include="ParserAdapter.h" />
+    <ClInclude Include="TraderAdapter.h" />
+    <ClInclude Include="WtDistExecuter.h" />
+    <ClInclude Include="WtEngine.h" />
+    <ClInclude Include="WtExecMgr.h" />
+    <ClInclude Include="WtHelper.h" />
+    <ClInclude Include="WtCtaTicker.h" />
+    <ClInclude Include="CtaStraContext.h" />
+    <ClInclude Include="WtDtMgr.h" />
+    <ClInclude Include="WtCtaEngine.h" />
+    <ClInclude Include="WtLocalExecuter.h" />
+    <ClInclude Include="WtHftEngine.h" />
+    <ClInclude Include="WtHftTicker.h" />
+    <ClInclude Include="WtSelEngine.h" />
+    <ClInclude Include="WtSelTicker.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ActionPolicyMgr.cpp" />
+    <ClCompile Include="CtaStrategyMgr.cpp" />
+    <ClCompile Include="CtaStraBaseCtx.cpp" />
+    <ClCompile Include="EventNotifier.cpp" />
+    <ClCompile Include="WtArbiExecuter.cpp" />
+    <ClCompile Include="WtDiffExecuter.cpp" />
+    <ClCompile Include="WtExecuterFactory.cpp" />
+    <ClCompile Include="WtFilterMgr.cpp" />
+    <ClCompile Include="HftStraBaseCtx.cpp" />
+    <ClCompile Include="HftStraContext.cpp" />
+    <ClCompile Include="HftStrategyMgr.cpp" />
+    <ClCompile Include="SelStraBaseCtx.cpp" />
+    <ClCompile Include="SelStraContext.cpp" />
+    <ClCompile Include="SelStrategyMgr.cpp" />
+    <ClCompile Include="ParserAdapter.cpp" />
+    <ClCompile Include="TraderAdapter.cpp" />
+    <ClCompile Include="WtDistExecuter.cpp" />
+    <ClCompile Include="WtEngine.cpp" />
+    <ClCompile Include="WtExecMgr.cpp" />
+    <ClCompile Include="WtHelper.cpp" />
+    <ClCompile Include="WtCtaTicker.cpp" />
+    <ClCompile Include="WtDtMgr.cpp" />
+    <ClCompile Include="WtLocalExecuter.cpp" />
+    <ClCompile Include="CtaStraContext.cpp" />
+    <ClCompile Include="WtCtaEngine.cpp" />
+    <ClCompile Include="WtHftEngine.cpp" />
+    <ClCompile Include="WtHftTicker.cpp" />
+    <ClCompile Include="WtSelEngine.cpp" />
+    <ClCompile Include="WtSelTicker.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C2086CB3-F8F7-455F-83C8-B806B58E52A8}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>WtCore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(MyDepends141)\lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(MyDepends141)\lib\x64;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LibraryPath>$(MyDepends141)\lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LibraryPath>$(MyDepends141)\lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

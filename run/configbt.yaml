@@ -1,0 +1,20 @@
+replayer:
+    basefiles:
+        commodity: ../common/stk_comms.json     #品种列表
+        # covermode:  0-开平, 1-区分平今, 3-不分开平
+        # pricemode:  0-支持限价市价, 1-只支持限价, 2-只支持市价  
+        # category :  20-币币SPOT, 21-永续SWAP, 22-期货Future, 23-币币杠杆Margin
+        # trademode:  0-多空, 1-做多, 2-做多T+1
+        contract: ../common/stocks.json      #合约列表
+        holiday: ../common/holidays.json        #节假日列表
+        hot: ../common/hots.json                #主力合约映射表
+        session: ../common/sessions.json        #交易时间模板
+    stime: 202201010900         #回测开始时间，精确到分钟
+    etime: 202312011500         #回测结束时间，精确到分钟
+    fees: ../common/fees_stk.json   #佣金配置文件
+    mode: csv   #回测历史数据存储，csv或者bin/wtp，其中bin/wtp都是一个意思
+    store:
+        module: WtDataStorage   #历史数据存储模块，如果是csv，该配置不生效
+        path: ../storage/       #历史数据存储跟目录
+env:
+    mocker: cta                 #回测引擎，cta/sel/hft/exec/uf

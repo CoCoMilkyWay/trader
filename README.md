@@ -1,0 +1,13 @@
+- trade/backtest-core:
+    - WonderTrader PY+CPP
+- trading account API:
+    - QMT(guojin inc.): (communicate through socket ports)
+        - xtquant API (only works in windows (O.O) )
+        - brokerage firms' QMT xt-client
+- trading signal:
+    - Deep-Learning:
+        - supervised-learning: qlib
+        - reinforcement-learning: FinRL/ElegantRL(not used)
+    - ChanLun/Elliot-Wave:
+        - chan.py
+

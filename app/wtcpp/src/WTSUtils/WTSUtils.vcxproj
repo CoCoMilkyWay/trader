@@ -1,0 +1,295 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{9F0B15CC-34C6-46DA-9575-D4AE11453B84}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>WTSUtils</RootNamespace>
+    <ProjectName>WTSUtilsLib</ProjectName>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(MyDepends141)\lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <ReferencePath>D:\Windows Kits\10\Include\10.0.17134.0\ucrt;$(ReferencePath)</ReferencePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(MyDepends141)\lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(MyDepends141)\lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(MyDepends141)\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(MyDepends141)\lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\libs\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D_HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="lmdb\lmdb.h" />
+    <ClInclude Include="lmdb\midl.h" />
+    <ClInclude Include="SignalHook.hpp" />
+    <ClInclude Include="StackTracer\StackTracer.h" />
+    <ClInclude Include="StackTracer\StackWalker.h" />
+    <ClInclude Include="WtLMDB.hpp" />
+    <ClInclude Include="WTSCfgLoader.h" />
+    <ClInclude Include="WTSCmpHelper.hpp" />
+    <ClInclude Include="yamlcpp\collectionstack.h" />
+    <ClInclude Include="yamlcpp\directives.h" />
+    <ClInclude Include="yamlcpp\emitterstate.h" />
+    <ClInclude Include="yamlcpp\emitterutils.h" />
+    <ClInclude Include="yamlcpp\exp.h" />
+    <ClInclude Include="yamlcpp\indentation.h" />
+    <ClInclude Include="yamlcpp\nodebuilder.h" />
+    <ClInclude Include="yamlcpp\nodeevents.h" />
+    <ClInclude Include="yamlcpp\ptr_vector.h" />
+    <ClInclude Include="yamlcpp\regeximpl.h" />
+    <ClInclude Include="yamlcpp\regex_yaml.h" />
+    <ClInclude Include="yamlcpp\scanner.h" />
+    <ClInclude Include="yamlcpp\scanscalar.h" />
+    <ClInclude Include="yamlcpp\scantag.h" />
+    <ClInclude Include="yamlcpp\setting.h" />
+    <ClInclude Include="yamlcpp\singledocparser.h" />
+    <ClInclude Include="yamlcpp\stream.h" />
+    <ClInclude Include="yamlcpp\streamcharsource.h" />
+    <ClInclude Include="yamlcpp\stringsource.h" />
+    <ClInclude Include="yamlcpp\tag.h" />
+    <ClInclude Include="yamlcpp\token.h" />
+    <ClInclude Include="zstdlib\bitstream.h" />
+    <ClInclude Include="zstdlib\compiler.h" />
+    <ClInclude Include="zstdlib\cover.h" />
+    <ClInclude Include="zstdlib\cpu.h" />
+    <ClInclude Include="zstdlib\debug.h" />
+    <ClInclude Include="zstdlib\divsufsort.h" />
+    <ClInclude Include="zstdlib\error_private.h" />
+    <ClInclude Include="zstdlib\fse.h" />
+    <ClInclude Include="zstdlib\hist.h" />
+    <ClInclude Include="zstdlib\huf.h" />
+    <ClInclude Include="zstdlib\mem.h" />
+    <ClInclude Include="zstdlib\pool.h" />
+    <ClInclude Include="zstdlib\threading.h" />
+    <ClInclude Include="zstdlib\xxhash.h" />
+    <ClInclude Include="zstdlib\zbuff.h" />
+    <ClInclude Include="zstdlib\zdict.h" />
+    <ClInclude Include="zstdlib\zstd.h" />
+    <ClInclude Include="zstdlib\zstdmt_compress.h" />
+    <ClInclude Include="zstdlib\zstd_compress_internal.h" />
+    <ClInclude Include="zstdlib\zstd_compress_literals.h" />
+    <ClInclude Include="zstdlib\zstd_compress_sequences.h" />
+    <ClInclude Include="zstdlib\zstd_cwksp.h" />
+    <ClInclude Include="zstdlib\zstd_ddict.h" />
+    <ClInclude Include="zstdlib\zstd_decompress_block.h" />
+    <ClInclude Include="zstdlib\zstd_decompress_internal.h" />
+    <ClInclude Include="zstdlib\zstd_double_fast.h" />
+    <ClInclude Include="zstdlib\zstd_errors.h" />
+    <ClInclude Include="zstdlib\zstd_fast.h" />
+    <ClInclude Include="zstdlib\zstd_internal.h" />
+    <ClInclude Include="zstdlib\zstd_lazy.h" />
+    <ClInclude Include="zstdlib\zstd_ldm.h" />
+    <ClInclude Include="zstdlib\zstd_opt.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lmdb\mdb.c" />
+    <ClCompile Include="lmdb\midl.c" />
+    <ClCompile Include="StackTracer\StackTracer.cpp" />
+    <ClCompile Include="StackTracer\StackWalker.cpp" />
+    <ClCompile Include="WTSCfgLoader.cpp" />
+    <ClCompile Include="yamlcpp\binary.cpp" />
+    <ClCompile Include="yamlcpp\convert.cpp" />
+    <ClCompile Include="yamlcpp\depthguard.cpp" />
+    <ClCompile Include="yamlcpp\directives.cpp" />
+    <ClCompile Include="yamlcpp\emit.cpp" />
+    <ClCompile Include="yamlcpp\emitfromevents.cpp" />
+    <ClCompile Include="yamlcpp\emitter.cpp" />
+    <ClCompile Include="yamlcpp\emitterstate.cpp" />
+    <ClCompile Include="yamlcpp\emitterutils.cpp" />
+    <ClCompile Include="yamlcpp\exceptions.cpp" />
+    <ClCompile Include="yamlcpp\exp.cpp" />
+    <ClCompile Include="yamlcpp\memory.cpp" />
+    <ClCompile Include="yamlcpp\node.cpp" />
+    <ClCompile Include="yamlcpp\nodebuilder.cpp" />
+    <ClCompile Include="yamlcpp\nodeevents.cpp" />
+    <ClCompile Include="yamlcpp\node_data.cpp" />
+    <ClCompile Include="yamlcpp\null.cpp" />
+    <ClCompile Include="yamlcpp\ostream_wrapper.cpp" />
+    <ClCompile Include="yamlcpp\parse.cpp" />
+    <ClCompile Include="yamlcpp\parser.cpp" />
+    <ClCompile Include="yamlcpp\regex_yaml.cpp" />
+    <ClCompile Include="yamlcpp\scanner.cpp" />
+    <ClCompile Include="yamlcpp\scanscalar.cpp" />
+    <ClCompile Include="yamlcpp\scantag.cpp" />
+    <ClCompile Include="yamlcpp\scantoken.cpp" />
+    <ClCompile Include="yamlcpp\simplekey.cpp" />
+    <ClCompile Include="yamlcpp\singledocparser.cpp" />
+    <ClCompile Include="yamlcpp\stream.cpp" />
+    <ClCompile Include="yamlcpp\tag.cpp" />
+    <ClCompile Include="zstdlib\cover.c" />
+    <ClCompile Include="zstdlib\debug.c" />
+    <ClCompile Include="zstdlib\divsufsort.c" />
+    <ClCompile Include="zstdlib\entropy_common.c" />
+    <ClCompile Include="zstdlib\error_private.c" />
+    <ClCompile Include="zstdlib\fastcover.c" />
+    <ClCompile Include="zstdlib\fse_compress.c" />
+    <ClCompile Include="zstdlib\fse_decompress.c" />
+    <ClCompile Include="zstdlib\hist.c" />
+    <ClCompile Include="zstdlib\huf_compress.c" />
+    <ClCompile Include="zstdlib\huf_decompress.c" />
+    <ClCompile Include="zstdlib\pool.c" />
+    <ClCompile Include="zstdlib\threading.c" />
+    <ClCompile Include="zstdlib\xxhash.c" />
+    <ClCompile Include="zstdlib\zbuff_common.c" />
+    <ClCompile Include="zstdlib\zbuff_compress.c" />
+    <ClCompile Include="zstdlib\zbuff_decompress.c" />
+    <ClCompile Include="zstdlib\zdict.c" />
+    <ClCompile Include="zstdlib\zstdmt_compress.c" />
+    <ClCompile Include="zstdlib\zstd_common.c" />
+    <ClCompile Include="zstdlib\zstd_compress.c" />
+    <ClCompile Include="zstdlib\zstd_compress_literals.c" />
+    <ClCompile Include="zstdlib\zstd_compress_sequences.c" />
+    <ClCompile Include="zstdlib\zstd_ddict.c" />
+    <ClCompile Include="zstdlib\zstd_decompress.c" />
+    <ClCompile Include="zstdlib\zstd_decompress_block.c" />
+    <ClCompile Include="zstdlib\zstd_double_fast.c" />
+    <ClCompile Include="zstdlib\zstd_fast.c" />
+    <ClCompile Include="zstdlib\zstd_lazy.c" />
+    <ClCompile Include="zstdlib\zstd_ldm.c" />
+    <ClCompile Include="zstdlib\zstd_opt.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,15 @@
+- Modified parts of python lib:
+    - wtcpp:
+    - wtpy:
+    - xtquant API:
+
+
+- This is the main script: Thread allocation(TODO)
+    1. database maintainance core
+        a. pull meta data: equity, adj_factor etc
+        b. data integrity records
+        c. data collection based on records (using datafactory(csv), datahelper(data_provider), datatick(real-time API))
+        d. datatick from real-time API, processed into database each day at closure (or at designated time for crypto market)
+    2. replay/backtest
+    3. WT real-trader core
+    4. WT snooper web GUI

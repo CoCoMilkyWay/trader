@@ -1,0 +1,247 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Interfaces">
+      <UniqueIdentifier>{7d1736f5-b07f-4cb0-bc91-5fe877a63bba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Objects">
+      <UniqueIdentifier>{6be08ccf-a89a-4ae5-9af6-943f461071eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="BaseDefs">
+      <UniqueIdentifier>{d6eea8c1-6ca3-422a-babc-7852496aa3e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="ThreadPool">
+      <UniqueIdentifier>{20be0f2d-5671-43a3-abcf-9b377bf16480}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThreadPool\detail">
+      <UniqueIdentifier>{dd81da78-3aec-40b3-a9b4-8dc70d9eb065}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="fasterlibs">
+      <UniqueIdentifier>{78e73dc5-6aa8-415e-b7b0-bda970c9eded}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="fasterlibs\tsl">
+      <UniqueIdentifier>{fa80e461-6b62-459e-b183-f6c6ed55e5d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="fasterlibs\ankerl">
+      <UniqueIdentifier>{bed05909-476e-4846-b512-1aed61eefd58}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="StrUtil.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeUtils.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="IniFile.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="BoostFile.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeHelper.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="BoostMappingFile.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="IniHelper.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="StdUtils.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="DLLHelper.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="charconv.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="decimal.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\future.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\pool.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\pool_adaptors.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\scheduling_policies.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\shutdown_policies.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\size_policies.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\task_adaptors.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\detail\future.hpp">
+      <Filter>ThreadPool\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\detail\locking_ptr.hpp">
+      <Filter>ThreadPool\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\detail\pool_core.hpp">
+      <Filter>ThreadPool\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\detail\scope_guard.hpp">
+      <Filter>ThreadPool\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool\detail\worker_thread.hpp">
+      <Filter>ThreadPool\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="threadpool.hpp">
+      <Filter>ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="ILogHandler.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IBaseDataMgr.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IDataFactory.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IDataWriter.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IHotMgr.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IParserApi.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\ISessionMgr.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\ITraderApi.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSMarcos.h">
+      <Filter>BaseDefs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSTypes.h">
+      <Filter>BaseDefs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSCollection.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSContractInfo.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSDataDef.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSError.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSObject.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSRiskDef.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSSessionInfo.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSStruct.h">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSTradeDef.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSVariant.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IDataManager.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IDataReader.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSVersion.h">
+      <Filter>BaseDefs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FasterLibs\tsl\robin_growth_policy.h">
+      <Filter>fasterlibs\tsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FasterLibs\tsl\robin_hash.h">
+      <Filter>fasterlibs\tsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FasterLibs\tsl\robin_map.h">
+      <Filter>fasterlibs\tsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FasterLibs\tsl\robin_set.h">
+      <Filter>fasterlibs\tsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\FasterDefs.h">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\ICtaStraCtx.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IHftStraCtx.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\ISelStraCtx.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\ExecuteDefs.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleHelper.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="fmtlib.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IRdmDtReader.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\IBtDtReader.h">
+      <Filter>Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuHelper.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="WtObjectPool.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectPool.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="WtKVCache.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="SpinMutex.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\WTSSwitchItem.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Includes\LoaderDef.hpp">
+      <Filter>Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FasterLibs\ankerl\unordered_dense.h">
+      <Filter>fasterlibs\ankerl</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

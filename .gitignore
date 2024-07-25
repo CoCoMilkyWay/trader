@@ -1,0 +1,35 @@
+# common
+*/build
+*/*.egg-info
+
+# wtcpp
+*/dist
+
+# wtpy
+*/__pycache__
+*.pyc
+.DS_Store
+node_modules/
+*/dist
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.xlsx
+BtLogs
+Logs
+outputs_bt
+bin
+FUT_Data
+DtLogs
+ParserCTPFlow
+*.con
+*.dmb
+*.dsb
