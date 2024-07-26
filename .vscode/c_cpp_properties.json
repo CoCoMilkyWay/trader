@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${default}",
+                "app/wtcpp_dep/include/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc-8",
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
