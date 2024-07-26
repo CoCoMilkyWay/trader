@@ -126,7 +126,7 @@ setup(
     # },
     install_requires=REQUIRED,
     package_data={
-        'wtpy': [
+        '': [
         "*"
     ]},
     extras_require=EXTRAS,
