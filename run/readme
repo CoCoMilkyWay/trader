@@ -1,7 +1,7 @@
 - Modified parts of python lib:
-    - wtcpp:
+    - wtcpp: add QMT(xtquant) real-time-stk-tick-data-parser under C++ for latency and speed
     - wtpy:
-    - xtquant API:
+    - xtquant API: 
 
 
 - This is the main script: Thread allocation(TODO)
