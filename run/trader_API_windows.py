@@ -81,27 +81,29 @@ def monitor_callback(func):
 
 filename = 'full-tick.txt'
 def print_to_stdout_and_file(data, filename):
-    with open(filename, 'w') as f:
-        multi_stream = MultiStream(sys.stdout, f)
-        pp = pprint.PrettyPrinter(indent=4, width=120, stream=multi_stream)
+    with open(filename, 'a') as file:
+        print(data, file=file)
+        # multi_stream = MultiStream(sys.stdout, file)
+        # pp = pprint.PrettyPrinter(indent=4, width=120, stream=multi_stream)
         # pp.pprint(data)
 
 # @monitor_callback
 def subscribed_data_callback(data):
     now = datetime.datetime.now()
-    print('subscribed_data_callback: ', sys.getsizeof(data))
-    for stock in data:
-        if stock not in A.hsa:
-            continue
-        print_to_stdout_and_file(stock, filename)
-
-        # cuurent_price = data[stock][0]['lastPrice']
-        # pre_price = data[stock][0]['lastClose']
-        # ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
-        # if ratio > 0.09 and stock not in A.bought_list:
-        #     print(f"{now} 最新价 买入 {stock} 200股")
-        #     # async_seq = xt_trader.order_stock_async(acc, stock, xtconstant.STOCK_BUY, 1, xtconstant.LATEST_PRICE, -1, 'strategy_name', stock)
-        #     A.bought_list.append(stock)
+    print(now, ': ', sys.getsizeof(data))
+    print_to_stdout_and_file(data, filename)
+    # print('subscribed_data_callback: ', sys.getsizeof(data))
+    # for stock in data:
+    #     if stock not in A.hsa:
+    #         continue
+    #     print_to_stdout_and_file(stock, filename)
+    #     cuurent_price = data[stock][0]['lastPrice']
+    #     pre_price = data[stock][0]['lastClose']
+    #     ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
+    #     if ratio > 0.09 and stock not in A.bought_list:
+    #         print(f"{now} 最新价 买入 {stock} 200股")
+    #         # async_seq = xt_trader.order_stock_async(acc, stock, xtconstant.STOCK_BUY, 1, xtconstant.LATEST_PRICE, -1, 'strategy_name', stock)
+    #         A.bought_list.append(stock)
 
 class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_disconnected(self):
@@ -125,11 +127,9 @@ class MyXtQuantTraderCallback(XtQuantTraderCallback):
 
 
 if __name__ == '__main__':
-    print("start")
-    path = r'C:\Users\chuyin.wang\Desktop\share\gjzqqmt\国金证券QMT交易端\userdata_mini'
-
-    session_id = int(time.time()) # per-strategy basis
     print('[API]： Initializing new trading session')
+    path = r'C:\Users\chuyin.wang\Desktop\share\gjzqqmt\国金证券QMT交易端\userdata_mini'
+    session_id = int(time.time()) # per-strategy basis
     xt_trader = XtQuantTrader(path, session_id)
     xt_trader.set_relaxed_response_order_enabled(False) # exclusive query thread(async to exec callback)
 
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     subscribe_result = xt_trader.subscribe(acc)
     if ~subscribe_result:
-        print('[API]： Subscription Connected(empty)')
+        print('[API]： Subscription Channel Connected(empty)')
 
     #这一行是注册全推回调函数 包括下单判断 安全起见处于注释状态 确认理解效果后再放开
     xtdata.subscribe_whole_quote(["SH", "SZ"], callback=subscribed_data_callback)
