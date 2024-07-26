@@ -37,10 +37,10 @@ ELSE (GNUCC)
 
 		MESSAGE(STATUS "MyDepends is at $ENV{MyDependsGcc}")
 	ELSE(UNIX)
-		SET (MyDeps "/home/mydeps")
+		SET (MyDeps "${CMAKE_SOURCE_DIR}/../../wtcpp_dep")
 		SET(SUFFIX .so)
 
-		MESSAGE(STATUS "MyDepends is at /home/mydeps")
+		MESSAGE(STATUS "MyDepends (unzipped) is at ${MyDeps}")
 	ENDIF()
 
 	SET(INCS ${MyDeps}/include)
