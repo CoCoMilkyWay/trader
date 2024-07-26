@@ -5,8 +5,7 @@ from xtquant.xttrader import XtQuantTrader, XtQuantTraderCallback
 from xtquant.xttype import StockAccount
 from xtquant import xtconstant
 
-#定义一个类 创建类的实例 作为状态的容器
-class _a():
+class _a(): # data container
     pass
 A = _a()
 A.bought_list = []
@@ -18,116 +17,145 @@ def interact():
     code.InteractiveConsole(locals=globals()).interact()
 xtdata.download_sector_data()
 
-def f(data):
+import sys
+import pprint
+class MultiStream:
+    def __init__(self, *streams):
+        self.streams = streams
+    def write(self, data):
+        """ Write data to all streams. """
+        for stream in self.streams:
+            stream.write(data)
+    def flush(self):
+        """ Flush all streams. """
+        for stream in self.streams:
+            stream.flush()
+
+import time
+import sys
+import os
+from functools import wraps
+def monitor_callback(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Access the previous call time and count stored as function attributes
+        if not hasattr(wrapper, 'last_call_time'):
+            wrapper.last_call_time = None
+            wrapper.call_count = 0
+            wrapper.cumulative_file_size = 0
+            wrapper.total_interval = 0
+
+        # Call the callback function
+        result = func(*args, **kwargs)
+
+        # Update the call count
+        wrapper.call_count += 1
+
+        # Calculate the callback interval
+        current_time = time.time()
+        if wrapper.last_call_time is not None:
+            interval = current_time - wrapper.last_call_time
+            wrapper.total_interval += interval
+            print(f"Callback Interval: {interval:.2f} seconds")
+        wrapper.last_call_time = current_time
+
+        # Calculate the dictionary size (in bytes, assuming it's serialized)
+        dict_size = sys.getsizeof(result)
+        print(f"Dictionary Size: {dict_size} bytes")
+
+        # Write the result to a file and calculate file size increment
+        filename = f'callback_output_{wrapper.call_count}.dat'
+        with open(filename, 'w') as f:
+            f.write(str(result))
+        file_size = os.path.getsize(filename)
+        wrapper.cumulative_file_size += file_size
+
+        # Print statistics
+        if wrapper.call_count > 1:
+            average_interval = wrapper.total_interval / (wrapper.call_count - 1)
+            print(f"Average Callback Interval: {average_interval:.2f} seconds")
+        print(f"Cumulative File Size: {wrapper.cumulative_file_size} bytes")
+
+        return result
+    return wrapper
+
+filename = 'full-tick.txt'
+def print_to_stdout_and_file(data, filename):
+    with open(filename, 'w') as f:
+        multi_stream = MultiStream(sys.stdout, f)
+        pp = pprint.PrettyPrinter(indent=4, width=120, stream=multi_stream)
+        # pp.pprint(data)
+
+# @monitor_callback
+def subscribed_data_callback(data):
     now = datetime.datetime.now()
+    print('subscribed_data_callback: ', sys.getsizeof(data))
     for stock in data:
         if stock not in A.hsa:
             continue
-        cuurent_price = data[stock][0]['lastPrice']
-        pre_price = data[stock][0]['lastClose']
-        ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
-        if ratio > 0.09 and stock not in A.bought_list:
-            print(f"{now} 最新价 买入 {stock} 200股")
-            async_seq = xt_trader.order_stock_async(acc, stock, xtconstant.STOCK_BUY, 1, xtconstant.LATEST_PRICE, -1, 'strategy_name', stock)
-            A.bought_list.append(stock)
-    
+        print_to_stdout_and_file(stock, filename)
+
+        # cuurent_price = data[stock][0]['lastPrice']
+        # pre_price = data[stock][0]['lastClose']
+        # ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
+        # if ratio > 0.09 and stock not in A.bought_list:
+        #     print(f"{now} 最新价 买入 {stock} 200股")
+        #     # async_seq = xt_trader.order_stock_async(acc, stock, xtconstant.STOCK_BUY, 1, xtconstant.LATEST_PRICE, -1, 'strategy_name', stock)
+        #     A.bought_list.append(stock)
+
 class MyXtQuantTraderCallback(XtQuantTraderCallback):
     def on_disconnected(self):
-        """
-        连接断开
-        :return:
-        """
         print(datetime.datetime.now(),'连接断开回调')
-
     def on_stock_order(self, order):
-        """
-        委托回报推送
-        :param order: XtOrder对象
-        :return:
-        """
         print(datetime.datetime.now(), '委托回调', order.order_remark)
-
-
     def on_stock_trade(self, trade):
-        """
-        成交变动推送
-        :param trade: XtTrade对象
-        :return:
-        """
         print(datetime.datetime.now(), '成交回调', trade.order_remark)
-
-
     def on_order_error(self, order_error):
-        """
-        委托失败推送
-        :param order_error:XtOrderError 对象
-        :return:
-        """
         # print("on order_error callback")
         # print(order_error.order_id, order_error.error_id, order_error.error_msg)
         print(f"委托报错回调 {order_error.order_remark} {order_error.error_msg}")
-
     def on_cancel_error(self, cancel_error):
-        """
-        撤单失败推送
-        :param cancel_error: XtCancelError 对象
-        :return:
-        """
         print(datetime.datetime.now(), sys._getframe().f_code.co_name)
-
     def on_order_stock_async_response(self, response):
-        """
-        异步下单回报推送
-        :param response: XtOrderResponse 对象
-        :return:
-        """
         print(f"异步委托回调 {response.order_remark}")
-
     def on_cancel_order_stock_async_response(self, response):
-        """
-        :param response: XtCancelOrderResponse 对象
-        :return:
-        """
         print(datetime.datetime.now(), sys._getframe().f_code.co_name)
-
     def on_account_status(self, status):
-        """
-        :param response: XtAccountStatus 对象
-        :return:
-        """
         print(datetime.datetime.now(), sys._getframe().f_code.co_name)
 
 
 if __name__ == '__main__':
     print("start")
-    #指定客户端所在路径,
-    # 注意：如果是连接投研端进行交易，文件目录需要指定到f"{安装目录}\userdata"
     path = r'C:\Users\chuyin.wang\Desktop\share\gjzqqmt\国金证券QMT交易端\userdata_mini'
-    # 生成session id 整数类型 同时运行的策略不能重复
-    session_id = int(time.time())
-    xt_trader = XtQuantTrader(path, session_id)
-    # 开启主动请求接口的专用线程 开启后在on_stock_xxx回调函数里调用XtQuantTrader.query_xxx函数不会卡住回调线程，但是查询和推送的数据在时序上会变得不确定
-    # 详见: http://docs.thinktrader.net/vip/pages/ee0e9b/#开启主动请求接口的专用线程
-    # xt_trader.set_relaxed_response_order_enabled(True)
 
-    # 创建资金账号为 800068 的证券账号对象
+    session_id = int(time.time()) # per-strategy basis
+    print('[API]： Initializing new trading session')
+    xt_trader = XtQuantTrader(path, session_id)
+    xt_trader.set_relaxed_response_order_enabled(False) # exclusive query thread(async to exec callback)
+
+    print('[API]： Registering STOCK account 8881848660')
     acc = StockAccount('8881848660', 'STOCK')
-    # 创建交易回调类对象，并声明接收回调
-    callback = MyXtQuantTraderCallback()
+
+    print('[API]： Registering trading callback function')
+    callback = MyXtQuantTraderCallback() # trader callback
     xt_trader.register_callback(callback)
-    # 启动交易线程
+
+    print('[API]： Starting Trader')
     xt_trader.start()
-    # 建立交易连接，返回0表示连接成功
     connect_result = xt_trader.connect()
-    print('建立交易连接，返回0表示连接成功', connect_result)
-    # 对交易回调进行订阅，订阅后可以收到交易主推，返回0表示订阅成功
+    if ~connect_result:
+        print('[API]： Trader Connected')
+
     subscribe_result = xt_trader.subscribe(acc)
-    print('对交易回调进行订阅，订阅后可以收到交易主推，返回0表示订阅成功', subscribe_result)
-    
+    if ~subscribe_result:
+        print('[API]： Subscription Connected(empty)')
+
     #这一行是注册全推回调函数 包括下单判断 安全起见处于注释状态 确认理解效果后再放开
-    # xtdata.subscribe_whole_quote(["SH", "SZ"], callback=f)
+    xtdata.subscribe_whole_quote(["SH", "SZ"], callback=subscribed_data_callback)
+    print('[API]： Data Subscribed, Trading Start')
+
     # 阻塞主线程退出
-    # xt_trader.run_forever()
-    
+    xt_trader.run_forever()
+
     # 如果使用vscode pycharm等本地编辑器 可以进入交互模式 方便调试 （把上一行的run_forever注释掉 否则不会执行到这里）
     # interact()
