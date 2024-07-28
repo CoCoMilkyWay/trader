@@ -1,138 +1,69 @@
-from wtpy import WtBtEngine,EngineType
-from wtpy.apps import WtBtAnalyst
+#coding:utf-8
+# import pandas as pd
+# from xtquant import xtdata
+# period = 'snapshotindex'
+# stock_list = ['300001.SZ']
+# start_time='20240101'; end_time='20240201' # 
+# xtdata.download_history_data(stock_list[0], period=period, incrementally=True, start_time=start_time, end_time=end_time)
+# data = xtdata.get_local_data(field_list=[], stock_list=stock_list, period=period, start_time=start_time, end_time=end_time)
+# auction = xtdata.get_market_data_ex(field_list=[], stock_list=stock_list, period=period,start_time=start_time, end_time=end_time)
+# 
+# print(pd.DataFrame(data[stock_list[0]]))
+# print(pd.DataFrame(auction[stock_list[0]]))
 
-import sys
-# sys.path.append('../Strategies')
-from wtpy import BaseCtaStrategy
-from wtpy import CtaContext
-import numpy as np
 
-class StraDualThrust(BaseCtaStrategy):
+from xtquant import xtdata
+import time
+
+
+def my_download(stock_list,period,start_date = '', end_date = ''):
+  '''
+  用于显示下载进度
+  '''
+  if "d" in period:
+    period = "1d"
+  elif "m" in period:
+    if int(period[0]) < 5:
+      period = "1m"
+    else:
+      period = "5m"
+  elif "tick" == period:
+    pass
+  else:
+    raise KeyboardInterrupt("周期传入错误")
+
+
+  n = 1
+  num = len(stock_list)
+  for i in stock_list:
+    print(f"当前正在下载{n}/{num}")
     
-    def __init__(self, name:str, code:str, barCnt:int, period:str, days:int, k1:float, k2:float, isForStk:bool = False):
-        BaseCtaStrategy.__init__(self, name)
+    xtdata.download_history_data(i,period,start_date, end_date)
+    n += 1
+  print("下载任务结束")
 
-        self.__days__ = days
-        self.__k1__ = k1
-        self.__k2__ = k2
+def do_subscribe_quote(stock_list:list, period:str):
+  for i in stock_list:
+    xtdata.subscribe_quote(i,period = period)
+  time.sleep(1) # 等待订阅完成
 
-        self.__period__ = period
-        self.__bar_cnt__ = barCnt
-        self.__code__ = code
-
-        self.__is_stk__ = isForStk
-
-    def on_init(self, context:CtaContext):
-        code = self.__code__    #品种代码
-        if self.__is_stk__:
-            code = code + "-"   # 如果是股票代码，后面加上一个+/-，+表示后复权，-表示前复权
-
-        #这里演示了品种信息获取的接口
-        #pInfo = context.stra_get_comminfo(code)
-        #print(pInfo)
-
-        context.stra_prepare_bars(code, self.__period__, self.__bar_cnt__, isMain = True)
-        context.stra_sub_ticks(code)
-        context.stra_log_text("DualThrust inited")
-
-        #读取存储的数据
-        self.xxx = context.user_load_data('xxx',1)
-
-    def on_tick(self, context: CtaContext, stdCode: str, newTick: dict):
-        # print(newTick)
-        pass
-    
-    def on_calculate(self, context:CtaContext):
-        code = self.__code__    #品种代码
-
-        trdUnit = 1
-        if self.__is_stk__:
-            trdUnit = 100
-
-        #读取最近50条1分钟线(dataframe对象)
-        theCode = code
-        if self.__is_stk__:
-            theCode = theCode + "-" # 如果是股票代码，后面加上一个+/-，+表示后复权，-表示前复权
-        np_bars = context.stra_get_bars(theCode, self.__period__, self.__bar_cnt__, isMain = True)
-
-        #把策略参数读进来，作为临时变量，方便引用
-        days = self.__days__
-        k1 = self.__k1__
-        k2 = self.__k2__
-
-        #平仓价序列、最高价序列、最低价序列
-        closes = np_bars.closes
-        highs = np_bars.highs
-        lows = np_bars.lows
-
-        #读取days天之前到上一个交易日位置的数据
-        hh = np.amax(highs[-days:-1])
-        hc = np.amax(closes[-days:-1])
-        ll = np.amin(lows[-days:-1])
-        lc = np.amin(closes[-days:-1])
-
-        #读取今天的开盘价、最高价和最低价
-        # lastBar = df_bars.get_last_bar()
-        openpx = np_bars.opens[-1]
-        highpx = np_bars.highs[-1]
-        lowpx = np_bars.lows[-1]
-
-        '''
-        !!!!!这里是重点
-        1、首先根据最后一条K线的时间，计算当前的日期
-        2、根据当前的日期，对日线进行切片,并截取所需条数
-        3、最后在最终切片内计算所需数据
-        '''
-
-        #确定上轨和下轨
-        upper_bound = openpx + k1* max(hh-lc,hc-ll)
-        lower_bound = openpx - k2* max(hh-lc,hc-ll)
-
-        #读取当前仓位
-        curPos = context.stra_get_position(code)/trdUnit
-
-        if curPos == 0:
-            if highpx >= upper_bound:
-                context.stra_enter_long(code, 1*trdUnit, 'enterlong')
-                # context.stra_log_text(f"向上突破{highpx:.2f}>={upper_bound:.2f}，多仓进场")
-                #修改并保存
-                self.xxx = 1
-                context.user_save_data('xxx', self.xxx)
-                return
-
-            if lowpx <= lower_bound and not self.__is_stk__:
-                context.stra_enter_short(code, 1*trdUnit, 'entershort')
-                # context.stra_log_text(f"向下突破{lowpx:.2f}<={lower_bound:.2f}，空仓进场")
-                return
-        elif curPos > 0:
-            if lowpx <= lower_bound:
-                context.stra_exit_long(code, 1*trdUnit, 'exitlong')
-                # context.stra_log_text(f"向下突破{lowpx:.2f}<={lower_bound:.2f}，多仓出场")
-                #raise Exception("except on purpose")
-                return
-        else:
-            if highpx >= upper_bound and not self.__is_stk__:
-                context.stra_exit_short(code, 1*trdUnit, 'exitshort')
-                # context.stra_log_text(f"向上突破{highpx:.2f}>={upper_bound:.2f}，空仓出场")
-                return
-            
 if __name__ == "__main__":
-    #创建一个运行环境，并加入策略
-    engine = WtBtEngine(EngineType.ET_CTA)
-    engine.init(folder='./common/', cfgfile="configbt.yaml", commfile="assets_cfg/stk_comms.json", contractfile="assets_list/stocks.json")
-    engine.configBacktest(201901010930,201912151500)
-    engine.configBTStorage(mode="csv", path="../storage/")
-    engine.commitBTConfig()
-    
-    straInfo = StraDualThrust(name='pydt_SH510300', code="SSE.ETF.510300", barCnt=50, period="m5", days=30, k1=0.1, k2=0.1)
-    engine.set_cta_strategy(straInfo)
 
-    engine.run_backtest()
+  start_date = ""# 格式"YYYYMMDD"，开始下载的日期，date = ""时全量下载
+  end_date = "" 
+  period = "1d" 
 
-    #绩效分析
-    analyst = WtBtAnalyst()
-    analyst.add_strategy("pydt_SH510300", folder="./outputs_bt/", init_capital=5000, rf=0.0, annual_trading_days=240)
-    analyst.run()
+  need_download = 1  # 取数据是空值时，将need_download赋值为1，确保正确下载了历史数据
+  
+  code_list = ["600000.SH"] # 股票列表
 
-    kw = input('press any key to exit\n')
-    engine.release_backtest()
+  if need_download: # 判断要不要下载数据, gmd系列函数都是从本地读取历史数据,从服务器订阅获取最新数据
+    my_download(code_list, period, start_date, end_date)
+  
+  ############ 仅获取历史行情 #####################
+  data1 = xtdata.get_market_data_ex([],code_list,period = period, start_time = start_date, end_time = end_date, count = -1)
+
+  print(data1[code_list[0]].head())# 行情数据查看
+
+
+
