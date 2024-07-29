@@ -6,7 +6,12 @@
 
 from xtquant import xtdata
 sector_list = xtdata.get_sector_list()
-print(sector_list)
+# SH_trading_calendar = xtdata.get_trading_calendar('SH',start_time='',end_time='')
+
+
+
+
+
 
 # 获取沪深A股全部股票的代码
 # coding:utf-8

@@ -36,7 +36,7 @@
                 - code[:3] in ['300', '301']                           : "SZSE.SB"  # 深市二板:创业板(second-board)
                 - code[:3] in ['002', '003']                           : "SZSE.A"   # 中小板(深市主板)
                 - code[:3] in ['440', '430'] or code[:2] in ['83','87']: "NQ"       # 新三板(National Equities Exchange and Quotations)(2021场内改革)
-            8. industry sector: （change over years, but only use present year data）
+            8. industry sector:(change over years, but only use present year data)
                 - u32: 申万一级行业
                 - u32: 申万二级行业 (三级不收录)
             9. string: reserved for further info (call_auction/fundamental data flag)

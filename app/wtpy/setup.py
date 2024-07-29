@@ -23,7 +23,8 @@ VERSION = '0.9.9.3'
 # What packages are required for this module to be executed?
 REQUIRED = [
     'numpy', 
-    'pandas==1.3.5',     
+    # 'pandas==1.3.5',     
+    'pandas',     
     'chardet',
     'pyyaml',
     'xlsxwriter', 
