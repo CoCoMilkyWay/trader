@@ -33,7 +33,10 @@ REQUIRED = [
     'fastapi',
     'uvicorn',
     'deap',
-    'websockets>=10.4'
+    'websockets>=10.4',
+    'filelock',
+    'pyarrow',
+    'tqdm'
 ]
 
 # What packages are optional?
