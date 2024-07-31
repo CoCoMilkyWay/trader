@@ -2,10 +2,14 @@ import json
 
 class cfg: # Constants Configs
     import os
+    TEST = 1
+    no_workers = 10
+    parallel_mode = 'process' # 'thread'/'process'
     script_dir = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = script_dir + '/../../../data_stock'
     INTEGRITY_FILE = script_dir + '/../../database/DB1_0/integrity_table.parquet'
     METADATA_FILE = script_dir + '/../../database/DB1_0/metadata_table.parquet'
+    METADATA_JSON_FILE = script_dir + '/../../database/DB1_0/metadata_table.json'
     HOLIDAYS_FILE = script_dir + '/../cfg/misc/holidays.json'
     TRADEDAYS_FILE = script_dir + '/../cfg/misc/tradedays.json'
     STOCKS_FILE = script_dir + '/../cfg/assets_list/stocks.json'
@@ -16,36 +20,20 @@ class cfg: # Constants Configs
     def update_config(cls, new_cfg):
         cls.old_cfg = new_cfg
 
-perDAY_1hour_before_trade_start = 0
-Once_bulk_import = 1
-def daily_update_metadata():
-    # from ctypes import POINTER
-    # import datetime
-    # import os
-    # from wtpy.WtCoreDefs import WTSBarStruct
-
+run_once = 1 # bulk import csv data from folders
+run_9am = 0  # daily routine(9am): update asset tables
+def database_maintenance():
     import function_datahelper as dhpr
-    if perDAY_1hour_before_trade_start:
+    if run_9am:
         mischelper = dhpr.mischelper()
         mischelper.update_trade_holiday()
         mischelper.update_assetlist()
         mischelper.update_adjfactors()
 
-    # hlper.dmpBarsToFile(folder='./', codes=["SZSE.399005","SZSE.399006","SZSE.399303"], period='day')
-
-    # dbHelper = MysqlHelper("127.0.0.1","root","","test", 5306)
-    # dbHelper.initDB()
-
-    # hlper.dmpBarsToDB(dbHelper, codes=["CFFEX.IF.2103"], period="day")
-    # hlper.dmpAdjFactorsToDB(dbHelper, codes=["SSE.600000",'SSE.600001'])
-
-    if Once_bulk_import:
-        # load misc info for market
-
-        # parallel processing asset's minute k-bar by year
+    if run_once:
         database_helper = dhpr.database_helper()
-        database_helper.process_assets_from_folders()
+        database_helper.main_process_assets_from_folders()
 
 if __name__ == "__main__":
-    daily_update_metadata()
+    database_maintenance()
     pass

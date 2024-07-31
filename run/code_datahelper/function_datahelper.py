@@ -1,26 +1,35 @@
+from __future__ import (absolute_import, division, print_function, unicode_literals)
 import os
 import sys
-from tokenize import String
 import pandas as pd
-from tqdm import tqdm
+import numpy as np
 from datetime import timedelta
+from datetime import datetime
+import time
+from tqdm import tqdm
 import pyarrow as pa
 import pyarrow.parquet as pq
 import baostock as bs                    
 
 from wtpy.apps.datahelper import DHFactory as DHF
+from zmq import Errno
 from run_bulk_data_import import cfg
 
 class datahelper:
-    def load_json(file_path):
+    def load_json(self, file_path):
         import json
         with open(file_path, 'r', encoding='gbk', errors='ignore') as file:  # Note the 'utf-8-sig' which handles BOM if present
             return json.load(file)
-
+    def dump_json(self, file_path, df):
+        import json
+        with open(file_path, 'w', encoding='gbk', errors='ignore') as file:
+            df.to_json(file, orient='records', force_ascii=False, indent=4)
+        
 class mischelper:
     def __init__(self):
         self.hlper = DHF.createHelper("baostock")
         self.hlper.auth()
+        self.dhlper = datahelper()
 
     # Assuming the structure is deeply nested, you might need to normalize it:
     def normalize_data(self, data, meta):
@@ -58,10 +67,10 @@ class mischelper:
     def update_trade_holiday(self):
         import json
         import shutil
-        if 1:
+        try:
             self.hlper.dmpHolidayssToFile(filename_holidays='holidays.json', filename_tradedays='tradedays.json')
-            previous_json = datahelper.load_json(cfg.HOLIDAYS_FILE)
-            current_json = datahelper.load_json('holidays.json')
+            previous_json = self.dhlper.load_json(file_path=cfg.HOLIDAYS_FILE)
+            current_json = self.dhlper.load_json(file_path='holidays.json')
             # Convert JSON list to set for easier comparison
             current_dates = set(current_json['CHINA'])
             previous_dates = set(previous_json['CHINA'])
@@ -73,8 +82,8 @@ class mischelper:
             print("[INFO ][maintain_D_Holidays]: Overwriting")
             shutil.move('holidays.json', cfg.HOLIDAYS_FILE)
             shutil.move('tradedays.json', cfg.TRADEDAYS_FILE)
-        #except:
-        #    print('[ERROR][maintain_D_Holidays]: cannot connect to akshare to update holidays')
+        except:
+            print('[ERROR][maintain_D_Holidays]: cannot connect to akshare to update holidays')
 
     def update_assetlist(self):
         import json
@@ -82,8 +91,8 @@ class mischelper:
         import pandas as pd
         try:
             self.hlper.dmpCodeListToFile(filename='stocks.json')
-            previous_json = datahelper.load_json(file_path=cfg.STOCKS_FILE)
-            current_json = datahelper.load_json(file_path='stocks.json')
+            previous_json = self.dhlper.load_json(file_path=cfg.STOCKS_FILE)
+            current_json = self.dhlper.load_json(file_path='stocks.json')
 
             # Load and normalize data
             for exchange in ['SSE', 'SZSE']:
@@ -101,7 +110,7 @@ class mischelper:
         import shutil
         import pandas as pd
         try:
-            asset_list_json =  datahelper.load_json(cfg.STOCKS_FILE)
+            asset_list_json =  self.dhlper.load_json(cfg.STOCKS_FILE)
 
             def extract_stock_codes(json_data, exchange):
                 """ Extract stock codes from JSON data based on the specified exchange """
@@ -116,8 +125,8 @@ class mischelper:
                 stock_codes = stock_codes + extract_stock_codes(asset_list_json, exchange)
             self.hlper.dmpAdjFactorsToFile(codes=stock_codes, filename='adjfactors.json')
             print('[INFO ][maintain_D_Adjfactors]: Update Finished, Comparing')
-            previous_json = datahelper.load_json(file_path=cfg.ADJFACTORS_FILE)
-            current_json = datahelper.load_json(file_path='adjfactors.json')
+            previous_json = self.dhlper.load_json(file_path=cfg.ADJFACTORS_FILE)
+            current_json = self.dhlper.load_json(file_path='adjfactors.json')
 
             # Load and normalize data
             for exchange in ['SSE', 'SZSE']:
@@ -135,40 +144,28 @@ class database_helper:
     '''
     def __init__(self):
         print('[INFO ][maintain: Initializing DataBase]')
+        self.dhlper = datahelper()
         # parse meta data
-        self.holidays = datahelper.load_json(cfg.HOLIDAYS_FILE)
-        self.tradedays = datahelper.load_json(cfg.TRADEDAYS_FILE)
-        self.stocks = datahelper.load_json(cfg.STOCKS_FILE)
-        self.adjfactors = datahelper.load_json(cfg.ADJFACTORS_FILE)
+        self.holidays = self.dhlper.load_json(cfg.HOLIDAYS_FILE)
+        self.tradedays = self.dhlper.load_json(cfg.TRADEDAYS_FILE)
+        self.stocks = self.dhlper.load_json(cfg.STOCKS_FILE)
+        if cfg.TEST:
+            for e in ['SSE', 'SZSE']:
+                limited_dict = {}
+                count = 0
+                for key, value in self.stocks[e].items():
+                    limited_dict[key] = value
+                    count += 1
+                    if count == 10:
+                        self.stocks[e] = limited_dict
+                        break  # Stop after adding 10 items
+            print(self.stocks)
+        self.adjfactors = self.dhlper.load_json(cfg.ADJFACTORS_FILE)
 
         # self.lock_path = cfg.INTEGRITY_FILE + ".lock"  # Lock file path
         # self.lock_path = cfg.METADATA_FILE + ".lock"  # Lock file path
         
         # these tables are huge, use parquet DB
-        try:
-            print('[INFO ][maintain: Reading Meta-Data]')
-            self.metadata = pq.read_table(cfg.METADATA_FILE).to_pandas()
-            print('[INFO ][maintain: Finished Reading Meta-Data]')
-        except FileNotFoundError:
-            print('[ERROR][maintain: Creating Meta-Data Table]')
-            self.hlper = DHF.createHelper("baostock")
-            self.hlper.auth()
-            code_list = [list(self.stocks['SSE'].keys()) + list(self.stocks['SZSE'].keys())]
-            self.metadata = pd.DataFrame({
-                'asset_name': pd.Series(dtype='string'),
-                'yearly_data_integrity': pd.Series(dtype='Int32'),
-                'ipoDate': pd.Series(dtype='datetime64[ns]'),
-                'outDate': pd.Series(dtype='datetime64[ns]'),
-                'type': pd.Series(dtype='Int8'),
-                'status': pd.Series(dtype='bool'),
-                'exchange': pd.Series(dtype='string'),
-                'industry_sector_level_1': pd.Series(dtype='string'),
-                'industry_sector_level_2': pd.Series(dtype='string'),
-                'reserved': pd.Series(dtype='string')
-            }, index=code_list)
-            for code in code_list:
-                self.update_metadata_by_code(code)
-            pq.write_table(pa.Table.from_pandas(self.metadata), cfg.METADATA_FILE)
         try:
             print('[INFO ][maintain: Reading Integrity Table]')
             self.integrity = pq.read_table(cfg.INTEGRITY_FILE).to_pandas()
@@ -176,7 +173,6 @@ class database_helper:
         except FileNotFoundError:
             print('[ERROR][maintain: Creating Integrity Table]')
             import itertools
-            from datetime import datetime
             code_list = list(self.stocks['SSE'].keys()) + list(self.stocks['SZSE'].keys())
             date_list = date_objects = [datetime.strptime(date, "%Y%m%d").date() for date in self.tradedays['CHINA']]
             index = pd.MultiIndex.from_tuples(itertools.product(code_list, date_list), names=['asset_code', 'date'])
@@ -186,52 +182,82 @@ class database_helper:
             pq.write_table(pa.Table.from_pandas(self.integrity), cfg.INTEGRITY_FILE)
             print('[INFO ][maintain: Created Integrity Table]')
             print(self.integrity)
+
+        try:
+            print('[INFO ][maintain: Reading Meta-Data]')
+            self.metadata = pq.read_table(cfg.METADATA_FILE).to_pandas()
+            print('[INFO ][maintain: Finished Reading Meta-Data]')
+        except FileNotFoundError:
+            print('[ERROR][maintain: Creating Meta-Data Table]')
+            self.hlper = DHF.createHelper("baostock")
+            self.hlper.auth()
+            code_list = ['sh.' + code for code in list(self.stocks['SSE'].keys())] + ['sz.' + code for code in list(self.stocks['SZSE'].keys())]
+            self.metadata = pd.DataFrame({
+                'code': pd.Series(dtype='string'),
+                'asset_name': pd.Series(dtype='string'),
+                'yearly_data_integrity': pd.Series(dtype='Int32'),
+                'ipoDate': pd.Series(dtype='datetime64[ns]'),
+                'outDate': pd.Series(dtype='datetime64[ns]'),
+                'type': pd.Series(dtype='Int8'), # 1.stk 2.idx 3.others 4.convertable bond 5.etf
+                'status': pd.Series(dtype='bool'), # 0.quit 1.active
+                'exchange': pd.Series(dtype='string'),
+                'industry_sector_level_1': pd.Series(dtype='string'),
+                'industry_sector_level_2': pd.Series(dtype='string'),
+                'reserved': pd.Series(dtype='string')
+            }, index=code_list)
+            with tqdm(code_list, total=len(code_list)) as pbar:
+                for code in pbar:
+                    self.update_metadata_by_code(code)
+                    # print(self.metadata.loc[code])
+                    pbar.set_description(f'Querying {code}: ')
+            pq.write_table(pa.Table.from_pandas(self.metadata), cfg.METADATA_FILE)
+        # view only: meta table
+        self.dhlper.dump_json(cfg.METADATA_JSON_FILE, self.metadata)
+            
+    def get_baostock_info(self, resultset):
+        data_list = []
+        while (resultset.error_code == '0') & resultset.next():
+            data_list.append(resultset.get_row_data())
+        return pd.DataFrame(data_list, columns=resultset.fields, index=[0]).iloc[0]
+    
     def update_metadata_by_code(self, code_str):
-        rs = bs.query_stock_basic(code=code_str)
-        print(rs)
-        return rs
-    def get_metadata(self, df):
-        metadata = {}
-        for code, group in df.groupby('code'):
-            metadata[code] = {
-                # Placeholder, replace with actual name
-                'asset_name': f"Asset_{code}",
-                # Placeholder
-                'yearly_data_integrity': {year: True for year in range(2000, 2032)},
-                'ipoDate': group['datetime'].min().strftime('%Y-%m-%d'),
-                'end_date': group['datetime'].max().strftime('%Y-%m-%d'),
-                'first_traded': group['datetime'].min().strftime('%Y-%m-%d'),
-                'auto_close_date': (group['datetime'].max() + timedelta(days=1)).strftime('%Y-%m-%d'),
-                'exchange': 'SH' if code.startswith('SH') else 'SZ',
-                'sub_exchange': self.get_sub_exchange(code),
-                'industry_sector': {
-                    'level_1': 'Placeholder',  # Replace with actual data
-                    'level_2': 'Placeholder'
-                },
-                'reserved': ''
-            }
-        return metadata
-    #        # Convert column_0 explicitly to uint32 if it's not automatically inferred
-    #        df['column_0'] = df['column_0'].astype('uint32')
-
-    #        init_metadata_per_asset = {
-    #            'asset_code': [0],
-    #            'asset_name': [0],
-    #            'yearly_data_integrity': [[0] * 32],
-    #            'start_date': pd.to_datetime(['2000-01-01']),
-    #            'end_date': pd.to_datetime(['2000-01-01']),
-    #            'first_traded': pd.to_datetime(['2000-01-01']),
-    #            'auto_close_date': pd.to_datetime(['2000-01-01']),
-    #            'exchange': [],
-    #            'industry_sector_level_1': [101, 102, 103, 104, 105, 106, 107],  # Example industry sectors
-    #            'industry_sector_level_2': [201, 202, 203, 204, 205, 206, 207],
-    #            'reserved': ['info', 'info', 'info', 'info', 'info', 'info', 'info']
-    #        }
-    #        df = pd.DataFrame(meta_data)
-    #        df['sub_exchange'] = df['asset_code'].apply(determine_sub_exchange)
-    #        table = pa.Table.from_pandas(full_data)
-    #        pq.write_table(table, DB_FILE)
-
+        query_basic = bs.query_stock_basic(code=code_str)
+        basic = self.get_baostock_info(query_basic)
+        query_industry = bs.query_stock_industry(code=code_str) # ShenWan level-1
+        industry = self.get_baostock_info(query_industry)
+        self.metadata.loc[code_str, 'code'                   ] = code_str
+        self.metadata.loc[code_str, 'asset_name'             ] = basic['code_name']
+        self.metadata.loc[code_str, 'yearly_data_integrity'  ] = 0
+        self.metadata.loc[code_str, 'ipoDate'                ] = np.datetime64(basic['ipoDate'])
+        self.metadata.loc[code_str, 'outDate'                ] = np.datetime64(basic['outDate'])
+        self.metadata.loc[code_str, 'type'                   ] = np.int8(basic['type']).item()
+        self.metadata.loc[code_str, 'status'                 ] = np.bool(basic['status']).item()
+        self.metadata.loc[code_str, 'exchange'               ] = self.get_sub_exchange(code_str)
+        self.metadata.loc[code_str, 'industry_sector_level_1'] = industry['industry']
+        self.metadata.loc[code_str, 'industry_sector_level_2'] = ''
+        self.metadata.loc[code_str, 'reserved'               ] = ''
+        
+    def get_sub_exchange(self, code):
+        if code.startswith('sh'):
+            if code[3:5] == '60':
+                return 'SSE.A'
+            elif code[3:6] == '900':
+                return 'SSE.B'
+            elif code[3:5] == '68':
+                return 'SSE.STAR'
+        elif code.startswith('sz'):
+            if code[3:6] in ['000', '001']:
+                return 'SZSE.A'
+            elif code[3:6] == '200':
+                return 'SZSE.B'
+            elif code[3:6] in ['300', '301']:
+                return 'SZSE.SB'
+            elif code[3:6] in ['002', '003']:
+                return 'SZSE.A'
+        if code[3:6] in ['440', '430'] or code[3:5] in ['83', '87']:
+            return 'NQ'
+        return 'Unknown'
+    
     # from filelock import Timeout, FileLock
     # def lock_read_dataframe(self):
     #     """Reads a DataFrame from a file with locking to ensure exclusive access."""
@@ -245,21 +271,6 @@ class database_helper:
     #     lock = FileLock(self.lock_path, timeout=10)
     #     with lock:
     #         df.to_csv(self.filepath, index=False)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     #def parse_line_datetime_mixed_formats(self, datetime_str_line, file_path):
     #    for fmt in self.fmts:
@@ -284,82 +295,24 @@ class database_helper:
     #        self.parse_line_datetime_mixed_formats(datetime_str_line, file_path))
     #    return []
 
-    # # Step 2: Perform integrity checks
-    # df = pq.read_table(cfg.DB_FILE).to_pandas()
-    # integrity_table = dhpr.check_integrity(df)
-    # with open(cfg.INTEGRITY_FILE, 'w') as f:
-    #     json.dump(integrity_table, f)
-    #     #
-    # # Step 3: Generate metadata
-    # metadata_table = dhpr.get_metadata(df)
-    # with open(cfg.METADATA_FILE, 'w') as f:
-    #     json.dump(metadata_table, f)
 
-    def process_csv_file(self, file_path): # each thread processes an asset's yearly minute bar
-        df = pd.read_csv(file_path)
-        df.columns =    ['index', 'datetime', 'code', 'open',
-                        'high', 'low', 'close', 'volume', 'amount']
-        # fmts = ['%Y/%m/%d %H:%M', '%Y-%m-%d %H:%M']
-        #datetime = self.parse_df_datetime(df['datetime'], file_path)
-        datetime = pd.to_datetime(df['datetime'], format='mixed', errors='coerce') # error: fill NaT
-        df['datetime'] = datetime
-        df['date'] = datetime.dt.date
-        df['year'] = datetime.dt.year
-        self.check_integrity_per_day_per_asset()
-        return df
-
-    def process_single_asset_from_single_folder(self, folder, folder_idx, folder_item):
-        # Assuming each folder contains several CSV files
-        file = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.csv') and folder_item in f]
-        if len(file) != 1:
-            if file == []:
-                sys.exit(f'[ERROR][Loader_Once]: Exiting: Missing {folder_item} {folder}')
-            else:
-                sys.exit(f'[ERROR][Loader_Once]: Exiting: Duplicates Found: {folder_item} {folder}')
-        return self.process_csv_file(file[0])
-
-    def process_assets_from_folders(self):
-        import concurrent
-        from concurrent.futures import ProcessPoolExecutor
-        # List all directories to process
-        folders = [os.path.join(cfg.DATA_DIR, folder) for folder in os.listdir(cfg.DATA_DIR) if folder.endswith('年')]
-        # assets = self.stocks
-        assets = {
-            'SSE':
-                {
-                    '000001': {'code': '000001', 'exchg': 'SSE', 'name': '指数001', 'product': 'IDX'},
-                    '000002': {'code': '000002', 'exchg': 'SSE', 'name': '指数002', 'product': 'IDX'}
-                }
-            }
+    def main_process_assets_from_folders(self):
+        assets = self.stocks
+        # assets = {
+        #     'SSE':
+        #         {
+        #             '000001': {'code': '000001', 'exchg': 'SSE', 'name': '指数001', 'product': 'IDX'},
+        #             '000002': {'code': '000002', 'exchg': 'SSE', 'name': '指数002', 'product': 'IDX'}
+        #         }
+        #     }
         exchanges = ['SSE', 'SZSE']
-        num_assets = 0
+        asset_list = []
         for exchange in exchanges:
             try:
-                assets[exchange] # check if exchange exists
-                num_assets += len(assets[exchange])
+                asset_list += assets[exchange] # check if exchange exists
             except:
                 exchanges.remove(exchange)
-
-        pbar = tqdm(total=num_assets)
-        for exchange in exchanges:
-            for folder_item in assets[exchange]:
-                pbar.set_description(f"Processing bulk asset {folder_item}")
-                with ProcessPoolExecutor() as executor:
-                    # Manual submission of tasks to the executor to control tqdm position
-                    futures = {executor.submit(self.process_single_asset_from_single_folder, folder, folder_idx, folder_item): folder_idx for folder_idx, folder in enumerate(folders)}
-
-                    # Collect results as they complete
-                    asset_all_data = []
-                    for future in concurrent.futures.as_completed(futures):
-                        result = future.result()
-                        asset_all_data.append(result)
-
-        # # Concatenate all DataFrame results
-        # full_data = pd.concat(all_data)
-        # table = pa.Table.from_pandas(full_data)
-#
-        # # Write to a Parquet file
-        # pq.write_table(table, cfg.DB_FILE)
+        num_assets = len(asset_list)
 
     def check_integrity_per_day_per_asset(self, df):
         integrity = {}
@@ -401,25 +354,276 @@ class database_helper:
             }
 
         return integrity
+    
+import multiprocessing
+import threading
+
+class n_slave_1_master_queue:
+    def __init__(self, tqdm_total, max_workers=cfg.no_workers, concurrency_mode=None):
+        self.max_workers = max_workers
+        self.concurrency_mode = self.parallel_mode()
+        self.slave_tasks_queue = multiprocessing.Queue()
+        self.master_task_queue = multiprocessing.Queue()
+        self.master_lock = threading.Lock() if self.concurrency_mode == 'thread' else multiprocessing.Lock()
+        self.pbar = tqdm(total=tqdm_total)
+
+    def add_slave_task(self, tasks):
+            self.slave_tasks_queue.put(tasks)
+
+    def add_master_task(self, tasks):
+            self.master_task_queue.put(tasks)
+
+    def slave_worker(self, tasks):
+        try:
+            result = self.process_slave_task(tasks.get())
+            self.master_task_queue.put(result)
+            self.pbar.update(1)
+            return None
+        except Exception as e:
+            print(f"Slave task generated an exception: {e}")
+            return None
+
+    def master_worker(self, tasks):
+        while not self.master_task_queue.empty():
+            self.process_master_task(tasks.get())
+
+    def worker(self, slave_tasks_queue, master_tasks_queue, master_lock):
+        if not self.master_task_queue.empty():
+            with master_lock:
+                self.master_worker(master_tasks_queue)
+        else:
+            self.slave_worker(slave_tasks_queue)
+
+    def process_slave_task(self, task):
+        raise NotImplementedError("Subclass must implement process_slave_task method")
+
+    def process_master_task(self, task):
+        raise NotImplementedError("Subclass must implement process_master_task method")
+
+    def parallel_mode(self):
+        return cfg.parallel_mode
+
+    def execute(self):
+        workers = []
+        if self.concurrency_mode == 'process':
+            for _ in range(self.max_workers):
+                p = multiprocessing.Process(target=self.slave_worker, args=(self.slave_tasks_queue, self.master_task_queue, self.master_lock))
+                p.start()
+                workers.append(p)
+        elif self.concurrency_mode == 'thread':
+            for _ in range(self.max_workers):
+                t = threading.Thread(target=self.slave_worker, args=(self.slave_tasks_queue, self.master_task_queue, self.master_lock))
+                t.start()
+                workers.append(t)
+        else:
+            raise ValueError("Invalid concurrency mode")
+
+        for worker in workers:
+            worker.join()
+        if self.pbar:
+            self.pbar.close()
+
+class ExecutorDataImport(n_slave_1_master_queue):
+    def __init__(self, tqdm_total):
+        super().__init__(tqdm_total=tqdm_total)
+        self.folders = [os.path.join(cfg.DATA_DIR, folder) for folder in os.listdir(cfg.DATA_DIR) if folder.endswith('年')]
+
+    def process_slave_task(self, task):
+        print(task)
+        return None # self.process_single_asset_from_folders(task)
+
+    def process_master_task(self, task):
+        print(task)
+        return None
+
+    def process_csv_file(self, file_path):
+        df = pd.read_csv(file_path)
+        df.columns = ['index', 'datetime', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount']
+        datetime = pd.to_datetime(df['datetime'], format='mixed', errors='coerce')
+        df['datetime'] = datetime
+        df['date'] = datetime.dt.date
+        df['year'] = datetime.dt.year
+        return df
+
+    def process_single_asset_from_folders(self, asset):
+        results = []
+        for folder in self.folders:
+            file = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.csv') and asset in f]
+            if len(file) != 1:
+                if not file:
+                    print(f'[WARN ][Loader_Once]: Missing {asset} {folder}')
+                else:
+                    print(f'[WARN ][Loader_Once]: Duplicates Found: {asset} {folder}')
+            else:
+                results.append(self.process_csv_file(file[0]))
+        self.pbar.set_description(f"Processing Assets {asset}")
+        return {asset: results}
+
+if __name__ == "__main__":
+    num_assets = 20  # Set this according to your requirements
+    task_queue = ExecutorDataImport(tqdm_total=num_assets)
+    asset_list = ['000001', '000002', '000003', '000004', '000005', '000006', '000007', '000008', '000009', '000010']
+    task_queue.add_slave_task(asset_list)
+    task_queue.execute()
 
 
-    def get_sub_exchange(self, code):
-        if code.startswith('SH'):
-            if code[3:5] == '60':
-                return 'SSE.A'
-            elif code[3:6] == '900':
-                return 'SSE.B'
-            elif code[3:5] == '68':
-                return 'SSE.STAR'
-        elif code.startswith('SZ'):
-            if code[3:6] in ['000', '001']:
-                return 'SZSE.A'
-            elif code[3:6] == '200':
-                return 'SZSE.B'
-            elif code[3:6] in ['300', '301']:
-                return 'SZSE.SB'
-            elif code[3:6] in ['002', '003']:
-                return 'SZSE.A'
-        if code[3:6] in ['440', '430'] or code[3:5] in ['83', '87']:
-            return 'NQ'
-        return 'Unknown'
+#class executor_data_import(n_slave_1_master_queue):
+#    def __init__(self, tasks, tqdm_total):
+#        super().__init__(tasks=tasks, tqdm_total=tqdm_total)
+#        self.folders = [os.path.join(cfg.DATA_DIR, folder) for folder in os.listdir(cfg.DATA_DIR) if folder.endswith('年')]
+#
+#    def process_slave_task(self, task):
+#        print(task)
+#        #return self.process_single_asset_from_folders(task)
+#    
+#    def process_master_task(self, result):
+#        # Process the result here
+#        # For example, you could print it or save it to a file
+#        print(result)
+#
+#    def process_csv_file(self, file_path):
+#        try:
+#            df = pd.read_csv(file_path)
+#            df.columns = ['index', 'datetime', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount']
+#            datetime = pd.to_datetime(df['datetime'], format='mixed', errors='coerce')
+#            df['datetime'] = datetime
+#            df['date'] = datetime.dt.date
+#            df['year'] = datetime.dt.year
+#            return df.to_dict(orient='records')  # Convert DataFrame to a list of dictionaries
+#        except Exception as e:
+#            print(f"Error processing file {file_path}: {e}")
+#            return None
+#
+#    def process_single_asset_from_folders(self, asset):
+#        results = []
+#        for folder in self.folders:
+#            file = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.csv') and asset in f]
+#            if len(file) != 1:
+#                if file == []:
+#                    print(f'[WARN ][Loader_Once]: Missing {asset} {folder}')
+#                else:
+#                    print(f'[WARN ][Loader_Once]: Duplicates Found: {asset} {folder}')
+#            else:
+#                result = self.process_csv_file(file[0])
+#                if result is not None:
+#                    results.append(result)
+#        # return {asset: results}
+
+'''
+import multiprocessing
+import threading
+import concurrent.futures
+import queue
+import os
+import pandas as pd
+from tqdm import tqdm
+
+class n_slave_1_master_queue:
+    # ProcessPoolExecutor: CPU-bound tasks
+    # ThreadPoolExecutor: I/O-bound tasks
+
+    # slaves: processing many tasks independent of each other
+    # master: processing slave products, have exclusive access to certain system resources
+    def __init__(self, tqdm_total, max_workers=None, concurrency_mode=None):
+        self.max_workers = max_workers or os.cpu_count()
+        self.concurrency_mode = concurrency_mode or self.parallel_mode()
+        self.slave_tasks_queue = multiprocessing.JoinableQueue()
+        self.master_task_queue = multiprocessing.Queue()
+        self.pbar = tqdm(total=tqdm_total)
+
+    def add_slave_task(self, tasks):
+        for task in tasks:
+            self.slave_tasks_queue.put(task)
+
+    def add_master_task(self, tasks):
+        for task in tasks:
+            self.master_task_queue.put(task)
+
+    def slave_worker(self, task):
+        try:
+            result = self.process_slave_task(task)
+            self.master_task_queue.put(result)
+            self.slave_tasks_queue.task_done()
+            if self.pbar:
+                self.pbar.update(1)
+            return result
+        except Exception as e:
+            print(f"Slave task generated an exception: {e}")
+            return None
+
+    def master_worker(self):
+        while not self.master_task_queue.empty() or not self.all_slave_tasks_done():
+            try:
+                if not self.master_task_queue.empty():
+                    task = self.master_task_queue.get_nowait()
+                    self.process_master_task(task)
+                time.sleep(0.1)  # Prevent busy waiting
+            except queue.Empty:
+                pass
+
+    def all_slave_tasks_done(self):
+        return self.slave_tasks_queue.empty()
+
+    def worker(self, task):
+        self.slave_worker(task)
+
+    def process_slave_task(self, task):
+        raise NotImplementedError("Subclass must implement process_slave_task method")
+
+    def process_master_task(self, task):
+        raise NotImplementedError("Subclass must implement process_master_task method")
+
+    def parallel_mode(self):
+        return "process"
+
+    def execute(self):
+        executor_class = concurrent.futures.ThreadPoolExecutor if self.concurrency_mode == 'thread' else concurrent.futures.ProcessPoolExecutor
+        tasks = []
+        while not self.slave_tasks_queue.empty():
+            tasks.append(self.slave_tasks_queue.get())
+        with executor_class(max_workers=self.max_workers) as executor:
+            self.slave_futures = [executor.submit(self.worker, task) for task in tasks]
+            master_thread = threading.Thread(target=self.master_worker)
+            master_thread.start()
+            for slave_future in concurrent.futures.as_completed(self.slave_futures):
+                try:
+                    result = slave_future.result()
+                    if result is not None:
+                        print(result)
+                except Exception as e:
+                    print(f"Task generated an exception: {e}")
+            master_thread.join()
+        if self.pbar:
+            self.pbar.close()
+
+class ExecutorDataImport(n_slave_1_master_queue):
+    def __init__(self, tqdm_total):
+        super().__init__(tqdm_total=tqdm_total)
+        self.folders = [os.path.join(cfg.DATA_DIR, folder) for folder in os.listdir(cfg.DATA_DIR) if folder.endswith('年')]
+
+    def process_slave_task(self, task):
+        return self.process_single_asset_from_folders(task)
+
+    def process_master_task(self, task):
+        return None
+
+    def process_csv_file(self, file_path): # each thread processes an asset's minute bar
+        df = pd.read_csv(file_path)
+        df.columns = ['index', 'datetime', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount']
+        datetime = pd.to_datetime(df['datetime'], format='mixed', errors='coerce')  # error: fill NaT
+        df['datetime'] = datetime
+        df['date'] = datetime.dt.date
+        df['year'] = datetime.dt.year
+        return df
+
+    def process_single_asset_from_folders(self, asset):
+        for folder in self.folders:
+            file = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.csv') and asset in f]
+            if len(file) != 1:
+                if not file:
+                    print(f'[WARN ][Loader_Once]: Missing {asset} {folder}')
+                else:
+                    print(f'[WARN ][Loader_Once]: Duplicates Found: {asset} {folder}')
+            self.process_csv_file(file[0])
+        self.pbar.set_description(f"Processing Assets {asset}")
+'''
