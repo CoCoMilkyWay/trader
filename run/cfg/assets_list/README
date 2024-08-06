@@ -12,5 +12,5 @@
     - fut_options.json: 商品期货期权信息表 (fopt_comms.json)
     - if_options.json: 股指期货期权信息表 (ifopt_comms.json)
 
--　hots.json: 主力合约换月信息表
--　seconds.json: 次主力合约换月信息表
+- hots.json: 主力合约换月信息表
+- seconds.json: 次主力合约换月信息表

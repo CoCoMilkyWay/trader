@@ -10,15 +10,15 @@
             - 1m callback in {(9:30-11:30), (13:00-14:57)} (during trading sesstion)
         - integrity table: (day*asset):
             0. bool: integrity-flag
-            1. u8: rules_violated[0:7]
+            1. u8: update try times
+            2. u8: rules_violated[0:7]
         - integrity rule check:
-            0. non-zero OHLC
+            0. non-zero/NaN/NaT OHLC
             1. timestamp continuity/order/completeness
             2. intra-day price continuity
-            3. inter-day price jump limit (10%, 20%, 30% during call-auction if no factor-adj found)
-            4. OHLC differ if volume is non-zero
-            5. verify day-open/close/mid-break price from other sources
-            6. if factor-adj exists, verify it
+            3. inter-day price jump limit (10%, 20%, 30% with call-auction factor-adj)
+            4. OHLC the same from a minute bar if volume is zero
+            5. verify day-open/close/mid-break price from other sources(AKshare)
         - meta data json: (asset):
             0. string: asset_name (subject to change: ST->*ST->PT (special treatment/particular transfer))
             1. u32: yearly data integrity[0:31] : {2000, 2001, ..., 2031}
