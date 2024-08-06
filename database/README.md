@@ -16,7 +16,7 @@
             0. non-zero/NaN/NaT OHLC
             1. timestamp continuity/order/completeness
             2. intra-day price continuity
-            3. inter-day price jump limit (10%, 20%, 30% with call-auction factor-adj)
+            3. inter-day price jump limit (10%, 20%, 30% with call-auction and factor-adj)
             4. OHLC the same from a minute bar if volume is zero
             5. verify day-open/close/mid-break price from other sources(AKshare)
         - meta data json: (asset):

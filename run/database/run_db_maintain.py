@@ -1,6 +1,7 @@
 class cfg: # Constants Configs
     import os
-    TEST = 1
+    SHRINK_STOCK_POOL = 1
+    FORCE_INTEGRITY_SYNC = 0
     max_workers = 96
     concurrency_mode = 'process' # 'thread'/'process'
 
@@ -19,9 +20,9 @@ class cfg: # Constants Configs
     # db1_0
     DB1_0_name          = '/DB1_0'
     DB1_0               = DATABASE_DIR + DB1_0_name
-    INTEGRITY_FILE      = DB1_0 + '/integrity_table.parquet'
     METADATA_FILE       = DB1_0 + '/metadata_table.parquet'
     METADATA_JSON_FILE  = LOCAL_DATABASE_DIR + DB1_0_name + '/metadata_table.json'
+    INTEGRITY_JSON_FILE = LOCAL_DATABASE_DIR + DB1_0_name + '/integrity.json'
     BAR_DIR             = DB1_0 + '/bars'
     TICK_DIR            = DB1_0 + '/tick'
     CROSS_VERIFY_DIR    = BAR_DIR + '/third_party/tdx_1d'

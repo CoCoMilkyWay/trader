@@ -132,6 +132,7 @@ class database_helper:
         self.holidays = load_json(cfg.HOLIDAYS_FILE)
         self.tradedays = load_json(cfg.TRADEDAYS_FILE)
         self.stocks = load_json(cfg.STOCKS_FILE)
+        self.adjfactors = load_json(cfg.ADJFACTORS_FILE)
         def get_hs300_stocks():
             import baostock as bs
             import pandas as pd
@@ -144,11 +145,12 @@ class database_helper:
             hs300_stocks = []
             while (rs.error_code == '0') & rs.next():
                 hs300_stocks.append(rs.get_row_data())
-            result = pd.DataFrame(hs300_stocks, columns=rs.fields)
             bs.logout()
-            return list(result['code'])
-        # TODO
-        if cfg.TEST:
+            hs300_df = pd.DataFrame(hs300_stocks, columns=rs.fields)
+            hs300_ls = list(hs300_df['code'])
+            return hs300_ls
+        if cfg.SHRINK_STOCK_POOL:
+            # TODO
             hs300 = get_hs300_stocks()
             exchange_dict = {'SSE': 'sh', 'SZSE': 'sz'}
             for e in ['SSE', 'SZSE']:
@@ -167,8 +169,14 @@ class database_helper:
                         #     self.stocks[e] = limited_dict
                         #     break  # Stop after adding N items
                 self.stocks[e] = limited_dict
-        self.adjfactors = load_json(cfg.ADJFACTORS_FILE)
-        
+        else:
+            exchange_dict = {'SSE': 'sh', 'SZSE': 'sz'}
+            for e in ['SSE', 'SZSE']:
+                limited_dict = {}
+                for key, value in self.stocks[e].items():
+                    limited_dict[key] = value
+                self.stocks[e] = limited_dict
+                
         # these tables are huge, use parquet DB
         asset_list = ['sh.' + code for code in list(self.stocks['SSE'].keys())] + ['sz.' + code for code in list(self.stocks['SZSE'].keys())]
         date_list = [datetime.strptime(date, "%Y%m%d").date() for date in self.tradedays['CHINA']]
@@ -203,21 +211,46 @@ class database_helper:
         dump_json(mkdir(cfg.METADATA_JSON_FILE), self.metadata)
         
         print('[INFO ][maintain: Syncing Integrity Table]')
-        # TODO
-        # asset = ''
-        # for asset in tqdm(asset_list, desc=f'Syncing: {asset}'):
-        #     folder = f"{cfg.BAR_DIR}/m1/{asset}"
-        #     if os.path.exists(folder) and not os.path.exists(folder + '/integrity.parquet'):
-        #         ipo_date = self.metadata[self.metadata['asset'].str.endswith(asset)]['ipoDate']
-        #         print(ipo_date)
-        #         print(asset)
-        #         # files_to_remove = [os.path.join(folder, file) for file in os.listdir(folder) if file.endswith('.dsb') and f'{year}.{month}' in file]
-        # self.integrity = pq.read_table(mkdir(cfg.INTEGRITY_FILE)).to_pandas()
-        # index = pd.MultiIndex.from_tuples(itertools.product(code_list, date_list), names=['asset_code', 'date'])
-        # self.integrity = pd.DataFrame({
-        #     'integrity': pd.Series([False]*len(index), index=index, dtype=bool)
-        #     })
-        # pq.write_table(pa.Table.from_pandas(self.integrity), cfg.INTEGRITY_FILE)
+        integrity_percentage = {}
+        asset = ''
+        for asset in tqdm(asset_list, desc=f'Syncing: {asset}'):
+            folder = f"{cfg.BAR_DIR}/m1/{asset}"
+            integrity_file = f'{folder}/integrity.json'
+            if cfg.FORCE_INTEGRITY_SYNC and os.path.exists(integrity_file):
+                os.remove(integrity_file)
+            if os.path.exists(folder) and not os.path.exists(integrity_file):
+                ipo_date = self.metadata[self.metadata['asset'].str.endswith(asset)]['ipoDate'].iloc[0]
+                ipo_date = pd.to_datetime(ipo_date, format='%Y-%m-%d').date()
+                for idx, date in enumerate(date_list):
+                    if ipo_date <= date:
+                        break
+                asset_trade_days = date_list[idx:]
+                asset_integrity = []
+                days_integrity = 0
+                for trade_day in asset_trade_days:
+                    year = trade_day.year
+                    month = trade_day.month
+                    day = trade_day.day
+                    if os.path.exists(f'{folder}/{year}.{month}.dsb'):
+                        asset_integrity += [True]; days_integrity += 1
+                    elif os.path.exists(f'{folder}/{year}.{month}.{day}.dsb'):
+                        asset_integrity += [True]; days_integrity += 1
+                    else:
+                        asset_integrity += [False]
+                integrity_percentage[asset] = f'{(days_integrity/len(asset_trade_days)):03%}'
+                index = pd.Index(asset_trade_days, name='days')
+                # index = pd.MultiIndex.from_tuples(itertools.product(code_list, date_list), names=['asset_code', 'date'])
+                integrity = pd.DataFrame({
+                    'integ': pd.Series(asset_integrity, index=index, dtype=bool)
+                    })
+                integrity.to_json(mkdir(integrity_file), date_format='iso', orient='table')
+                # integrity = pd.read_json(integrity_file, orient='table', convert_dates=['trade_days'])
+                # integrity.set_index('trade_days', inplace=True)
+        with open(mkdir(cfg.INTEGRITY_JSON_FILE), 'w') as file:
+            import json
+            json.dump(integrity_percentage, file, indent=4)  # 'indent=4' for pretty-printing
+        # with open(cfg.INTEGRITY_JSON_FILE, 'r') as file:
+        #     integrity = json.load(file)
         print('[INFO ][maintain: Created Integrity Tables]')
         
     def update_metadata_by_code(self, asset_str):
