@@ -104,7 +104,6 @@ if __name__ == "__main__":
     
     kw = input('press any key to exit\n')
     engine.release_backtest()
-
 '''
 from wtpy.monitor import WtMonSvr
 # 如果要配置在线回测，则必须要配置WtDtServo
