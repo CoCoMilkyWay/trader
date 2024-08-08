@@ -1,8 +1,8 @@
 basefiles:
-    commodity: ../common/stk_comms.json
-    contract: ../common/stocks.json
-    holiday: ../common/holidays.json
-    session: ../common/sessions.json
+    commodity: ./assets_cfg/stk_comms.json
+    contract: ./assets_list/stocks.json
+    holiday: ./misc/holidays.json
+    session: ./sessions/sessions.json
 
 data:
     store:
@@ -10,7 +10,7 @@ data:
         path: ../storage/
 env:
     name: cta               #引擎名称：cta/hft/sel
-    fees: ../common/fees_stk.json   #佣金配置文件
+    fees: ./fees/fees_stk.json   #佣金配置文件
     filters: filters.yaml       #过滤器配置文件，这个主要是用于盘中不停机干预的
     product:
         session: TRADING    #驱动交易时间模板，TRADING是一个覆盖国内全部交易品种的最大的交易时间模板，从夜盘21点到凌晨1点，再到第二天15:15，详见sessions.json

@@ -1,0 +1,26 @@
+指定的数据落地目录/  #（运行后生成）
+    rt/  # 实时数据
+        ticks/
+            {交易所}/  # 如 CFFEX/
+                /{合约代码}.dmb  # 如 IF2312.dmb
+        min1/
+            {交易所}/  # 如 CFFEX/
+                /{合约代码}.dmb  # 如 IF2312.dmb
+        min5/
+            {交易所}/  # 如 CFFEX/
+                /{合约代码}.dmb  # 如 IF2312.dmb
+    his/  # 历史数据（收盘作业生成）
+		    ticks/
+			      {交易所}/  # 如 CFFEX/
+				        {交易日}/  # 如 20230731/
+					          {合约代码}.dsb  # 如 IF2312.dsb
+		    min1/
+			      {交易所}/  # 如 CFFEX/
+					      {合约代码}.dsb  # 如 IF2312.dsb
+		    min5/
+			      {交易所}/  # 如 CFFEX/
+					      {合约代码}.dsb  # 如 IF2312.dsb
+		    day/
+			      {交易所}/  # 如 CFFEX/
+					      {合约代码}.dsb  # 如 IF2312.dsb
+    cache.dmb  # 临时缓存

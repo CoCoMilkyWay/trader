@@ -1,3 +1,6 @@
 AD_Data/
 DtLogs/
 exchange.membin
+outputs_bt/*
+./data.db
+*.xlsx

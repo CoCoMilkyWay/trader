@@ -583,7 +583,7 @@ class WtBtSnooper:
             }
             closes_all.append(litem)
         df_closes['time'] = df_closes['closetime'].apply(lambda x: datetime.datetime.strptime(str(x), '%Y%m%d%H%M'))
-        df_c_m = df_closes.resample(rule='M', on='time', label='right',
+        df_c_m = df_closes.resample(rule='ME', on='time', label='right',
                                                                  closed='right').agg({
             'profit': 'sum',
             'maxprofit': 'sum',
@@ -605,7 +605,7 @@ class WtBtSnooper:
             }
             closes_month.append(litem)
 
-        df_c_y = df_closes.resample(rule='Y', on='time', label='right',
+        df_c_y = df_closes.resample(rule='YE', on='time', label='right',
                                     closed='right').agg({
             'profit': 'sum',
             'maxprofit': 'sum',
@@ -756,8 +756,6 @@ class WtBtSnooper:
         return items
 
     def get_bt_kline(self, path:str, straid:str) -> list:
-        print('GET K LINE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        print(path,straid)
         if self.dt_servo is None:
             return None
 
@@ -847,14 +845,16 @@ class WtBtSnooper:
 
         bars = list()
         for realBar in barList:
+            # realBar['date', 'money', 'bartime', 'open', 'high', 'low', 'close', 'settle', 'turnover', 'volume', 'open_interest', 'diff']
             bar = dict()
-            bar["bartime"] = int(realBar.date if isDay  else 199000000000 + realBar.bartime)
-            bar["open"] = realBar.open
-            bar["high"] = realBar.high
-            bar["low"] = realBar.low
-            bar["close"] = realBar.close
-            bar["volume"] = realBar.volume
-            bar["turnover"] = realBar.money
+            # bar["bartime"]   = int(realBar.date if isDay  else 199000000000 + realBar.bartime)
+            bar["bartime"]   = int(realBar[0] if isDay  else 199000000000 + realBar[2])
+            bar["open"]      = float(realBar[3]) # realBar.open
+            bar["high"]      = float(realBar[4]) # realBar.high
+            bar["low"]       = float(realBar[5]) # realBar.low
+            bar["close"]     = float(realBar[6]) # realBar.close
+            bar["volume"]    = float(realBar[9]) # realBar.volume
+            bar["turnover"]  = float(realBar[1]) # realBar.money
             bars.append(bar)
 
         return code, bars, index, marks

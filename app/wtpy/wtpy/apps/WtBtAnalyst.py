@@ -1758,7 +1758,7 @@ class WtBtAnalyst:
                 }
                 closes_all.append(litem)
             df_closes['time'] = df_closes['closetime'].apply(lambda x: datetime.strptime(str(x), '%Y%m%d%H%M'))
-            df_c_m = df_closes.resample(rule='M', on='time', label='right',
+            df_c_m = df_closes.resample(rule='ME', on='time', label='right',
                                                                     closed='right').agg({
                 'profit': 'sum',
                 'maxprofit': 'sum',
@@ -1780,7 +1780,7 @@ class WtBtAnalyst:
                 }
                 closes_month.append(litem)
 
-            df_c_y = df_closes.resample(rule='Y', on='time', label='right',
+            df_c_y = df_closes.resample(rule='YE', on='time', label='right',
                                         closed='right').agg({
                 'profit': 'sum',
                 'maxprofit': 'sum',

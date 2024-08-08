@@ -42,7 +42,10 @@ class ContractMgr:
         content = f.read()
         f.close()
         encoding = chardet.detect(content[:500])["encoding"]
-        content = content.decode(encoding)
+        try:
+            content = content.decode(encoding)
+        except:
+            content = content.decode('gbk')
 
         if fname.lower().endswith(".yaml"):
             exchgMap = yaml.full_load(content)

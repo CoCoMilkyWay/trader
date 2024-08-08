@@ -1263,7 +1263,7 @@
         "600006": {
             "code": "600006",
             "exchg": "SSE",
-            "name": "东风汽车",
+            "name": "东风股份",
             "product": "STK"
         },
         "600007": {
@@ -1366,6 +1366,12 @@
             "code": "600026",
             "exchg": "SSE",
             "name": "中远海能",
+            "product": "STK"
+        },
+        "600027": {
+            "code": "600027",
+            "exchg": "SSE",
+            "name": "华电国际",
             "product": "STK"
         },
         "600028": {
@@ -2220,12 +2226,6 @@
             "name": "绿能慧充",
             "product": "STK"
         },
-        "600213": {
-            "code": "600213",
-            "exchg": "SSE",
-            "name": "*ST亚星",
-            "product": "STK"
-        },
         "600215": {
             "code": "600215",
             "exchg": "SSE",
@@ -3063,7 +3063,7 @@
         "600396": {
             "code": "600396",
             "exchg": "SSE",
-            "name": "金山股份",
+            "name": "华电辽能",
             "product": "STK"
         },
         "600397": {
@@ -4503,7 +4503,7 @@
         "600711": {
             "code": "600711",
             "exchg": "SSE",
-            "name": "盛屯矿业",
+            "name": "ST盛屯",
             "product": "STK"
         },
         "600712": {
@@ -6070,12 +6070,6 @@
             "code": "601106",
             "exchg": "SSE",
             "name": "中国一重",
-            "product": "STK"
-        },
-        "601107": {
-            "code": "601107",
-            "exchg": "SSE",
-            "name": "四川成渝",
             "product": "STK"
         },
         "601108": {
@@ -7785,7 +7779,7 @@
         "603117": {
             "code": "603117",
             "exchg": "SSE",
-            "name": "ST万林",
+            "name": "万林物流",
             "product": "STK"
         },
         "603118": {
@@ -8944,6 +8938,12 @@
             "code": "603390",
             "exchg": "SSE",
             "name": "通达电气",
+            "product": "STK"
+        },
+        "603391": {
+            "code": "603391",
+            "exchg": "SSE",
+            "name": "力聚热能",
             "product": "STK"
         },
         "603392": {
@@ -10522,12 +10522,6 @@
             "code": "603960",
             "exchg": "SSE",
             "name": "克来机电",
-            "product": "STK"
-        },
-        "603963": {
-            "code": "603963",
-            "exchg": "SSE",
-            "name": "*ST大药",
             "product": "STK"
         },
         "603966": {
@@ -15269,7 +15263,7 @@
         "000417": {
             "code": "000417",
             "exchg": "SZSE",
-            "name": "合肥百货",
+            "name": "合百集团",
             "product": "STK"
         },
         "000419": {
@@ -16758,6 +16752,12 @@
             "code": "000860",
             "exchg": "SZSE",
             "name": "顺鑫农业",
+            "product": "STK"
+        },
+        "000861": {
+            "code": "000861",
+            "exchg": "SZSE",
+            "name": "海印股份",
             "product": "STK"
         },
         "000862": {
@@ -19674,12 +19674,6 @@
             "code": "002315",
             "exchg": "SZSE",
             "name": "焦点科技",
-            "product": "STK"
-        },
-        "002316": {
-            "code": "002316",
-            "exchg": "SZSE",
-            "name": "亚联发展",
             "product": "STK"
         },
         "002317": {
@@ -28202,12 +28196,6 @@
             "name": "锦鸡股份",
             "product": "STK"
         },
-        "300799": {
-            "code": "300799",
-            "exchg": "SZSE",
-            "name": "左江退",
-            "product": "STK"
-        },
         "300800": {
             "code": "300800",
             "exchg": "SZSE",
@@ -31758,6 +31746,12 @@
             "code": "301606",
             "exchg": "SZSE",
             "name": "绿联科技",
+            "product": "STK"
+        },
+        "301608": {
+            "code": "301608",
+            "exchg": "SZSE",
+            "name": "博实结",
             "product": "STK"
         },
         "399001": {
