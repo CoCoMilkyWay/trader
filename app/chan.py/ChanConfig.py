@@ -23,9 +23,9 @@ class CChanConfig:
         self.bi_conf = CBiConfig(
             bi_algo=conf.get("bi_algo", "normal"),
             is_strict=conf.get("bi_strict", True), # 是否只用严格笔，默认为 Ture，其中这里的严格笔只考虑顶底分形之间相隔几个合并K线
-            bi_fx_check=conf.get("bi_fx_check", "strict"), # 检查笔顶底分形是否成立的方法
+            bi_fx_check=conf.get("bi_fx_check", "strict"), # 检查笔顶底分形是否成立的方法 (不建议放宽)
             gap_as_kl=conf.get("gap_as_kl", False),
-            bi_end_is_peak=conf.get('bi_end_is_peak', True), # 笔的尾部是否是整笔中最低/最高
+            bi_end_is_peak=conf.get('bi_end_is_peak', True), # 笔的尾部是否是整笔中最低/最高 （可以考虑模型学习时放宽）
             bi_allow_sub_peak=conf.get("bi_allow_sub_peak", True),
         )
         self.seg_conf = CSegConfig(

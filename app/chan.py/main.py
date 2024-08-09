@@ -61,7 +61,7 @@ def main():
                 '2023/06/08': ('marker here', 'down')
             },
         },
-        "animation_pause_time": 1
+        "animation_pause_time": 0
     }
     chan = CChan(
         code=code,
