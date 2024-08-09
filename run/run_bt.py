@@ -14,9 +14,8 @@ from wtpy.monitor import WtBtSnooper
 from wtpy.wrapper import WtDataHelper
 from wtpy.apps import WtBtAnalyst
 from wtpy.WtCoreDefs import WTSBarStruct
+from wtpy.SessionMgr import SessionMgr
 dtHelper = WtDataHelper()
-
-run = 1
 
 def testBtSnooper():
     dtServo = WtDtServo()
@@ -59,8 +58,46 @@ def sort_files_by_date(folder_path):
     sorted_files = sorted(files_with_dates, key=lambda x: x[1])
     return [file for file, _ in sorted_files]
 
+def wt_csv_2_dsb(df, store_path):
+    # index: open high low close settle turnover volume open_interest diff bartime
+    # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
+    df = df.rename(columns={'volume': 'vol'})
+    df['date'] = df['bartime'].astype(str).str[:7].astype(int)
+    df['time'] = df['bartime']-199000000000
+    df = df[['date', 'time', 'open', 'high', 'low', 'close', 'vol']].reset_index(drop=True)
+    BUFFER = WTSBarStruct*len(df)
+    buffer = BUFFER()
+    def assign(procession, buffer):
+        tuple(map(lambda x: setattr(buffer[x[0]], procession.name, x[1]), enumerate(procession)))
+    df.apply(assign, buffer=buffer)
+    dtHelper.store_bars(barFile=store_path, firstBar=buffer, count=len(df), period="m1")
+
+def combine_dsb_1m(read_path, store_path):
+    if not os.path.exists(store_path):
+        # asset_dsb = [os.path.join(read_path, file) for file in os.listdir(read_path) if file.endswith('.dsb')]
+        sorted_file_list = sort_files_by_date(read_path)
+        df = []
+        for file in tqdm(sorted_file_list):
+            file_path = os.path.join(read_path, file)
+            df.append(dtHelper.read_dsb_bars(file_path).to_df())
+        df = pd.concat(df, ignore_index=False)
+        wt_csv_2_dsb(df, store_path)
+
+def resample(src_path, times, store_path):
+    if not os.path.exists(store_path):
+        sessMgr = SessionMgr()
+        sessMgr.load("cfg/sessions/sessions.json")
+        sInfo = sessMgr.getSession("SD0930")
+        df = dtHelper.resample_bars(src_path,'m1',times,200001010931,209901010931,sInfo, True).to_df()
+        wt_csv_2_dsb(df, store_path)
+        print(df)
+
+run     = 1
+analyze = 1
+period  = 'm60'
+start   = 200501010930
+end     = 202407010930
 if __name__ == "__main__":
-    
     print('Preparing dsb data ...')
     #　asset = 'SSE.STK.600000'
     asset = 'sh.000001'
@@ -76,18 +113,27 @@ if __name__ == "__main__":
         type = 'STK'
     wt_asset = f'{asset_dict[parts[0]]}.{type}.{parts[1]}'
     read_path = f"{cfg.BAR_DIR}/m1/{asset}"
-    store_path = f"{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb"
+    store_path_1m = f"{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb"
+    store_path_5m = f"{cfg.WT_STORAGE_DIR}/his/min5/{exchange}/{code}.dsb"
+    store_path_60m = f"{cfg.WT_STORAGE_DIR}/his/min60/{exchange}/{code}.dsb"
+    store_path_240m = f"{cfg.WT_STORAGE_DIR}/his/min240/{exchange}/{code}.dsb"
     
+    print('Resampling ...')
+    combine_dsb_1m(read_path, store_path_1m)
+    resample(store_path_1m, 5, store_path_5m)
+    resample(store_path_1m, 60, store_path_60m)
+    resample(store_path_1m, 240, store_path_240m)
+
     # backtesting =================================================================================
     engine = WtBtEngine(EngineType.ET_CTA)
     engine.init(folder='./run', cfgfile="./cfg/configbt.yaml")
-    engine.configBacktest(202001010930,202412311500)
+    engine.configBacktest(start, end)
     engine.configBTStorage(mode="wtp", path='./storage')
     engine.commitBTConfig()
     
     str_name = f'bt_{asset}'
     bt_folder = f'./outputs_bt'
-    straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period="day", days=30, k1=0.1, k2=0.1)
+    straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period, days=30, k1=0.1, k2=0.1)
     engine.set_cta_strategy(straInfo)
     
     print('Running Backtest ...')
@@ -97,13 +143,15 @@ if __name__ == "__main__":
     print('Analyzing ...')
     analyst = WtBtAnalyst()
     analyst.add_strategy(str_name, folder=bt_folder, init_capital=500000, rf=0.0, annual_trading_days=240)
-    analyst.run_flat()
+    if analyze:
+        analyst.run_flat()
     
     print('http://127.0.0.1:8081/backtest/backtest.html')
     testBtSnooper()
     
     kw = input('press any key to exit\n')
     engine.release_backtest()
+
 '''
 from wtpy.monitor import WtMonSvr
 # 如果要配置在线回测，则必须要配置WtDtServo

@@ -267,7 +267,7 @@ class database_helper:
         self.metadata.loc[asset_str, 'ipoDate'                ] = np.datetime64(basic['ipoDate'])
         self.metadata.loc[asset_str, 'outDate'                ] = np.datetime64(basic['outDate'])
         self.metadata.loc[asset_str, 'type'                   ] = np.int8(basic['type']).item()
-        self.metadata.loc[asset_str, 'status'                 ] = np.bool(basic['status']).item()
+        self.metadata.loc[asset_str, 'status'                 ] = np.bool_(basic['status']).item()
         self.metadata.loc[asset_str, 'exchange'               ] = exchange
         self.metadata.loc[asset_str, 'industry_sector_level_1'] = industry['industry']
         self.metadata.loc[asset_str, 'industry_sector_level_2'] = ''
