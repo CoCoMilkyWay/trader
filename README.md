@@ -8,6 +8,6 @@
     - Deep-Learning:
         - supervised-learning: qlib
         - reinforcement-learning: FinRL/ElegantRL(not used)
-    - ChanLun/Elliot-Wave:
+    - ChanLun(Winding-Theory)/Elliot-Wave with Deep-Learning:
         - chan.py
 
