@@ -10,4 +10,3 @@
         - reinforcement-learning: FinRL/ElegantRL(not used)
     - ChanLun(Winding-Theory)/Elliot-Wave with Deep-Learning:
         - chan.py
-
