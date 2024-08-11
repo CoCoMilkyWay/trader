@@ -188,7 +188,6 @@ class CChanConfig:
         self.seg_bs_point_conf.b_conf.parse_target_type()
         self.seg_bs_point_conf.s_conf.parse_target_type()
 
-
 class ConfigWithCheck:
     def __init__(self, conf):
         self.conf = conf
