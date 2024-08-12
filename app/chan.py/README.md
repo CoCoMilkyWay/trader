@@ -1,6 +1,8 @@
 ## 目录结构 & 文件说明
 https://www.bilibili.com/video/BV1iB421k74C/?spm_id_from=333.788&vd_source=f78f53fd28f7a2e2c81dfd10d4ab858c
 https://www.youtube.com/watch?v=ZX-Tp4zgJYc
+https://www.sigmagu.com/papers/1
+https://www.youtube.com/watch?v=6AVHNwuDY1E
 
 ### 止损
 - 最大亏损法：这是最简单的止损方法，当买入个股的浮动亏损幅度达到某个百分点时进行止损。这个百分点根据你的风险偏好、交易策略和操作周期而定，例如超短线（T+1）的可以是1.5～3%，短线（5天左右）的可以是3～5%，中长线的可以是5～10%。这个百分点一旦定下来，就不可轻易改变，要坚决果断执行。
