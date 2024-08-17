@@ -96,7 +96,7 @@ def workflow(config_path, experiment_name="workflow", uri_folder="mlruns"):
     For examples:
 
         qlib_init:
-            provider_uri: "~/.qlib/qlib_data/cn_data"
+            provider_uri: "./.qlib/qlib_data/cn_data"
             region: cn
         BASE_CONFIG_PATH: "workflow_config_lightgbm_Alpha158_csi500.yaml"
         market: csi300

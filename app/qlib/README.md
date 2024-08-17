@@ -180,8 +180,8 @@ Also, users can install the latest dev version ``Qlib`` by the source code accor
 Here is an example to download the data updated on 20220720.
 ```bash
 wget https://github.com/chenditc/investment_data/releases/download/20220720/qlib_bin.tar.gz
-mkdir -p ~/.qlib/qlib_data/cn_data
-tar -zxvf qlib_bin.tar.gz -C ~/.qlib/qlib_data/cn_data --strip-components=2
+mkdir -p ./.qlib/qlib_data/cn_data
+tar -zxvf qlib_bin.tar.gz -C ./.qlib/qlib_data/cn_data --strip-components=2
 rm -f qlib_bin.tar.gz
 ```
 
@@ -195,10 +195,10 @@ Load and prepare data by running the following code:
 ### Get with module
   ```bash
   # get 1d data
-  python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+  python -m qlib.run.get_data qlib_data --target_dir ./.qlib/qlib_data/cn_data --region cn
 
   # get 1min data
-  python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
+  python -m qlib.run.get_data qlib_data --target_dir ./.qlib/qlib_data/cn_data_1min --region cn --interval 1min
 
   ```
 
@@ -206,10 +206,10 @@ Load and prepare data by running the following code:
 
   ```bash
   # get 1d data
-  python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn
+  python scripts/get_data.py qlib_data --target_dir ./.qlib/qlib_data/cn_data --region cn
 
   # get 1min data
-  python scripts/get_data.py qlib_data --target_dir ~/.qlib/qlib_data/cn_data_1min --region cn --interval 1min
+  python scripts/get_data.py qlib_data --target_dir ./.qlib/qlib_data/cn_data_1min --region cn --interval 1min
 
   ```
 
@@ -255,7 +255,7 @@ We recommend users to prepare their own data if they have a high-quality dataset
   from qlib.constant import REG_CN
 
   # Initialization
-  mount_path = "~/.qlib/qlib_data/cn_data"  # target_dir
+  mount_path = "./.qlib/qlib_data/cn_data"  # target_dir
   qlib.init(mount_path=mount_path, region=REG_CN)
 
   # Get stock data by Qlib

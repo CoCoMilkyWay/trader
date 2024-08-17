@@ -226,7 +226,7 @@ MODE_CONF = {
     },
     "client": {
         # config it in user's own code
-        "provider_uri": "~/.qlib/qlib_data/cn_data",
+        "provider_uri": "./.qlib/qlib_data/cn_data",
         # cache
         # Using parameter 'remote' to announce the client is using server_cache, and the writing access will be disabled.
         # Disable cache by default. Avoid introduce advanced features for beginners
@@ -250,7 +250,7 @@ MODE_CONF = {
 }
 
 HIGH_FREQ_CONFIG = {
-    "provider_uri": "~/.qlib/qlib_data/cn_data_1min",
+    "provider_uri": "./.qlib/qlib_data/cn_data_1min",
     "dataset_cache": None,
     "expression_cache": "DiskExpressionCache",
     "region": REG_CN,
