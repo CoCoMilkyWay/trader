@@ -126,12 +126,12 @@ def wt_csv_2_dsb(dtHelper, df, store_path):
     df.apply(assign, buffer=buffer)
     dtHelper.store_bars(barFile=store_path, firstBar=buffer, count=len(df), period="m1")
 
-def combine_dsb_1m(dtHelper, read_path, store_path, begin_date, end_date, store=True):
+def combine_dsb_1m(dtHelper, read_path, store_path, begin_date=datetime(1990,1,1), end_date=datetime(2050,1,1), store=True):
     if store: # read ALL dsb file and return DF
+        df = []
         if not os.path.exists(store_path):
             # asset_dsb = [os.path.join(read_path, file) for file in os.listdir(read_path) if file.endswith('.dsb')]
             sorted_file_list = sort_files_by_date(read_path)
-            df = []
             for file in tqdm(sorted_file_list):
                 file_path = os.path.join(read_path, file)
                 df.append(dtHelper.read_dsb_bars(file_path).to_df())

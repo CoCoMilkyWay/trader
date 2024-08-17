@@ -20,13 +20,13 @@ dtHelper = WtDataHelper()
 
 run     = 1
 analyze = 1
-period  = 'm60'
+period  = 'm5'
 start   = 200501010930
 end     = 202407010930
 if __name__ == "__main__":
     print('Preparing dsb data ...')
     #　asset = 'SSE.STK.600000'
-    asset = 'sh.000001'
+    asset = 'sh.000002'
     asset_dict = {'sh':'SSE', 'sz':'SZSE'}
     parts = asset.split(sep='.')
     exchange = asset_dict[parts[0]]
