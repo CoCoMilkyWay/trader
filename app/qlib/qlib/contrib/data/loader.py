@@ -80,7 +80,7 @@ class Alpha158DL(QlibDataLoader):
             "rolling": {},
         }
     ):
-        """create factors from config
+        """create factors from config"""
 
         config = {
             'kbar': {}, # whether to use some hard-code kbar features
@@ -98,7 +98,6 @@ class Alpha158DL(QlibDataLoader):
                 'exclude': ['RANK'], # rolling operator not to use
             }
         }
-        """
         fields = []
         names = []
         if "kbar" in config:
