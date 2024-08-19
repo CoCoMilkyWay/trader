@@ -86,11 +86,11 @@ class GetData:
         Examples
         ---------
         # get rl data
-        python get_data.py download_data --file_name rl_data.zip --target_dir ~/.qlib/qlib_data/rl_data
+        python get_data.py download_data --file_name rl_data.zip --target_dir ./.qlib/qlib_data/rl_data
         When this command is run, the data will be downloaded from this link: https://qlibpublic.blob.core.windows.net/data/default/stock_data/rl_data.zip?{token}
 
         # get cn csv data
-        python get_data.py download_data --file_name csv_data_cn.zip --target_dir ~/.qlib/csv_data/cn_data
+        python get_data.py download_data --file_name csv_data_cn.zip --target_dir ./.qlib/csv_data/cn_data
         When this command is run, the data will be downloaded from this link: https://qlibpublic.blob.core.windows.net/data/default/stock_data/csv_data_cn.zip?{token}
         -------
 

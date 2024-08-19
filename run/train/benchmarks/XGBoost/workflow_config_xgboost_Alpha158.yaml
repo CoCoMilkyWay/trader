@@ -61,7 +61,7 @@ task:
         - class: SigAnaRecord
           module_path: qlib.workflow.record_temp
           kwargs: 
-            ana_long_short: False
+            ana_long_short: True
             ann_scaler: 252
         - class: PortAnaRecord
           module_path: qlib.workflow.record_temp

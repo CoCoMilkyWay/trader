@@ -45,7 +45,7 @@ if not _CYTHON_INSTALLED:
 # `estimator` may depend on other packages. In order to reduce dependencies, it is not written here.
 REQUIRED = [
     "numpy>=1.12.0",
-    "pandas>=0.25.1",
+    "pandas>=2.2.2",
     "scipy>=1.7.3",
     "requests>=2.18.0",
     "sacred>=0.7.4",
