@@ -7,6 +7,7 @@ import json
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from strategies.DualThrust import StraDualThrust
+from strategies.ML_pred import ML_pred
 from db.run_db_maintain import cfg
 from db.util import *
 
@@ -20,13 +21,13 @@ dtHelper = WtDataHelper()
 
 run     = 1
 analyze = 1
-period  = 'm5'
-start   = 200501010930
-end     = 202407010930
+period  = 'm60'
+start   = 202001010930
+end     = 202101010930
 if __name__ == "__main__":
     print('Preparing dsb data ...')
     #　asset = 'SSE.STK.600000'
-    asset = 'sh.000002'
+    asset = 'sh.000300'
     asset_dict = {'sh':'SSE', 'sz':'SZSE'}
     parts = asset.split(sep='.')
     exchange = asset_dict[parts[0]]
@@ -59,7 +60,8 @@ if __name__ == "__main__":
     
     str_name = f'bt_{asset}'
     bt_folder = f'./outputs_bt'
-    straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period, days=30, k1=0.1, k2=0.1)
+    # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period, days=30, k1=0.1, k2=0.1)
+    straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period)
     engine.set_cta_strategy(straInfo)
     
     print('Running Backtest ...')
