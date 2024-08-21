@@ -145,8 +145,6 @@ def combine_dsb_1m(dtHelper, read_path, store_path, begin_date=datetime(1990,1,1
             file_path = os.path.join(read_path, file)
             df.append(dtHelper.read_dsb_bars(file_path).to_df())
         return pd.concat(df, ignore_index=False)
-        
-        
 
 def resample(dtHelper, src_path, times, store_path):
     if not os.path.exists(store_path):
@@ -156,3 +154,19 @@ def resample(dtHelper, src_path, times, store_path):
         df = dtHelper.resample_bars(src_path,'m1',times,200001010931,209901010931,sInfo, True).to_df()
         wt_csv_2_dsb(dtHelper, df, store_path)
         print(df)
+
+def print_class_attributes_and_methods(obj):
+    print(f"===================================================Class: {obj.__class__.__name__}")
+    print("Attributes and Methods:")
+    for attribute in dir(obj):
+        # Filter out built-in attributes and methods (those starting with '__')
+        if not attribute.startswith("__"):
+            try:
+                # Attempt to get the value of the attribute/method
+                attr_value = getattr(obj, attribute)
+                if callable(attr_value):
+                    print(f"{attribute} (method) -> {attr_value}")
+                else:
+                    print(f"{attribute} (attribute) -> {attr_value}")
+            except Exception as e:
+                print(f"Could not access {attribute}: {e}")
