@@ -1,11 +1,11 @@
 class cfg: # Constants Configs
     import os
-    SHRINK_STOCK_POOL = 0
+    SHRINK_STOCK_POOL = 1
     FORCE_INTEGRITY_SYNC = 0
     max_workers = 128
     concurrency_mode = 'process' # 'thread'/'process'
 
-    tolerance = 10 # tolerance among different data sources, larger for EFT
+    tolerance = 10 # tolerance among different data sources, larger for ETF
     # local config files
     script_dir          = os.path.dirname(os.path.abspath(__file__))
     HOLIDAYS_FILE       = script_dir + '/../cfg/misc/holidays.json'
@@ -21,14 +21,18 @@ class cfg: # Constants Configs
     # db1_0
     DB1_0_name          = '/DB1_0'
     DB1_0               = DATABASE_DIR + DB1_0_name
-    METADATA_FILE       = DB1_0 + '/metadata_table.parquet'
+    STOCK_POOL          = '/hs300' # 1st_100_stocks/hs300/index
+    METADATA_FILE       = DB1_0 + '/asset_pool_cfg' + STOCK_POOL + '/metadata_table.parquet'
     METADATA_JSON_FILE  = LOCAL_DATABASE_DIR + DB1_0_name + '/metadata_table.json'
     INTEGRITY_JSON_FILE = LOCAL_DATABASE_DIR + DB1_0_name + '/integrity.json'
     BAR_DIR             = DB1_0 + '/bars'
     TICK_DIR            = DB1_0 + '/tick'
     CROSS_VERIFY_DIR    = BAR_DIR + '/third_party/tdx_1d'
     # remote raw data
-    RAW_CSV_DIR = 'E:/raw_m1/idx' # 'E:/data_stock'
+    RAW_CSV_DIR         = 'E:/raw_m1/stk'
+    BY_YEAR             = True
+    #　RAW_CSV_DIR         = 'E:/raw_m1/idx'
+    #　BY_YEAR             = False
     
     WT_STORAGE_DIR      = script_dir + '/../storage'
 
@@ -38,14 +42,14 @@ class cfg: # Constants Configs
     # 3. inter-day price jump limit (10%~30% with call-auction and adj)
     # 4. OHLC the same from a minute bar if volume is zero
     # 5. verify day-open/close/mid-break price from other sources
-    CHECK_0 = True
-    CHECK_1 = True
-    CHECK_2 = True
-    CHECK_3 = True
-    CHECK_4 = True
-    CHECK_5 = True
-    CHECK_6 = True
-    CHECK_7 = True
+    CHECK_0 = True; DISCARD_0 = False
+    CHECK_1 = True; DISCARD_1 = False
+    CHECK_2 = True; DISCARD_2 = False
+    CHECK_3 = True; DISCARD_3 = False
+    CHECK_4 = True; DISCARD_4 = False
+    CHECK_5 = True; DISCARD_5 = False
+    CHECK_6 = True; DISCARD_6 = False
+    CHECK_7 = True; DISCARD_7 = False
     
     # Method to update database path, demonstrating how methods can be included
     @classmethod

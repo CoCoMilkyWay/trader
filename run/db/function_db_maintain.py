@@ -263,7 +263,7 @@ class database_helper:
         query_industry = bs.query_stock_industry(code=asset_str) # ShenWan level-1
         industry = get_baostock_info(query_industry)
         exchange, _ = get_sub_exchange(asset_str)
-        self.metadata.loc[asset_str, 'asset'                  ] = asset_str
+        self.metadata.loc[asset_str, 'code'                   ] = asset_str
         self.metadata.loc[asset_str, 'asset_name'             ] = basic['code_name']
         self.metadata.loc[asset_str, 'ipoDate'                ] = np.datetime64(basic['ipoDate'])
         self.metadata.loc[asset_str, 'outDate'                ] = np.datetime64(basic['outDate'])
@@ -276,6 +276,7 @@ class database_helper:
         
     def main_process_assets_from_folders(self):
         # TODO
+        # from pprint import pprint
         print(self.stocks)
         assets = self.stocks
         exchanges = ['SSE', 'SZSE']
@@ -405,7 +406,8 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                     num_min_bars = group_date.shape[0]
                     # Rule 5: Verify day-open/close/mid-break price from other sources
                     if (num_min_bars<200):
-                        rules_violated_tomonth |= 1<<5
+                        if cfg.DISCARD_5:
+                            rules_violated_tomonth |= 1<<5
                         log(log_path, f'[integrity][5]: not enough monthly data: {asset}: {year}.{month}')
                         continue
                     k_bar = daily_k_bar[(year == daily_k_bar['year']) &
@@ -428,7 +430,8 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                                 if abs(actual_close - expected_close) > cfg.tolerance:
                                     valid =0
                     if valid == 0:
-                        rules_violated_tomonth |= 1<<5
+                        if cfg.DISCARD_5:
+                            rules_violated_tomonth |= 1<<5
                         log(log_path, f'[integrity][5]: not matching data source: {asset}: {year}.{month}.{day}: {expected_open}, {actual_open}, {expected_close}, {actual_close}')
                         continue
                     
@@ -436,7 +439,8 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                     # Rule 0: Non-zero/NaN/NaT OHLC
                     if (group_date[['open', 'high', 'low', 'close']].isnull().any().any() or
                         (group_date[['open', 'high', 'low', 'close']] == 0).any().any()):
-                        rules_violated_tomonth |= 1<<0
+                        if cfg.DISCARD_0:
+                            rules_violated_tomonth |= 1<<0
                         log(log_path, f'[integrity][0]: bad data:{elem}')
                         continue
 
@@ -451,13 +455,15 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                     unexpected_time = False
                     for elem in actual_times:
                         if elem not in expected_times:
-                            rules_violated_tomonth |= 1<<1
+                            if cfg.DISCARD_1:
+                                rules_violated_tomonth |= 1<<1
                             unexpected_time = True
                             log(log_path, f'[integrity][1]: unexpected trading time:{asset}: {year}.{month}.{day}: {elem}')
                             continue
                     if not unexpected_time:
                         if len(actual_times) < len(expected_times) - 5:
-                            rules_violated_tomonth |= 1<<1
+                            if cfg.DISCARD_1:
+                                rules_violated_tomonth |= 1<<1
                             log(log_path, f'[integrity][1]: not enough data: {asset}: {year}.{month}.{day}: {len(expected_times)}, {len(actual_times)}')
                             continue
                         
@@ -468,7 +474,8 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                         (group_date['open']     < group_date['low']).any() or 
                         (group_date['close']    > group_date['high']).any() or 
                         (group_date['close']    < group_date['low']).any()):
-                        rules_violated_tomonth |= 1<<2
+                        if cfg.DISCARD_2:
+                            rules_violated_tomonth |= 1<<2
                         log(log_path, f"[integrity][2]: wrong intra-day OHCL:{asset}: {year}.{month}.{day}: {group_date['open'].iloc[0]},{group_date['close'].iloc[0]},{group_date['high'].iloc[0]},{group_date['low'].iloc[0]}")
                         continue
 
@@ -494,9 +501,9 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                         else:
                             log(log_path, f'[integrity][3]: {year}.{month}.{day} day bar price jump: {prev_close[1]}, {adjusted_prev_close}, {current_open}')
                             
-                        # TODO: skip checking for adjfsctors:
-                        # rules_violated_tomonth |= 1<<3
-                        # continue
+                        if cfg.DISCARD_3:
+                            rules_violated_tomonth |= 1<<3
+                        continue
 
                 if cfg.CHECK_4:
                     # Rule 4: OHLC equal if volume is zero
@@ -504,7 +511,8 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                         (group_date['open'] != group_date['high']) & 
                         (group_date['high'] != group_date['low']) & 
                         (group_date['low'] != group_date['close'])).any():
-                        rules_violated_tomonth |= 1<<4
+                        if cfg.DISCARD_4:
+                            rules_violated_tomonth |= 1<<4
                         log(log_path, f'[integrity][4]: OHLC non-equal for 0 volume')
                         continue
                 # TODO
@@ -594,9 +602,10 @@ def process_single_asset(asset_dict, meta):
             else:
                 return [[], asset]
         def load_files_by_year():
-            # TODO
-            folders = [os.path.join(cfg.RAW_CSV_DIR, folder) for folder in os.listdir(cfg.RAW_CSV_DIR)] # if folder.endswith('年')]
-            folders = [os.path.join(cfg.RAW_CSV_DIR, '')]
+            if cfg.BY_YEAR:
+                folders = [os.path.join(cfg.RAW_CSV_DIR, folder) for folder in os.listdir(cfg.RAW_CSV_DIR)] # if folder.endswith('年')]
+            else:
+                folders = [os.path.join(cfg.RAW_CSV_DIR, '')]
             days_passed = []
             for folder in folders:
                 file = [os.path.join(folder, file) for file in os.listdir(folder) if file == f'{asset_code}.{asset_prefix[:2]}.csv']
