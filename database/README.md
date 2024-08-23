@@ -18,7 +18,7 @@
             2. intra-day price continuity
             3. inter-day price jump limit (10%, 20%, 30% with call-auction and factor-adj)
             4. OHLC the same from a minute bar if volume is zero
-            5. verify day-open/close/mid-break price from other sources(AKshare)
+            5. verify day-open/close/mid-break price from other sources(tdx)
         - meta data json: (asset):
             0. string: asset_name (subject to change: ST->*ST->PT (special treatment/particular transfer))
             1. u32: yearly data integrity[0:31] : {2000, 2001, ..., 2031}
