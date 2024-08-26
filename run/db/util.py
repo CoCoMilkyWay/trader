@@ -112,7 +112,7 @@ def sort_files_by_date(folder_path, start_date=datetime(1900,1,1), end_date=date
     sorted_files = sorted(files_with_dates, key=lambda x: x[1])
     return [file for file, _ in sorted_files]
 
-def wt_csv_2_dsb(dtHelper, df, store_path):
+def wt_df_2_dsb(dtHelper, df, store_path):
     # index: open high low close settle turnover volume open_interest diff bartime
     # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
     df = df.rename(columns={'volume': 'vol'})
@@ -126,33 +126,29 @@ def wt_csv_2_dsb(dtHelper, df, store_path):
     df.apply(assign, buffer=buffer)
     dtHelper.store_bars(barFile=store_path, firstBar=buffer, count=len(df), period="m1")
 
-def combine_dsb_1m(dtHelper, read_path, store_path, begin_date=datetime(1990,1,1), end_date=datetime(2050,1,1), store=True):
-    if store: # read ALL dsb file and return DF
-        df = []
-        if not os.path.exists(store_path):
-            # asset_dsb = [os.path.join(read_path, file) for file in os.listdir(read_path) if file.endswith('.dsb')]
+def combine_dsb_1m(dtHelper, read_path, store_path, begin_date=datetime(1990,1,1), end_date=datetime(2050,1,1), total=True):
+    df = []
+    if not os.path.exists(store_path):
+        # asset_dsb = [os.path.join(read_path, file) for file in os.listdir(read_path) if file.endswith('.dsb')]
+        if total: # read ALL dsb file and return DF
             sorted_file_list = sort_files_by_date(read_path)
-            for file in tqdm(sorted_file_list):
-                file_path = os.path.join(read_path, file)
-                df.append(dtHelper.read_dsb_bars(file_path).to_df())
-            df = pd.concat(df, ignore_index=False)
-            wt_csv_2_dsb(dtHelper, df, store_path)
-        return df
-    else: # only read SOME data and return DF(do not combine all dsb)
-        sorted_file_list = sort_files_by_date(read_path, begin_date, end_date)
-        df = []
+        else: # only read SOME data and return DF(do not combine all dsb)
+            sorted_file_list = sort_files_by_date(read_path, begin_date, end_date)
         for file in tqdm(sorted_file_list):
             file_path = os.path.join(read_path, file)
             df.append(dtHelper.read_dsb_bars(file_path).to_df())
-        return pd.concat(df, ignore_index=False)
+        df = pd.concat(df, ignore_index=False)
+        wt_df_2_dsb(dtHelper, df, store_path)
+    return df # this is only for convenience, if already exist, would not read or return anything
 
 def resample(dtHelper, src_path, times, store_path):
     if not os.path.exists(store_path):
+        script_dir = os.path.dirname(os.path.realpath(__file__))
         sessMgr = SessionMgr()
-        sessMgr.load("cfg/sessions/sessions.json")
+        sessMgr.load(f"{script_dir}/../cfg/sessions/sessions.json")
         sInfo = sessMgr.getSession("SD0930")
-        df = dtHelper.resample_bars(src_path,'m1',times,200001010931,209901010931,sInfo, True).to_df()
-        wt_csv_2_dsb(dtHelper, df, store_path)
+        df = dtHelper.resample_bars(src_path,'m1',times,200001010931,205001010931,sInfo, True).to_df()
+        wt_df_2_dsb(dtHelper, df, store_path)
         print(df)
 
 def print_class_attributes_and_methods(obj):

@@ -21,8 +21,11 @@ class cfg: # Constants Configs
     # db1_0
     DB1_0_name          = '/DB1_0'
     DB1_0               = DATABASE_DIR + DB1_0_name
-    STOCK_POOL          = '/hs300' # 1st_100_stocks/hs300/index
-    METADATA_FILE       = DB1_0 + '/asset_pool_cfg' + STOCK_POOL + '/metadata_table.parquet'
+    STOCK_POOL          = 'zz500' # 1st_100_stocks/hs300/zz500/index
+    if SHRINK_STOCK_POOL:
+        METADATA_FILE       = DB1_0 + '/asset_pool_cfg/' + STOCK_POOL + '/metadata_table.parquet'
+    else:
+        METADATA_FILE       = DB1_0 + '/metadata_table.parquet'
     METADATA_JSON_FILE  = LOCAL_DATABASE_DIR + DB1_0_name + '/metadata_table.json'
     INTEGRITY_JSON_FILE = LOCAL_DATABASE_DIR + DB1_0_name + '/integrity.json'
     BAR_DIR             = DB1_0 + '/bars'
@@ -31,8 +34,9 @@ class cfg: # Constants Configs
     # remote raw data
     RAW_CSV_DIR         = 'E:/raw_m1/stk'
     BY_YEAR             = True
-    #　RAW_CSV_DIR         = 'E:/raw_m1/idx'
-    #　BY_YEAR             = False
+    if STOCK_POOL == 'index':
+        RAW_CSV_DIR         = 'E:/raw_m1/idx'
+        BY_YEAR             = False
     
     WT_STORAGE_DIR      = script_dir + '/../storage'
 

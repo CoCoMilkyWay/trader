@@ -46,7 +46,7 @@ if __name__ == "__main__":
     store_path_240m = f"{cfg.WT_STORAGE_DIR}/his/min240/{exchange}/{code}.dsb"
     
     print('Resampling ...')
-    combine_dsb_1m(dtHelper, read_path, store_path_1m, store=True)
+    combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
     resample(dtHelper, store_path_1m, 5, store_path_5m)
     resample(dtHelper, store_path_1m, 60, store_path_60m)
     resample(dtHelper, store_path_1m, 240, store_path_240m)

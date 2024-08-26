@@ -134,25 +134,30 @@ class database_helper:
         self.tradedays = load_json(cfg.TRADEDAYS_FILE)
         self.stocks = load_json(cfg.STOCKS_FILE)
         self.adjfactors = load_json(cfg.ADJFACTORS_FILE)
-        def get_hs300_stocks():
+        def get_bao_stocks(pool: str = 'hs300'):
             import baostock as bs
             import pandas as pd
             lg = bs.login()
             print('login respond error_code:'+lg.error_code)
             print('login respond  error_msg:'+lg.error_msg)
-            rs = bs.query_hs300_stocks()
-            print('query_hs300 error_code:'+rs.error_code)
-            print('query_hs300  error_msg:'+rs.error_msg)
-            hs300_stocks = []
+            bao_valid = 0
+            if pool == 'hs300':
+                rs = bs.query_hs300_stocks()
+                bao_valid = 1
+            elif pool == 'zz500':
+                rs = bs.query_zz500_stocks()
+                bao_valid = 1
+            print('query error_code:'+rs.error_code)
+            print('query  error_msg:'+rs.error_msg)
+            bao_stocks = []
             while (rs.error_code == '0') & rs.next():
-                hs300_stocks.append(rs.get_row_data())
+                bao_stocks.append(rs.get_row_data())
             bs.logout()
-            hs300_df = pd.DataFrame(hs300_stocks, columns=rs.fields)
-            hs300_ls = list(hs300_df['code'])
-            return hs300_ls
+            bao_df = pd.DataFrame(bao_stocks, columns=rs.fields)
+            bao_ls = list(bao_df['code'])
+            return bao_ls, bao_valid
         if cfg.SHRINK_STOCK_POOL:
-            # TODO
-            hs300 = get_hs300_stocks()
+            bao_stocks, bao_valid = get_bao_stocks(cfg.STOCK_POOL)
             exchange_dict = {'SSE': 'sh', 'SZSE': 'sz'}
             for e in ['SSE', 'SZSE']:
                 limited_dict = {}
@@ -162,13 +167,15 @@ class database_helper:
                     asset = f'{exchange_dict[e]}.{key}'
                     count += 1
                     if count >0:
-                        if asset in hs300:
-                            if count == 20:
-                                self.stocks[e] = limited_dict
-                                break  # Stop after adding N items
-                            limited_dict[key] = value
-                        # if value['product'] == 'IDX':
-                        #     limited_dict[key] = value
+                        if bao_valid:
+                            if asset in bao_stocks:
+                                # if count == 20:
+                                #     self.stocks[e] = limited_dict
+                                #     break  # Stop after adding N items
+                                limited_dict[key] = value
+                        if cfg.STOCK_POOL == 'index':
+                            if value['product'] == 'IDX':
+                                limited_dict[key] = value
                 self.stocks[e] = limited_dict
         else:
             exchange_dict = {'SSE': 'sh', 'SZSE': 'sz'}

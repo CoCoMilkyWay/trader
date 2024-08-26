@@ -16,7 +16,7 @@ def create_item_dict(data, column_name):
     return dict(zip(column_name, data))
 
 def parse_time_column(inp):
-    # 2020_1102_0931  
+    # 2020_1102_0931
     if len(inp) == 12:
         year = int(inp[:4])
         month = int(inp[4:6])
@@ -46,7 +46,7 @@ class WT_API(CCommonStockApi):
     def get_kl_data(self):
         sys.path.append("../../..")
         from run.db.run_db_maintain import cfg
-        from run.db.util import combine_dsb_1m, resample
+        from run.db.util import combine_dsb_1m, resample, mkdir
         
         # from wtpy import WtBtEngine, EngineType, WtDtServo
         # from wtpy.monitor import WtBtSnooper
@@ -70,10 +70,8 @@ class WT_API(CCommonStockApi):
         #     type = 'STK'
         # wt_asset = f'{asset_dict[parts[0]]}.{type}.{parts[1]}'
         read_path = f"{cfg.BAR_DIR}/m1/{asset}"
-        store_path_1m = f"{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb"
-        # store_path_5m = f"{cfg.WT_STORAGE_DIR}/his/min5/{exchange}/{code}.dsb"
-        # store_path_60m = f"{cfg.WT_STORAGE_DIR}/his/min60/{exchange}/{code}.dsb"
-        # store_path_240m = f"{cfg.WT_STORAGE_DIR}/his/min240/{exchange}/{code}.dsb"
+        imcomplete_1m_store_path = mkdir(f"{cfg.WT_STORAGE_DIR}/his/temp_1m.dsb") # temp path
+        imcomplete_resample_store_path = mkdir(f"{cfg.WT_STORAGE_DIR}/his/temp_resample.dsb") # temp path
         
         print('Resampling ...')
         from datetime import datetime
@@ -81,14 +79,34 @@ class WT_API(CCommonStockApi):
         end_parts = self.end_date.split('-')
         begin_date = datetime(int(begin_parts[0]), int(begin_parts[1]), int(begin_parts[2]))
         end_date = datetime(int(end_parts[0]), int(end_parts[1]), int(end_parts[2]))
-        df = combine_dsb_1m(dtHelper, read_path, store_path_1m, begin_date, end_date, store=False)
-        df = df.rename(columns={'bartime': 'time_key'})
+        combine_dsb_1m(dtHelper, read_path, imcomplete_1m_store_path, begin_date, end_date, total=False)
+        
+        if self.k_type == KL_TYPE.K_1M  :
+            # resample(dtHelper, imcomplete_1m_store_path, 1,    imcomplete_resample_store_path)
+            imcomplete_resample_store_path = imcomplete_1m_store_path
+        elif self.k_type == KL_TYPE.K_3M  :
+            resample(dtHelper, imcomplete_1m_store_path, 3,    imcomplete_resample_store_path)
+        elif self.k_type == KL_TYPE.K_5M  :
+            resample(dtHelper, imcomplete_1m_store_path, 5,    imcomplete_resample_store_path)
+        elif self.k_type == KL_TYPE.K_15M :
+            resample(dtHelper, imcomplete_1m_store_path, 15,   imcomplete_resample_store_path)
+        elif self.k_type == KL_TYPE.K_30M :
+            resample(dtHelper, imcomplete_1m_store_path, 30,   imcomplete_resample_store_path)
+        elif self.k_type == KL_TYPE.K_60M :
+            resample(dtHelper, imcomplete_1m_store_path, 60,   imcomplete_resample_store_path)
+        elif self.k_type == KL_TYPE.K_DAY :
+            resample(dtHelper, imcomplete_1m_store_path, 240,  imcomplete_resample_store_path)
+            
+        df = dtHelper.read_dsb_bars(imcomplete_resample_store_path).to_df()
+        df = df.rename(columns={'bartime': 'time_key'}) # type: ignore
         df = df[["time_key", "open", "high", "low", "close", "volume", "turnover"]] # not include "turnover_rate"
         
-        # resample(dtHelper, store_path_1m, 5, store_path_5m)
-        # resample(dtHelper, store_path_1m, 60, store_path_60m)
-        # resample(dtHelper, store_path_1m, 240, store_path_240m)
-
+        try:
+            os.remove(imcomplete_1m_store_path)
+            os.remove(imcomplete_resample_store_path)
+        except:
+            pass
+        
         # if not os.path.exists(file_path):
         #     raise CChanException(f"file not exist: {file_path}", ErrCode.SRC_DATA_NOT_FOUND)
         # if len(data) != len(self.columns):
