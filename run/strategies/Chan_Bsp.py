@@ -6,9 +6,26 @@ from wtpy import CtaContext
 
 from Chan.Chan import CChan
 from Chan.ChanConfig import CChanConfig
-from Chan.Common.CEnum import DATA_SRC, KL_TYPE, AUTYPE
+from Chan.Common.CEnum import DATA_SRC, KL_TYPE, AUTYPE, DATA_FIELD
 from Chan.DataAPI.wtAPI import parse_time_column
 from Chan.KLine.KLine_Unit import CKLine_Unit
+
+
+def print_class_attributes_and_methods(obj):
+    print(f"===================================================Class: {obj.__class__.__name__}")
+    print("Attributes and Methods:")
+    for attribute in dir(obj):
+        # Filter out built-in attributes and methods (those starting with '__')
+        if not attribute.startswith("__"):
+            try:
+                # Attempt to get the value of the attribute/method
+                attr_value = getattr(obj, attribute)
+                if callable(attr_value):
+                    print(f"{attribute} (method) -> {attr_value}")
+                else:
+                    print(f"{attribute} (attribute) -> {attr_value}")
+            except Exception as e:
+                print(f"Could not access {attribute}: {e}")
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 def stdio(str):
@@ -38,6 +55,16 @@ class Chan_bsp(BaseCtaStrategy):
             config=self.config,
             # autype=AUTYPE.QFQ,
         )
+        self.column_name = [
+            DATA_FIELD.FIELD_TIME,
+            DATA_FIELD.FIELD_OPEN,
+            DATA_FIELD.FIELD_HIGH,
+            DATA_FIELD.FIELD_LOW,
+            DATA_FIELD.FIELD_CLOSE,
+            DATA_FIELD.FIELD_VOLUME,
+            # DATA_FIELD.FIELD_TURNOVER,
+            # DATA_FIELD.FIELD_TURNRATE,
+            ]  # 每一列字段
     
     def on_init(self, context:CtaContext):
         code = self.__code__    #品种代码
@@ -50,7 +77,7 @@ class Chan_bsp(BaseCtaStrategy):
         
         context.stra_prepare_bars(code, self.__period__, self.__bar_cnt__, isMain = True)
         context.stra_sub_ticks(code)
-        context.stra_log_text("Chan inited")
+        context.stra_log_text("Chan Initiated")
         
         #读取存储的数据
         self.xxx = context.user_load_data('xxx',1)
@@ -65,43 +92,37 @@ class Chan_bsp(BaseCtaStrategy):
     def on_calculate(self, context:CtaContext):
         code = self.__code__    #品种代码
         
-        #读取最近n条线(dataframe对象)
         theCode = code
         if self.__is_stk__:
             theCode = theCode + "-" # 如果是股票代码，后面加上一个+/-，+表示后复权，-表示前复权
-        np_bars = context.stra_get_bars(theCode, self.__period__, self.__bar_cnt__, isMain = True)
+        np_bars = context.stra_get_bars(theCode, self.__period__, self.__bar_cnt__, isMain = True)        
+        open    = np_bars.opens[-1]
+        high    = np_bars.highs[-1]
+        low     = np_bars.lows[-1]
+        close   = np_bars.closes[-1]
+        volume  = np_bars.volumes[-1]
+        bartime = np_bars.bartimes[-1]
+        # date  = context.get_date()
+
+        # ["time_key", "open", "high", "low", "close", "volume", "turnover"] # not include "turnover_rate"
+        klu = CKLine_Unit(dict(zip(self.column_name, [
+            parse_time_column(str(bartime)),
+            open,
+            high,
+            low,
+            close,
+            volume,
+        ])))
         
-        open = np_bars.opens[-1]
-        high = np_bars.highs[-1]
-        low = np_bars.lows[-1]
-        close = np_bars.closes[-1]
-        date = context.get_date()
-        
-        def create_item_dict(data, column_name):
-            for i in range(len(data)):
-                if i == 0:
-                    data[0] = parse_time_column(str(int(data[0])))
-                # data[i] = str2float(data[i])
-            return dict(zip(column_name, data))
-        
-        def parse_time_column(inp):
-            # 2020_1102_0931
-            if len(inp) == 12:
-                year = int(inp[:4])
-                month = int(inp[4:6])
-                day = int(inp[6:8])
-                hour = int(inp[8:10])
-                minute = int(inp[10:12])
-            else:
-                raise Exception(f"unknown time column from csv:{inp}")
-            return CTime(year, month, day, hour, minute)
-        
-        klu = CKLine_Unit(create_item_dict(row_list, self.columns))
-        
-        self.chan.trigger_load({KL_TYPE.K_DAY: [klu]})  # 喂给CChan新增k线
-        bsp_list = chan.get_bsp()
+        self.chan.trigger_load({KL_TYPE.K_60M: [klu]})
+        bsp_list = self.chan.get_bsp()
         if not bsp_list:
-            continue
-        print(open, high, low, close, date)
-        
+            return
+        last_bsp = bsp_list[-1]
+        print(last_bsp.type)
+        print(last_bsp.is_buy)
+        print(last_bsp.bi)
+        print(last_bsp.klu.klc.idx)
+        print('================================================')
+        return
         # date = pd.to_datetime(str(context.get_date()), format="%Y%m%d").date
