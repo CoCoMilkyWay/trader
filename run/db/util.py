@@ -149,7 +149,7 @@ def resample(dtHelper, src_path, times, store_path):
         sInfo = sessMgr.getSession("SD0930")
         df = dtHelper.resample_bars(src_path,'m1',times,200001010931,205001010931,sInfo, True).to_df()
         wt_df_2_dsb(dtHelper, df, store_path)
-        print(df)
+        # print(df)
 
 def print_class_attributes_and_methods(obj):
     print(f"===================================================Class: {obj.__class__.__name__}")

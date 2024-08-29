@@ -8,6 +8,7 @@ import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from strategies.DualThrust import StraDualThrust
 from strategies.ML_pred import ML_pred
+from strategies.Chan_Bsp import Chan_bsp
 from db.run_db_maintain import cfg
 from db.util import *
 
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     resample(dtHelper, store_path_1m, 5, store_path_5m)
     resample(dtHelper, store_path_1m, 60, store_path_60m)
     resample(dtHelper, store_path_1m, 240, store_path_240m)
-
+    
     # backtesting =================================================================================
     engine = WtBtEngine(EngineType.ET_CTA)
     engine.init(folder='./run', cfgfile="./cfg/configbt.yaml")
@@ -60,8 +61,13 @@ if __name__ == "__main__":
     
     str_name = f'bt_{asset}'
     bt_folder = f'./outputs_bt'
+    from Chan.Common.CEnum import KL_TYPE
+    lv_list = [KL_TYPE.K_60M]
+    
     # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period, days=30, k1=0.1, k2=0.1)
-    straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period)
+    # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period)
+    straInfo = Chan_bsp(name=str_name, code=wt_asset, barCnt=1, period=period, lv_list=lv_list)
+    
     engine.set_cta_strategy(straInfo)
     
     print('Running Backtest ...')
@@ -79,7 +85,7 @@ if __name__ == "__main__":
     
     kw = input('press any key to exit\n')
     engine.release_backtest()
-
+    
 '''
 from wtpy.monitor import WtMonSvr
 # 如果要配置在线回测，则必须要配置WtDtServo
