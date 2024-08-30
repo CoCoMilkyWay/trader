@@ -16,7 +16,6 @@ class StraDualThrust(BaseCtaStrategy):
         self.__code__ = code
 
         self.__is_stk__ = isForStk
-        self.barnum = 0
 
     def on_init(self, context:CtaContext):
         code = self.__code__    #品种代码
@@ -24,8 +23,8 @@ class StraDualThrust(BaseCtaStrategy):
             code = code + "-"   # 如果是股票代码，后面加上一个+/-，+表示后复权，-表示前复权
 
         #这里演示了品种信息获取的接口
-        #　pInfo = context.stra_get_comminfo(code)
-        #　print(pInfo)
+        pInfo = context.stra_get_comminfo(code)
+        print(pInfo)
 
         context.stra_prepare_bars(code, self.__period__, self.__bar_cnt__, isMain = True)
         context.stra_sub_ticks(code)
@@ -37,9 +36,6 @@ class StraDualThrust(BaseCtaStrategy):
     def on_tick(self, context: CtaContext, stdCode: str, newTick: dict):
         # print(newTick)
         pass
-    
-    def on_bar(self,  context: CtaContext, stdCode: str, newTick: dict):
-        self.barnum += 1
     
     def on_calculate(self, context:CtaContext):
         code = self.__code__    #品种代码
@@ -58,7 +54,6 @@ class StraDualThrust(BaseCtaStrategy):
         days = self.__days__
         k1 = self.__k1__
         k2 = self.__k2__
-        barnum = self.barnum
 
         #平仓价序列、最高价序列、最低价序列
         closes = np_bars.closes
@@ -94,7 +89,7 @@ class StraDualThrust(BaseCtaStrategy):
         if curPos == 0:
             if highpx >= upper_bound:
                 context.stra_enter_long(code, 1*trdUnit, 'enterlong')
-                context.stra_log_text(stdio(f"{barnum}: 向上突破{highpx:.2f}>={upper_bound:.2f}，多仓进场"))
+                # context.stra_log_text(f"向上突破{highpx:.2f}>={upper_bound:.2f}，多仓进场")
                 #修改并保存
                 self.xxx = 1
                 context.user_save_data('xxx', self.xxx)
@@ -102,20 +97,16 @@ class StraDualThrust(BaseCtaStrategy):
 
             if lowpx <= lower_bound and not self.__is_stk__:
                 context.stra_enter_short(code, 1*trdUnit, 'entershort')
-                context.stra_log_text(stdio(f"{barnum}: 向下突破{lowpx:.2f}<={lower_bound:.2f}，空仓进场"))
+                # context.stra_log_text(f"向下突破{lowpx:.2f}<={lower_bound:.2f}，空仓进场")
                 return
         elif curPos > 0:
             if lowpx <= lower_bound:
                 context.stra_exit_long(code, 1*trdUnit, 'exitlong')
-                context.stra_log_text(stdio(f"{barnum}: 向下突破{lowpx:.2f}<={lower_bound:.2f}，多仓出场"))
+                # context.stra_log_text(f"向下突破{lowpx:.2f}<={lower_bound:.2f}，多仓出场")
                 #raise Exception("except on purpose")
                 return
         else:
             if highpx >= upper_bound and not self.__is_stk__:
                 context.stra_exit_short(code, 1*trdUnit, 'exitshort')
-                context.stra_log_text(stdio(f"{barnum}: 向上突破{highpx:.2f}>={upper_bound:.2f}，空仓出场"))
+                # context.stra_log_text(f"向上突破{highpx:.2f}>={upper_bound:.2f}，空仓出场")
                 return
-
-def stdio(str):
-    print(str)
-    return str

@@ -18,11 +18,15 @@ from wtpy.wrapper import WtDataHelper
 from wtpy.apps import WtBtAnalyst
 from wtpy.WtCoreDefs import WTSBarStruct
 from wtpy.SessionMgr import SessionMgr
+
+from Chan.Common.CEnum import KL_TYPE
+
 dtHelper = WtDataHelper()
 
 run     = 1
 analyze = 1
-period  = 'm60'
+period  = 'm5' # m1/
+lv_list = [KL_TYPE.K_5M]
 start   = 202001010930
 end     = 202101010930
 if __name__ == "__main__":
@@ -61,8 +65,6 @@ if __name__ == "__main__":
     
     str_name = f'bt_{asset}'
     bt_folder = f'./outputs_bt'
-    from Chan.Common.CEnum import KL_TYPE
-    lv_list = [KL_TYPE.K_60M]
     
     # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period)
