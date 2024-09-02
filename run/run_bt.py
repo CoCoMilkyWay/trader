@@ -8,7 +8,7 @@ import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from strategies.DualThrust import StraDualThrust
 from strategies.ML_pred import ML_pred
-from strategies.Chan_Bsp import Chan_bsp
+from strategies.Main_Cta import Main_Cta
 from db.run_db_maintain import cfg
 from db.util import *
 
@@ -19,21 +19,21 @@ from wtpy.apps import WtBtAnalyst
 from wtpy.WtCoreDefs import WTSBarStruct
 from wtpy.SessionMgr import SessionMgr
 
-from Chan.Common.CEnum import KL_TYPE
-
 dtHelper = WtDataHelper()
 
 run     = 1
 analyze = 1
-period  = 'm5' # m1/
-lv_list = [KL_TYPE.K_5M]
-start   = 202001010930
-end     = 202101010930
-if __name__ == "__main__":
-    print('Preparing dsb data ...')
+period  = ['m', 5] # bar period
+start   = 201801010930
+end     = 202401010930
+capital = 1000000
+def run_bt():
+    print('Preparing dsb data (Combining and Resampling) ...')
     #　asset = 'SSE.STK.600000'
     asset = 'sh.000300'
     asset_dict = {'sh':'SSE', 'sz':'SZSE'}
+    period_str = period[0] + str(period[1])
+    period_dict = {'m': 'min'}
     parts = asset.split(sep='.')
     exchange = asset_dict[parts[0]]
     code = parts[1]
@@ -46,17 +46,13 @@ if __name__ == "__main__":
     wt_asset = f'{asset_dict[parts[0]]}.{type}.{parts[1]}'
     read_path = f"{cfg.BAR_DIR}/m1/{asset}"
     store_path_1m = f"{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb"
-    store_path_5m = f"{cfg.WT_STORAGE_DIR}/his/min5/{exchange}/{code}.dsb"
-    store_path_60m = f"{cfg.WT_STORAGE_DIR}/his/min60/{exchange}/{code}.dsb"
-    store_path_240m = f"{cfg.WT_STORAGE_DIR}/his/min240/{exchange}/{code}.dsb"
+    store_path_target = f"{cfg.WT_STORAGE_DIR}/his/{period_dict[period[0]]+str(period[1])}/{exchange}/{code}.dsb"
     
-    print('Resampling ...')
     combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
-    resample(dtHelper, store_path_1m, 5, store_path_5m)
-    resample(dtHelper, store_path_1m, 60, store_path_60m)
-    resample(dtHelper, store_path_1m, 240, store_path_240m)
+    resample(dtHelper, store_path_1m, 5, store_path_target)
     
     # backtesting =================================================================================
+    print('Initializing Backtest ...')
     engine = WtBtEngine(EngineType.ET_CTA)
     engine.init(folder='./run', cfgfile="./cfg/configbt.yaml")
     engine.configBacktest(start, end)
@@ -66,9 +62,9 @@ if __name__ == "__main__":
     str_name = f'bt_{asset}'
     bt_folder = f'./outputs_bt'
     
-    # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period, days=30, k1=0.1, k2=0.1)
-    # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period)
-    straInfo = Chan_bsp(name=str_name, code=wt_asset, barCnt=1, period=period, lv_list=lv_list)
+    # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
+    # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
+    straInfo = Main_Cta(name=str_name, code=wt_asset, barCnt=1, period=period_str, capital=capital)
     
     engine.set_cta_strategy(straInfo)
     
@@ -78,7 +74,7 @@ if __name__ == "__main__":
     
     print('Analyzing ...')
     analyst = WtBtAnalyst()
-    analyst.add_strategy(str_name, folder=bt_folder, init_capital=500000, rf=0.0, annual_trading_days=240)
+    analyst.add_strategy(str_name, folder=bt_folder, init_capital=capital, rf=0.0, annual_trading_days=240)
     if analyze:
         analyst.run_flat()
     
@@ -87,7 +83,9 @@ if __name__ == "__main__":
     
     kw = input('press any key to exit\n')
     engine.release_backtest()
-    
+
+if __name__ == "__main__":
+    run_bt()
 '''
 from wtpy.monitor import WtMonSvr
 # 如果要配置在线回测，则必须要配置WtDtServo

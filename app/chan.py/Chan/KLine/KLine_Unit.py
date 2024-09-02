@@ -23,6 +23,7 @@ class CKLine_Unit:
         self.open = kl_dict[DATA_FIELD.FIELD_OPEN]
         self.high = kl_dict[DATA_FIELD.FIELD_HIGH]
         self.low = kl_dict[DATA_FIELD.FIELD_LOW]
+        self.volume = kl_dict[DATA_FIELD.FIELD_VOLUME] # only to record, no calculation
 
         self.check(autofix)
 
