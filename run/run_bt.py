@@ -23,8 +23,8 @@ dtHelper = WtDataHelper()
 
 run     = 1
 analyze = 1
-period  = ['m', 5] # bar period
-start   = 201801010930
+period  = ['m', 60] # bar period
+start   = 201501010930
 end     = 202401010930
 capital = 1000000
 def run_bt():

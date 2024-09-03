@@ -65,11 +65,11 @@ class CChanConfig:
             bi_fx_check=conf.get("bi_fx_check", "loss"),    #* 检查笔顶底分形是否成立的方法 (不建议放宽)
                                                             # NO.bsp: loss > half > strict > totally
                                                                 # totally: 底分型3元素的最高点必须必顶分型三元素的最低点还低
-                                                                # strict(默认: 底分型的最低点必须比顶分型3元素最低点的最小值还低，顶分型反之。
-                                                                # half: 对于上升笔，底分型的最低点比顶分型前两元素最低点还低，顶分型的最高点比底分型后两元素高点还高。下降笔反之。
+                                                                # strict (默认) (突破够强,回撤不大) (底分型的最低点必须比顶分型3元素最低点的最小值还低，顶分型反之。
+                                                                # half: (突破够强,回撤可以大)对于上升笔，底分型的最低点比顶分型前两元素最低点还低，顶分型的最高点比底分型后两元素高点还高。下降笔反之。
                                                                 # loss: 底分型的最低点比顶分型中间元素低点还低，顶分型反之。
             gap_as_kl=conf.get("gap_as_kl", True),  # 缺口是否处理成一根K线
-            bi_end_is_peak=conf.get('bi_end_is_peak', False), # 笔的尾部是否是整笔中最低/最高 (可以考虑模型学习时放宽)
+            bi_end_is_peak=conf.get("bi_end_is_peak", False), # 笔的尾部是否是整笔中最低/最高 (可以考虑模型学习时放宽)
             bi_allow_sub_peak=conf.get("bi_allow_sub_peak", True),
         )
         self.seg_conf = CSegConfig(

@@ -41,11 +41,18 @@ class Main_Cta(BaseCtaStrategy):
         self.code = self.__code__
         if self.__is_stk__:
             self.code = self.code + "-"   # 如果是股票代码，后面加上一个+/-，+表示后复权，-表示前复权
-            
+        
+        # tune Chan config for day bar
         self.config = CChanConfig({
-            "trigger_step": True,
-            "skip_step": 0
+            "trigger_step"      : True,
+            "skip_step"         : 0,
+            
+            # Bi
+            "bi_algo"           : "normal",
+            "bi_strict"         : True,
+            "bi_fx_check"       : "strict", # 突破够强，回撤不大(滤掉绞肉机行情)
         })
+        
         self.chan_snapshot = CChan(
             code=code,
             # begin_time=begin_time,
@@ -148,8 +155,10 @@ class Main_Cta(BaseCtaStrategy):
             top = False; bottom = False
             if cur_lv_chan[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
                 bottom = True
+                self.config.plot_para["marker"]["markers"][Ctime] = ('FX', 'down', 'red')
             elif cur_lv_chan[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy:
                 top = True
+                self.config.plot_para["marker"]["markers"][Ctime] = ('FX', 'up', 'green')
             # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
             
             curPos = context.stra_get_position(code)
@@ -164,7 +173,7 @@ class Main_Cta(BaseCtaStrategy):
                     context.stra_set_position(code, 0, 'clear')
                 context.stra_enter_short(code, math.floor(self.cur_money/curPrice), 'entershort')
                 context.stra_log_text(stdio(f"{date}: top FX，enter short:{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
-                self.config.plot_para["marker"]["markers"][Ctime] = ('short', 'down', 'red')
+                # self.config.plot_para["marker"]["markers"][Ctime] = ('short', 'down', 'orange')
                 # self.xxx = 1
                 # context.user_save_data('xxx', self.xxx)
                 self.last_price = close
@@ -176,7 +185,7 @@ class Main_Cta(BaseCtaStrategy):
                     context.stra_set_position(code, 0, 'clear')
                 context.stra_enter_long(code, math.floor(self.cur_money/curPrice), 'enterlong')
                 context.stra_log_text(stdio(f"{date}: bottom FX, enter long:{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
-                self.config.plot_para["marker"]["markers"][Ctime] = ('long', 'up', 'green')
+                # self.config.plot_para["marker"]["markers"][Ctime] = ('long', 'up', 'blue')
                 self.last_price = close
                 self.check_capital()
                 return
@@ -202,8 +211,8 @@ class Main_Cta(BaseCtaStrategy):
         print('Backtest Done, plotting ...')
         self.config.plot_config["plot_bsp"] = False
         self.config.plot_config["plot_marker"] = True
-        self.config.plot_config["plot_mean"] = True
-        self.config.plot_config["plot_seg"] = True
+        # self.config.plot_config["plot_mean"] = True
+        # self.config.plot_config["plot_seg"] = True
         # self.config.plot_para["seg"]["plot_trendline"] = True
         # print(self.config.plot_para["marker"]["markers"])
         self.chan_snapshot.plot(save=True, animation=False, update_conf=True, conf=self.config)
