@@ -24,9 +24,10 @@ dtHelper = WtDataHelper()
 run     = 1
 analyze = 1
 period  = ['m', 60] # bar period
-start   = 201501010930
+start   = 202001010930
 end     = 202401010930
 capital = 1000000
+
 def run_bt():
     print('Preparing dsb data (Combining and Resampling) ...')
     #　asset = 'SSE.STK.600000'
@@ -39,7 +40,7 @@ def run_bt():
     code = parts[1]
     with open(cfg.STOCKS_FILE, 'r', encoding='gbk', errors='ignore') as file:
         stocks = json.load(file)
-    try: 
+    try:
         type = stocks[exchange][code]['product']
     except:
         type = 'STK'
@@ -79,13 +80,14 @@ def run_bt():
         analyst.run_flat()
     
     print('http://127.0.0.1:8081/backtest/backtest.html')
-    testBtSnooper()
+    # testBtSnooper()
     
-    kw = input('press any key to exit\n')
+    # kw = input('press any key to exit\n')
     engine.release_backtest()
 
 if __name__ == "__main__":
     run_bt()
+
 '''
 from wtpy.monitor import WtMonSvr
 # 如果要配置在线回测，则必须要配置WtDtServo

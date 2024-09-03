@@ -126,7 +126,7 @@ class Main_Cta(BaseCtaStrategy):
             close,
             volume,
         ])))
-
+        
         if self.date != date: # new date
             if self.date != 0:
                 new_date = True
@@ -155,10 +155,10 @@ class Main_Cta(BaseCtaStrategy):
             top = False; bottom = False
             if cur_lv_chan[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
                 bottom = True
-                self.config.plot_para["marker"]["markers"][Ctime] = ('FX', 'down', 'red')
+                self.config.plot_para["marker"]["markers"][Ctime] = ('b1', 'down', 'red')
             elif cur_lv_chan[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy:
                 top = True
-                self.config.plot_para["marker"]["markers"][Ctime] = ('FX', 'up', 'green')
+                self.config.plot_para["marker"]["markers"][Ctime] = ('s1', 'up', 'green')
             # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
             
             curPos = context.stra_get_position(code)
@@ -212,7 +212,8 @@ class Main_Cta(BaseCtaStrategy):
         self.config.plot_config["plot_bsp"] = False
         self.config.plot_config["plot_marker"] = True
         # self.config.plot_config["plot_mean"] = True
-        # self.config.plot_config["plot_seg"] = True
+        self.config.plot_config["plot_eigen"] = True
+        self.config.plot_config["plot_seg"] = True
         # self.config.plot_para["seg"]["plot_trendline"] = True
         # print(self.config.plot_para["marker"]["markers"])
         self.chan_snapshot.plot(save=True, animation=False, update_conf=True, conf=self.config)
