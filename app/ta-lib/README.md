@@ -1,3 +1,5 @@
+# This is DEMO only, not usable
+
 ## Indicator Groups
 - Overlap Studies
 - Momentum Indicators
