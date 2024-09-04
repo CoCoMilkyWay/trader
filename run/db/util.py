@@ -151,18 +151,62 @@ def resample(dtHelper, src_path, times, store_path):
         wt_df_2_dsb(dtHelper, df, store_path)
         # print(df)
 
+#def print_class_attributes_and_methods(obj):
+#     print(f"===================================================Class: {obj.__class__.__name__}")
+#     print("Attributes and Methods:")
+#     for attribute in dir(obj):
+#         # Filter out built-in attributes and methods (those starting with '__')
+#         if not attribute.startswith("__"):
+#             try:
+#                 # Attempt to get the value of the attribute/method
+#                 attr_value = getattr(obj, attribute)
+#                 if callable(attr_value):
+#                     print(f"{attribute} (method) -> {attr_value}")
+#                 else:
+#                     print(f"{attribute} (attribute) -> {attr_value}")
+#             except Exception as e:
+#                 print(f"Could not access {attribute}: {e}")
+
+from colorama import Fore, Back, Style, init
+import inspect
+# Initialize colorama
+init(autoreset=True)
 def print_class_attributes_and_methods(obj):
-    print(f"===================================================Class: {obj.__class__.__name__}")
-    print("Attributes and Methods:")
+    class_name = obj.__class__.__name__
+    print(f"{Back.BLUE}{Fore.WHITE} Class: {class_name} {Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}{'=' * (len(class_name) + 8)}{Style.RESET_ALL}")
+    
+    print(f"{Fore.CYAN}Attributes and Methods:{Style.RESET_ALL}")
+    
     for attribute in dir(obj):
-        # Filter out built-in attributes and methods (those starting with '__')
         if not attribute.startswith("__"):
             try:
-                # Attempt to get the value of the attribute/method
                 attr_value = getattr(obj, attribute)
+                
+                # Determine if it's a method or an attribute
                 if callable(attr_value):
-                    print(f"{attribute} (method) -> {attr_value}")
+                    color = Fore.GREEN
+                    attr_type = "method"
+                    # Get method signature
+                    signature = inspect.signature(attr_value)
+                    value_str = f"({signature})"
                 else:
-                    print(f"{attribute} (attribute) -> {attr_value}")
+                    color = Fore.MAGENTA
+                    attr_type = "attribute"
+                    value_str = repr(attr_value)
+                
+                print(f"  {color}▪ {attribute}{Style.RESET_ALL}")
+                print(f"    {Fore.YELLOW}{attr_type}{Style.RESET_ALL}: {value_str}")
+                
+                # If it's a method, also print its docstring if available
+                if attr_type == "method" and attr_value.__doc__:
+                    doc_lines = attr_value.__doc__.strip().split('\n')
+                    print(f"    {Fore.CYAN}Docstring:{Style.RESET_ALL}")
+                    for line in doc_lines:
+                        print(f"      {line.strip()}")
+                
             except Exception as e:
-                print(f"Could not access {attribute}: {e}")
+                print(f"  {Fore.RED}▪ {attribute}{Style.RESET_ALL}")
+                print(f"    {Fore.RED}Error: {str(e)}{Style.RESET_ALL}")
+    
+    print(f"{Fore.YELLOW}{'=' * (len(class_name) + 8)}{Style.RESET_ALL}")

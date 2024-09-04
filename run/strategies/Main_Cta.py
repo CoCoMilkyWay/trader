@@ -12,6 +12,8 @@ from Chan.Common.CEnum import DATA_SRC, KL_TYPE, AUTYPE, DATA_FIELD, BSP_TYPE, F
 from Chan.DataAPI.wtAPI import parse_time_column
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
+from db.util import print_class_attributes_and_methods
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 red     = "\033[31m"
@@ -160,8 +162,13 @@ class Main_Cta(BaseCtaStrategy):
             if BSP_TYPE.T3A in t or BSP_TYPE.T3B in t:
                 self.num_bsp_T3 += 1; T[2] = 1
             
-            cur_lv_chan = self.chan_snapshot[0] # __getitem__ is defined
-            if last_bsp.klu.klc.idx != cur_lv_chan[-2].idx:
+            cur_lv_kline = self.chan_snapshot[0] # __getitem__: return Kline list of level n
+            metrics = cur_lv_kline.metric_model_lst
+            print(metrics)
+            print_class_attributes_and_methods(cur_lv_kline.metric_model_lst[0])
+            import time
+            time.sleep(1000)
+            if last_bsp.klu.klc.idx != cur_lv_kline[-2].idx:
                 return
             
             T_sum = 0
@@ -169,10 +176,10 @@ class Main_Cta(BaseCtaStrategy):
                 T_sum += t * (idx+1)
                 
             top = False; bottom = False
-            if cur_lv_chan[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
+            if cur_lv_kline[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
                 bottom = True
                 self.config.plot_para["marker"]["markers"][Ctime] = (f'B{T_sum}', 'down', 'red')
-            elif cur_lv_chan[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy:
+            elif cur_lv_kline[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy:
                 top = True
                 self.config.plot_para["marker"]["markers"][Ctime] = (f'S{T_sum}', 'up', 'green')
             # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
