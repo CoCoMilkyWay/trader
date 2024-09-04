@@ -38,6 +38,10 @@ class Main_Cta(BaseCtaStrategy):
         self.date           = 0
         self.resample_buffer: List[CKLine_Unit] = []  # store temp bar to form larger bar
         
+        self.num_bsp_T1     = 0
+        self.num_bsp_T2     = 0
+        self.num_bsp_T3     = 0
+        
         self.code = self.__code__
         if self.__is_stk__:
             self.code = self.code + "-"   # 如果是股票代码，后面加上一个+/-，+表示后复权，-表示前复权
@@ -143,30 +147,45 @@ class Main_Cta(BaseCtaStrategy):
             # feed & calculate
             self.chan_snapshot.trigger_load({self.lv_list[0]: [combined_klu]}) # feed day bar
             bsp_list = self.chan_snapshot.get_bsp()
-
+            
             if not bsp_list:
                 return
             last_bsp = bsp_list[-1]
-            if BSP_TYPE.T1 not in last_bsp.type and BSP_TYPE.T1P not in last_bsp.type:
-                return
+            t = last_bsp.type
+            T = [0,0,0]
+            if BSP_TYPE.T1 in t or BSP_TYPE.T1P in t:
+                self.num_bsp_T1 += 1; T[0] = 1
+            if BSP_TYPE.T2 in t or BSP_TYPE.T2S in t:
+                self.num_bsp_T2 += 1; T[1] = 1
+            if BSP_TYPE.T3A in t or BSP_TYPE.T3B in t:
+                self.num_bsp_T3 += 1; T[2] = 1
+            
             cur_lv_chan = self.chan_snapshot[0] # __getitem__ is defined
             if last_bsp.klu.klc.idx != cur_lv_chan[-2].idx:
                 return
+            
+            T_sum = 0
+            for idx, t in enumerate(T):
+                T_sum += t * (idx+1)
+                
             top = False; bottom = False
             if cur_lv_chan[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
                 bottom = True
-                self.config.plot_para["marker"]["markers"][Ctime] = ('b1', 'down', 'red')
+                self.config.plot_para["marker"]["markers"][Ctime] = (f'B{T_sum}', 'down', 'red')
             elif cur_lv_chan[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy:
                 top = True
-                self.config.plot_para["marker"]["markers"][Ctime] = ('s1', 'up', 'green')
+                self.config.plot_para["marker"]["markers"][Ctime] = (f'S{T_sum}', 'up', 'green')
             # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
+            
+            if T[0] != 1:
+                return
             
             curPos = context.stra_get_position(code)
             curPrice = context.stra_get_price(code)
             self.cur_money = capital + context.stra_get_fund_data(0)
             
-            pnl = 1
-            color = default
+            pnl: float = 1
+            color: str = default
             if top and curPos >= 0:
                 if curPos != 0:
                     pnl, color = self.pnl_cal(self.last_price, close, False)
@@ -209,6 +228,7 @@ class Main_Cta(BaseCtaStrategy):
     
     def on_backtest_end(self, context:CtaContext):
         print('Backtest Done, plotting ...')
+        print('T1:', self.num_bsp_T1, ' T2:', self.num_bsp_T2, ' T3:', self.num_bsp_T3)
         self.config.plot_config["plot_bsp"] = False
         self.config.plot_config["plot_marker"] = True
         # self.config.plot_config["plot_mean"] = True

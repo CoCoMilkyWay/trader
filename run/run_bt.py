@@ -23,7 +23,7 @@ dtHelper = WtDataHelper()
 
 run     = 1
 analyze = 1
-period  = ['m', 60] # bar period
+period  = ['m', 5] # bar period
 start   = 202001010930
 end     = 202401010930
 capital = 1000000
@@ -80,8 +80,7 @@ def run_bt():
         analyst.run_flat()
     
     print('http://127.0.0.1:8081/backtest/backtest.html')
-    # testBtSnooper()
-    
+    testBtSnooper()
     # kw = input('press any key to exit\n')
     engine.release_backtest()
 
