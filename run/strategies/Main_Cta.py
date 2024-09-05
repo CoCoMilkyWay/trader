@@ -12,7 +12,7 @@ from Chan.Common.CEnum import DATA_SRC, KL_TYPE, AUTYPE, DATA_FIELD, BSP_TYPE, F
 from Chan.DataAPI.wtAPI import parse_time_column
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
-from db.util import print_class_attributes_and_methods
+from db.util import print_class_attributes_and_methods, mkdir
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 

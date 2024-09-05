@@ -3,7 +3,6 @@
     - wtpy:
     - xtquant API: 
 
-
 - This is the main script: Thread allocation(TODO)
     1. database maintainance core
         a. pull meta data: equity, adj_factor etc
