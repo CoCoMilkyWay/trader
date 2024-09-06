@@ -20,8 +20,10 @@ class Line:
     slope: float
 
     def cal_dis(self, p):
-        return abs(self.slope*p.x - p.y + self.p.y - self.slope*self.p.x) / sqrt(self.slope**2 + 1)
-
+        if self.slope == float('inf') or self.slope == -float('inf'):
+            return float('nan')
+        else:
+            return abs(self.slope*p.x - p.y + self.p.y - self.slope*self.p.x) / sqrt(self.slope**2 + 1)
 
 class CTrendLine:
     def __init__(self, lst, side=TREND_LINE_SIDE.OUTSIDE):

@@ -23,7 +23,7 @@ dtHelper = WtDataHelper()
 
 run     = 1
 analyze = 1
-period  = ['m', 5] # bar period
+period, n  = 'm', 5 # bar period
 start   = 202001010930
 end     = 202401010930
 capital = 1000000
@@ -31,9 +31,9 @@ capital = 1000000
 def run_bt():
     print('Preparing dsb data (Combining and Resampling) ...')
     #　asset = 'SSE.STK.600000'
-    asset = 'sh.000300'
+    asset = 'sh.600000'
     asset_dict = {'sh':'SSE', 'sz':'SZSE'}
-    period_str = period[0] + str(period[1])
+    period_str = period + str(n)
     period_dict = {'m': 'min'}
     parts = asset.split(sep='.')
     exchange = asset_dict[parts[0]]
@@ -44,17 +44,19 @@ def run_bt():
         type = stocks[exchange][code]['product']
     except:
         type = 'STK'
-    wt_asset = f'{asset_dict[parts[0]]}.{type}.{parts[1]}'
+    # wt_assets = [f'{asset_dict[parts[0]]}.{type}.{parts[1]}']
+    wt_assets = [f'{asset_dict[parts[0]]}.{type}.{parts[1]}']
     read_path = f"{cfg.BAR_DIR}/m1/{asset}"
     store_path_1m = f"{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb"
-    store_path_target = f"{cfg.WT_STORAGE_DIR}/his/{period_dict[period[0]]+str(period[1])}/{exchange}/{code}.dsb"
+    store_path_target = f"{cfg.WT_STORAGE_DIR}/his/{period_dict[period]+str(n)}/{exchange}/{code}.dsb"
     
     combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
-    resample(dtHelper, store_path_1m, 5, store_path_target)
+    if n!=1:
+        resample(dtHelper, store_path_1m, n, store_path_target)
     
     # backtesting =================================================================================
     print('Initializing Backtest ...')
-    engine = WtBtEngine(EngineType.ET_CTA)
+    engine = WtBtEngine(EngineType.ET_SEL)
     engine.init(folder='./run', cfgfile="./cfg/configbt.yaml")
     engine.configBacktest(start, end)
     engine.configBTStorage(mode="wtp", path='./storage')
@@ -65,9 +67,9 @@ def run_bt():
     
     # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
-    straInfo = Main_Cta(name=str_name, code=wt_asset, barCnt=1, period=period_str, capital=capital)
-    
-    engine.set_cta_strategy(straInfo)
+    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1, period=period_str, capital=capital, isForStk=(type=='STK'))
+
+    engine.set_sel_strategy(straInfo, time=n, period=period_dict[period], slippage=0)
     
     print('Running Backtest ...')
     if run:
@@ -77,7 +79,7 @@ def run_bt():
     analyst = WtBtAnalyst()
     analyst.add_strategy(str_name, folder=bt_folder, init_capital=capital, rf=0.0, annual_trading_days=240)
     if analyze:
-        analyst.run_flat()
+        analyst.run_new()
     
     print('http://127.0.0.1:8081/backtest/backtest.html')
     testBtSnooper()

@@ -17,4 +17,4 @@ replayer:
         module: WtDataStorage   #历史数据存储模块，如果是csv，该配置不生效
         path: ./storage/       #历史数据存储跟目录
 env:
-    mocker: cta                 #回测引擎，cta/sel/hft/exec/uf
+    mocker: sel                 #回测引擎，cta/sel/hft/exec/uf

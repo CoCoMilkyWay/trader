@@ -138,7 +138,7 @@ def combine_dsb_1m(dtHelper, read_path, store_path, begin_date=datetime(1990,1,1
             file_path = os.path.join(read_path, file)
             df.append(dtHelper.read_dsb_bars(file_path).to_df())
         df = pd.concat(df, ignore_index=False)
-        wt_df_2_dsb(dtHelper, df, store_path)
+        wt_df_2_dsb(dtHelper, df, mkdir(store_path))
     return df # this is only for convenience, if already exist, would not read or return anything
 
 def resample(dtHelper, src_path, times, store_path):
@@ -148,7 +148,7 @@ def resample(dtHelper, src_path, times, store_path):
         sessMgr.load(f"{script_dir}/../cfg/sessions/sessions.json")
         sInfo = sessMgr.getSession("SD0930")
         df = dtHelper.resample_bars(src_path,'m1',times,200001010931,205001010931,sInfo, True).to_df()
-        wt_df_2_dsb(dtHelper, df, store_path)
+        wt_df_2_dsb(dtHelper, df, mkdir(store_path))
         # print(df)
 
 #def print_class_attributes_and_methods(obj):
