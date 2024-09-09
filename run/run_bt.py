@@ -8,6 +8,7 @@ import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from strategies.DualThrust import StraDualThrust
 from strategies.ML_pred import ML_pred
+from strategies.Main_Sel import Main_Sel
 from strategies.Main_Cta import Main_Cta
 from db.run_db_maintain import cfg
 from db.util import *
@@ -21,11 +22,11 @@ from wtpy.SessionMgr import SessionMgr
 
 dtHelper = WtDataHelper()
 
-run     = 1
-analyze = 1
-period, n  = 'm', 5 # bar period
-start   = 202001010930
-end     = 202401010930
+run     = True
+analyze = True
+period, n  = 'm', 3 # bar period
+start   = 201001020931
+end     = 202401010000
 capital = 1000000
 
 def run_bt():
@@ -44,8 +45,7 @@ def run_bt():
         type = stocks[exchange][code]['product']
     except:
         type = 'STK'
-    # wt_assets = [f'{asset_dict[parts[0]]}.{type}.{parts[1]}']
-    wt_assets = [f'{asset_dict[parts[0]]}.{type}.{parts[1]}']
+    wt_asset = f'{asset_dict[parts[0]]}.{type}.{parts[1]}'
     read_path = f"{cfg.BAR_DIR}/m1/{asset}"
     store_path_1m = f"{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb"
     store_path_target = f"{cfg.WT_STORAGE_DIR}/his/{period_dict[period]+str(n)}/{exchange}/{code}.dsb"
@@ -56,7 +56,7 @@ def run_bt():
     
     # backtesting =================================================================================
     print('Initializing Backtest ...')
-    engine = WtBtEngine(EngineType.ET_SEL)
+    engine = WtBtEngine(EngineType.ET_CTA)
     engine.init(folder='./run', cfgfile="./cfg/configbt.yaml")
     engine.configBacktest(start, end)
     engine.configBTStorage(mode="wtp", path='./storage')
@@ -67,9 +67,9 @@ def run_bt():
     
     # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
-    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1, period=period_str, capital=capital, isForStk=(type=='STK'))
+    straInfo = Main_Cta(name=str_name, code=wt_asset, barCnt=1, period=period_str, capital=capital, isForStk=(type=='STK'))
 
-    engine.set_sel_strategy(straInfo, time=n, period=period_dict[period], slippage=0)
+    engine.set_cta_strategy(straInfo, slippage=0)
     
     print('Running Backtest ...')
     if run:
