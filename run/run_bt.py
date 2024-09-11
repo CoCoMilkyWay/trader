@@ -10,6 +10,7 @@ from strategies.DualThrust import StraDualThrust
 from strategies.ML_pred import ML_pred
 from strategies.Main_Sel import Main_Sel
 from strategies.Main_Cta import Main_Cta
+from strategies.Main_Cta_Paral.Main_Cta import Main_Cta
 from db.run_db_maintain import cfg
 from db.util import *
 
@@ -32,10 +33,13 @@ end         = 202401010000
 capital     = 1000000
 
 def run_bt():
+    print('Pulling stock pool ...')
+    assets, assets_valid = get_bao_stocks(pool='zz500') #　['sh.600000', ...]
+    # assets = ['sh.600000', 'sh.600004', 'sh.600008']
+    print(assets)
+    
     print('Preparing dsb data (Combining and Resampling) ...')
-    #　asset = 'SSE.STK.600000'
-    assets = ['sh.600000'] # , 'sh.600004', 'sh.600008']
-    asset_dict = {'sh':'SSE', 'sz':'SZSE'}
+    asset_dict = {'sh':'SSE', 'sz':'SZSE'} # wt_asset = 'SSE.STK.600000'
     period_dict = {'m': 'min'}
     period_str = period + str(n)
     wt_assets = []
@@ -43,7 +47,6 @@ def run_bt():
     with open(cfg.STOCKS_FILE, 'r', encoding='gbk', errors='ignore') as file:
         stocks = json.load(file)
     for asset in assets:
-        
         parts = asset.split(sep='.')
         exchange = asset_dict[parts[0]]
         code = parts[1]
@@ -51,14 +54,18 @@ def run_bt():
             type = stocks[exchange][code]['product']
         except:
             type = 'STK'
-        wt_assets.append(f'{asset_dict[parts[0]]}.{type}.{parts[1]}')
-        wt_assets_types.append(type)
         read_path = f'{cfg.BAR_DIR}/m1/{asset}'
         store_path_1m = f'{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb'
         store_path_target = f'{cfg.WT_STORAGE_DIR}/his/{period_dict[period]+str(n)}/{exchange}/{code}.dsb'
-        combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
+        try:
+            combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
+        except:
+            print(f'Err processing: {asset}')
+            continue
         if n!=1:
             resample(dtHelper, store_path_1m, n, store_path_target)
+        wt_assets.append(f'{asset_dict[parts[0]]}.{type}.{parts[1]}')
+        wt_assets_types.append(type)
     wt_assets_skt = [True if assets_type == 'STK' else False for assets_type in wt_assets_types]
     print('Data ready: ', list(zip(wt_assets, wt_assets_types)))
     
@@ -94,7 +101,7 @@ def run_bt():
         testBtSnooper()
         # kw = input('press any key to exit\n')
         engine.release_backtest()
-        
+
 if __name__ == '__main__':
     if profile:
         import cProfile

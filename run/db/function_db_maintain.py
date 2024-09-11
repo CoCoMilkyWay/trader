@@ -228,7 +228,7 @@ class database_helper:
                 os.remove(integrity_file)
             if os.path.exists(folder) and not os.path.exists(integrity_file):
                 if 1:
-                    ipo_date = self.metadata[self.metadata['asset'].str.endswith(asset)]['ipoDate'].iloc[0]
+                    ipo_date = self.metadata[self.metadata['code'].str.endswith(asset)]['ipoDate'].iloc[0]
                     ipo_date = pd.to_datetime(ipo_date, format='%Y-%m-%d').date()
                     for idx, date in enumerate(date_list):
                         if ipo_date <= date:

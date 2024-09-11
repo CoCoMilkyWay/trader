@@ -40,6 +40,29 @@ def get_baostock_info(resultset):
         data_list.append(resultset.get_row_data())
     return pd.DataFrame(data_list, columns=resultset.fields, index=[0]).iloc[0]
 
+def get_bao_stocks(pool: str = 'hs300'):
+    import baostock as bs
+    import pandas as pd
+    lg = bs.login()
+    print('login respond error_code:'+lg.error_code)
+    print('login respond  error_msg:'+lg.error_msg)
+    bao_valid = 0
+    if pool == 'hs300':
+        rs = bs.query_hs300_stocks()
+        bao_valid = 1
+    elif pool == 'zz500':
+        rs = bs.query_zz500_stocks()
+        bao_valid = 1
+    print('query error_code:'+rs.error_code)
+    print('query  error_msg:'+rs.error_msg)
+    bao_stocks = []
+    while (rs.error_code == '0') & rs.next():
+        bao_stocks.append(rs.get_row_data())
+    bs.logout()
+    bao_df = pd.DataFrame(bao_stocks, columns=rs.fields)
+    bao_ls = list(bao_df['code'])
+    return bao_ls, bao_valid
+
 def get_sub_exchange(code):
     # Remove 'sh' or 'sz' prefix if present
     if code.startswith('sh') or code.startswith('sz'):
