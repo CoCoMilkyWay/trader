@@ -45,7 +45,7 @@ class Main_Sel(BaseSelStrategy):
         self.barnum         = 0
         self.date           = 0
         self.resample_buffer: List[CKLine_Unit] = []  # store temp bar to form larger bar
-        self.holding = 0
+        self.holding        = 0
         
         self.num_bsp_T1     = 0
         self.num_bsp_T2     = 0
@@ -105,6 +105,12 @@ class Main_Sel(BaseSelStrategy):
         pass
     
     def on_bar(self,  context: SelContext, stdCode: str, period:str, newBar:dict):
+        pass
+    
+    def on_calculate(self, context:SelContext):
+        # this is driven by timestamp
+        # at timestamp trigger, the k_bar may or may not be ready (even for sim)
+        # however, it is certain that if k_bar is ready, on_bar is called already
         curTime = context.stra_get_time()
         self.barnum += 1
         
@@ -226,13 +232,8 @@ class Main_Sel(BaseSelStrategy):
                     self.last_price = close
                     self.check_capital()
                     continue
-                continue    
-    def on_calculate(self, context:SelContext):
-        # this is driven by timestamp
-        # at timestamp trigger, the k_bar may or may not be ready (even for sim)
-        # however, it is certain that if k_bar is ready, on_bar is called already
-        pass
-    
+                continue
+                
     def check_capital(self):
         try:
             assert self.cur_money>0

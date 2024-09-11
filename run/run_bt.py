@@ -22,44 +22,52 @@ from wtpy.SessionMgr import SessionMgr
 
 dtHelper = WtDataHelper()
 
-run     = True
-analyze = True
-period, n  = 'm', 3 # bar period
-start   = 201001020931
-end     = 202401010000
-capital = 1000000
+run         = True
+analyze     = True
+snoop       = False
+profile     = False
+period, n   = 'm', 5 # bar period
+start       = 201001020931
+end         = 202401010000
+capital     = 1000000
 
 def run_bt():
     print('Preparing dsb data (Combining and Resampling) ...')
     #　asset = 'SSE.STK.600000'
-    asset = 'sh.600000'
+    assets = ['sh.600000'] # , 'sh.600004', 'sh.600008']
     asset_dict = {'sh':'SSE', 'sz':'SZSE'}
-    period_str = period + str(n)
     period_dict = {'m': 'min'}
-    parts = asset.split(sep='.')
-    exchange = asset_dict[parts[0]]
-    code = parts[1]
+    period_str = period + str(n)
+    wt_assets = []
+    wt_assets_types = []
     with open(cfg.STOCKS_FILE, 'r', encoding='gbk', errors='ignore') as file:
         stocks = json.load(file)
-    try:
-        type = stocks[exchange][code]['product']
-    except:
-        type = 'STK'
-    wt_asset = f'{asset_dict[parts[0]]}.{type}.{parts[1]}'
-    read_path = f"{cfg.BAR_DIR}/m1/{asset}"
-    store_path_1m = f"{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb"
-    store_path_target = f"{cfg.WT_STORAGE_DIR}/his/{period_dict[period]+str(n)}/{exchange}/{code}.dsb"
-    
-    combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
-    if n!=1:
-        resample(dtHelper, store_path_1m, n, store_path_target)
+    for asset in assets:
+        
+        parts = asset.split(sep='.')
+        exchange = asset_dict[parts[0]]
+        code = parts[1]
+        try:
+            type = stocks[exchange][code]['product']
+        except:
+            type = 'STK'
+        wt_assets.append(f'{asset_dict[parts[0]]}.{type}.{parts[1]}')
+        wt_assets_types.append(type)
+        read_path = f'{cfg.BAR_DIR}/m1/{asset}'
+        store_path_1m = f'{cfg.WT_STORAGE_DIR}/his/min1/{exchange}/{code}.dsb'
+        store_path_target = f'{cfg.WT_STORAGE_DIR}/his/{period_dict[period]+str(n)}/{exchange}/{code}.dsb'
+        combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
+        if n!=1:
+            resample(dtHelper, store_path_1m, n, store_path_target)
+    wt_assets_skt = [True if assets_type == 'STK' else False for assets_type in wt_assets_types]
+    print('Data ready: ', list(zip(wt_assets, wt_assets_types)))
     
     # backtesting =================================================================================
     print('Initializing Backtest ...')
     engine = WtBtEngine(EngineType.ET_CTA)
-    engine.init(folder='./run', cfgfile="./cfg/configbt.yaml")
+    engine.init(folder='./run', cfgfile='./cfg/configbt.yaml')
     engine.configBacktest(start, end)
-    engine.configBTStorage(mode="wtp", path='./storage')
+    engine.configBTStorage(mode='wtp', path='./storage')
     engine.commitBTConfig()
     
     str_name = f'bt_{asset}'
@@ -67,8 +75,8 @@ def run_bt():
     
     # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
-    straInfo = Main_Cta(name=str_name, code=wt_asset, barCnt=1, period=period_str, capital=capital, isForStk=(type=='STK'))
-
+    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1, period=period_str, capital=capital, areForStk=wt_assets_skt)
+    
     engine.set_cta_strategy(straInfo, slippage=0)
     
     print('Running Backtest ...')
@@ -81,37 +89,43 @@ def run_bt():
     if analyze:
         analyst.run_new()
     
-    print('http://127.0.0.1:8081/backtest/backtest.html')
-    testBtSnooper()
-    # kw = input('press any key to exit\n')
-    engine.release_backtest()
-
-if __name__ == "__main__":
-    run_bt()
-
+    if snoop:
+        print('http://127.0.0.1:8081/backtest/backtest.html')
+        testBtSnooper()
+        # kw = input('press any key to exit\n')
+        engine.release_backtest()
+        
+if __name__ == '__main__':
+    if profile:
+        import cProfile
+        cProfile.run('run_bt()', 'run_bt.prof')
+        # snakeviz run_bt.prof
+    else:
+        run_bt()
+    
 '''
 from wtpy.monitor import WtMonSvr
 # 如果要配置在线回测，则必须要配置WtDtServo
 from wtpy import WtDtServo
 dtServo = WtDtServo()
-dtServo.setBasefiles(commfile="./cfg/assets_list/commodities.json", 
-                contractfile="./cfg/assets_list/stocks.json", 
-                holidayfile="./cfg/misc/holidays.json", 
-                sessionfile="./cfg/sessions/sessions.json", 
-                hotfile="./cfg/assets_list/hots.json")
-dtServo.setStorage("./storage/")
+dtServo.setBasefiles(commfile='./cfg/assets_list/commodities.json', 
+                contractfile='./cfg/assets_list/stocks.json', 
+                holidayfile='./cfg/misc/holidays.json', 
+                sessionfile='./cfg/sessions/sessions.json', 
+                hotfile='./cfg/assets_list/hots.json')
+dtServo.setStorage('./storage/')
 dtServo.commitConfig()
 # 创建监控服务，deploy_dir是策略组合部署的根目录，默认不需要传，会自动定位到wtpy内置的html资源目录
-svr = WtMonSvr(deploy_dir="./deploy")
+svr = WtMonSvr(deploy_dir='./deploy')
 # 将回测管理模块提交给WtMonSvr
 from wtpy.monitor import WtBtMon
-btMon = WtBtMon(deploy_folder="./bt_deploy", logger=svr.logger) # 创建回测管理器
+btMon = WtBtMon(deploy_folder='./bt_deploy', logger=svr.logger) # 创建回测管理器
 svr.set_bt_mon(btMon) # 设置回测管理器
 svr.set_dt_servo(dtServo) # 设置dtservo
 # 启动服务
 svr.run(port=8099, bSync=False)
-print("PC版控制台入口地址: http://127.0.0.1:8099/console")
-print("移动版控制台入口地址： http://127.0.0.1:8099/mobile")
-print("superman/Helloworld!")
-input("press enter key to exit\n")
+print('PC版控制台入口地址: http://127.0.0.1:8099/console')
+print('移动版控制台入口地址： http://127.0.0.1:8099/mobile')
+print('superman/Helloworld!')
+input('press enter key to exit\n')
 '''
