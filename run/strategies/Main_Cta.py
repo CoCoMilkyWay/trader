@@ -92,7 +92,8 @@ class Main_Cta(BaseCtaStrategy):
                 DATA_FIELD.FIELD_LOW: min(klu.low for klu in resample_buffer),
                 DATA_FIELD.FIELD_CLOSE: resample_buffer[-1].close,
                 DATA_FIELD.FIELD_VOLUME: sum(klu.volume for klu in resample_buffer),
-            }
+            },
+            autofix=True,
         )
         
     def on_init(self, context:CtaContext):
@@ -176,6 +177,7 @@ class Main_Cta(BaseCtaStrategy):
                 self.resample_buffer[code] = []
             
             if rebalance:
+                self.profile(date)
                 # feed & calculate
                 chan_snapshot = self.chan_snapshot[code]
                 chan_snapshot.trigger_load({self.lv_list[0]: [combined_klu]}) # feed day bar
@@ -244,7 +246,17 @@ class Main_Cta(BaseCtaStrategy):
                     self.check_capital()
                     continue
                 continue
-            
+    
+    def profile(self, date):
+        from time import time
+        try:
+            num = 1 # self.barnum-self.barnum_bak
+            print(f'({date}): {num/(time()-self.time):.2f} days/sec')
+        except:
+            pass
+        self.time = time()
+        self.barnum_bak = self.barnum
+    
     def check_capital(self):
         try:
             assert self.cur_money>0

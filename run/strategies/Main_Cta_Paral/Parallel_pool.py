@@ -5,175 +5,165 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from typing import List, Dict
+from strategies.Main_Cta_Paral.Define import MetadataIn, MetadataOut
+from strategies.Main_Cta_Paral.Processor import n_Processor
+
 import signal
 terminate = False
 def signal_handler(signum, frame):
     global terminate
     terminate = True
-    print("Interrupt received, terminating...")
+    # print("Interrupt received, terminating...")
 signal.signal(signal.SIGINT, signal_handler)
 
+@staticmethod
+def lock_print(lock, msg):
+    with lock:
+        print(msg)
+
+SLEEP = 0.0001
 import multiprocessing
 import threading
-from strategies.Main_Cta_Paral.Processor import SlaveProcessor, MasterProcessor
-# class SlaveProcessor:
-#     def __init__(self):
-#         self.state = {}  # Initialize any state variables here
-# 
-#     def process_slave_task(self, id, task, meta):
-#         # Use and update self.state as needed
-#         result = []  # Process the task and produce a result
-#         return result
-# class MasterProcessor:
-#     def __init__(self):
-#         self.state = {}  # Initialize any state variables here
-# 
-#     def process_master_task(self, id, task, meta):
-#         # Use and update self.state as needed
-#         pass  # Process the task
-class n_slave_1_master_queue:
+class n_processor_queue:
     # ProcessPoolExecutor: CPU-bound tasks
     # ThreadPoolExecutor: I/O-bound tasks
     # slaves: processing many tasks independent of each other
     # master: processing slave products, have exclusive access to certain system resources
     def __init__(self, max_workers=1, concurrency_mode='process'):
+        self.manager = multiprocessing.Manager()
         self.max_workers = min(multiprocessing.cpu_count(), max_workers)
         self.concurrency_mode = self.parallel_mode(concurrency_mode)
-        self.slave_tasks_queues = [multiprocessing.Queue() for _ in range(self.max_workers)]
-        self.master_task_queue = multiprocessing.Queue()
-        self.master_lock = threading.Lock() if self.concurrency_mode == 'thread' else multiprocessing.Lock()
-        # self.tqdm_cnt_with_lock = multiprocessing.Value('i', 0)  # 'i': signed integer
-        # self.tqdm_desc = multiprocessing.Array('c', 256)  # 'c': char
-        # self.pbar = tqdm(total=tqdm_total) # tqdm pbar is not 'pickleable', so create a shareable int
-        # self.pbar_stop_event = threading.Event()
+        # self.task_queues = [multiprocessing.Queue() for _ in range(self.max_workers)]
+        self.in_queues = [self.manager.list() for _ in range(self.max_workers)]  # Shared list to store results
+        self.out_queues = [self.manager.list() for _ in range(self.max_workers)]  # Shared list to store results
+        self.print_lock = threading.Lock() if self.concurrency_mode == 'thread' else multiprocessing.Lock()
+        self.active_workers = multiprocessing.Value('i', 0)
+        self.worker_active = [multiprocessing.Value('i', 0) for _ in range(self.max_workers)]
+        self.end = multiprocessing.Value('i', False)  # Shared memory for boolean
+        self.workers = []
+        self.is_running = False
         
-    # def update_pbar(self):
-    #     while not self.pbar_stop_event.is_set():
-    #         current_value = self.tqdm_cnt_with_lock.value
-    #         current_desc = self.tqdm_desc.value.decode().rstrip('\x00') # type: ignore
-    #         self.pbar.n = current_value
-    #         self.pbar.set_description(f"Processing {current_desc}")
-    #         self.pbar.refresh()
-    #         if current_value >= self.pbar.total:
-    #             break
-    #         time.sleep(0.1)  # Update every 0.1 seconds
-    
     # N-gets corresponds to N-puts
-    def add_slave_task(self, tasks):
+    def add_in_task(self, tasks):
         for i, task in enumerate(tasks):
-            self.slave_tasks_queues[i % self.max_workers].put(task)
-    def add_master_task(self, tasks):
-        for task in tasks:
-            self.master_task_queue.put(task)
+            self.in_queues[i % self.max_workers].append(task) # round-robin like
+        self.active_workers.value = self.max_workers
+        for i in range(self.max_workers):
+            self.worker_active[i].value = 1
             
+    # def add_out_task(self, worker_id, tasks):
+    #     for task in tasks:
+    #         self.out_queues[worker_id].put(task)
+
     # mutable types (like lists, dictionaries, and other objects)
     # can be modified in place (like pointers)
     @staticmethod # use global method or static method in a class
     def worker(
-                slave_tasks_queue,
-                master_tasks_queue,
-                master_lock,
+                in_queue:List[MetadataIn],
+                out_queue:List[MetadataOut],
+                print_lock,
+                active_workers,
+                worker_active,
                 # tqdm_cnt,
                 # tqdm_desc,
                 worker_id,
-                meta,
+                end,
                ):
-        slave_processor = SlaveProcessor()
-        master_processor = MasterProcessor()
         
+        n_processor = n_Processor()
         global terminate
-        while not terminate:
-            # print('worker starts')
-            if not master_tasks_queue.empty() and not terminate:
-                master_task = master_tasks_queue.get()
-                time.sleep(0.1)  # Prevent busy waiting (only master tasks left)
-                with master_lock:
-                    # print('worker acquired lock')
-                    # print('worker processing master task')
-                    master_processor.process_master_task(worker_id, master_task, meta)
-                    # print('worker released lock')
-            if not slave_tasks_queue.empty() and not terminate:
-                slave_task = slave_tasks_queue.get()
-                # print('worker processing slave task')
-                result = slave_processor.process_slave_task(worker_id, slave_task, meta)
-                master_tasks_queue.put(result)
-                # with tqdm_cnt.get_lock(): # avoid racing condition
-                #     tqdm_cnt.value += 1
-                #     tqdm_info = slave_task # list(slave_task.keys())[0]
-                #     tqdm_desc.value = str(tqdm_info).encode()[:255]  # Ensure it fits in the array
-            # if master_tasks_queue.empty() and slave_tasks_queue.empty():
-            #     # Stop the process when None is received
-            #     # print('worker finished processing')
-            #     break
-        # Add a small sleep to allow for interrupt checking
-        time.sleep(0.1)
-        
+        while not terminate and not end.value: # if not sleep for too long, will be killed
+            while in_queue:
+                input = in_queue.pop(0)
+                result = n_processor.process_slave_task(worker_id, input)
+                if result is not None:
+                    out_queue.append(result)
+                    
+            if not in_queue:
+                with active_workers.get_lock():
+                    active_workers.value -= 1
+                worker_active.value = 0
+                # lock_print(print_lock, f'{worker_id}/{active_workers.value}:p')
+                while worker_active.value == 0 and not end.value:
+                    time.sleep(SLEEP)
+                # lock_print(print_lock, f'{worker_id}/{active_workers.value}:pr')
+        n_processor.on_backtest_end()
+                            
     def parallel_mode(self, concurrency_mode):
         return concurrency_mode
     
-    def execute(self):
-        # for multiple processes: shared info (IO/function/class) needs to be 'pickled' first
-        # use global function in worker process (easier to serialize than class)
-        # use @staticmethod to mark function if is in a class
-        meta = 0
-        workers = [] # thread or process
-        global terminate
-        try:
-            if self.concurrency_mode == 'process':
-                for i in range(self.max_workers):
-                    w = multiprocessing.Process(
-                        target=self.worker,
-                        args=(
-                            # shareable:
-                            self.slave_tasks_queues[i],
-                            self.master_task_queue,
-                            self.master_lock,
-                            # self.tqdm_cnt_with_lock,
-                            # self.tqdm_desc,
-
-                            # non-shareable(inout):
-                            i,
-                            meta,
-                            ))
-                    w.start()
-                    workers.append(w)
-            elif self.concurrency_mode == 'thread':
-                for i in range(self.max_workers):
-                    w = threading.Thread(
-                        target=self.worker,
-                        args=(
-                            # shareable:
-                            self.slave_tasks_queues[i],
-                            self.master_task_queue,
-                            self.master_lock,
-                            # self.tqdm_cnt_with_lock,
-                            # self.tqdm_desc,
-
-                            # non-shareable:
-                            i,
-                            meta,
-                            ))
-                    w.start()
-                    workers.append(w)
-            else:
-                raise ValueError("Invalid concurrency mode")
-        
-            # # Start a separate thread to update the progress bar
-            # self.pbar_updater = threading.Thread(target=self.update_pbar)
-            # self.pbar_updater.start()
-            
-            for w in workers:
-                w.join()
+    def start_workers(self):
+    # for multiple processes: shared info (IO/function/class) needs to be 'pickled' first
+    # use global function in worker process (easier to serialize than class)
+    # use @staticmethod to mark function if is in a class
+        self.workers = [] # thread or process
+        for i in range(self.max_workers):
+            w = multiprocessing.Process(target=self.worker, args=(
+                # shareable:
+                self.in_queues[i],
+                self.out_queues[i],
+                self.print_lock,
+                self.active_workers,
+                self.worker_active[i],
+                # self.tqdm_cnt_with_lock,
+                # self.tqdm_desc,
                 
-        except Exception as e:
-            print(f"Execution error: {e}")
-        finally:
-            # self.pbar_stop_event.set()
-            # if hasattr(self, 'pbar_updater'):
-            #     self.pbar_updater.join()
-            print("Execution completed or terminated.")
+                # non-shareable(inout):
+                i,
+                self.end,
+            )) if self.concurrency_mode == 'process' else threading.Thread(target=self.worker, args=(
+                self.in_queues[i],
+                self.out_queues[i],
+                self.print_lock,
+                self.active_workers,
+                self.worker_active[i],
+                i,
+                self.end,
+            ))
+            w.start()
+            self.workers.append(w)
+        self.is_running = True
+        # # Start a separate thread to update the progress bar
+        # self.pbar_updater = threading.Thread(target=self.update_pbar)
+        # self.pbar_updater.start()
+        
+    def stop_workers(self):
+        self.end.value = 1
+        for w in self.workers:
+            w.join()
+        self.is_running = False
+        # self.pbar_stop_event.set()
+        # if hasattr(self, 'pbar_updater'):
+        #     self.pbar_updater.join()
+        print("All workers have been stopped.")
+        
+    def step_execute(self) -> List[MetadataOut]:
+        if not self.is_running:
+            self.start_workers()
             
-    def terminate(self):
+        # Process current tasks in queues
         global terminate
-        terminate = True
+        while not terminate:
+            if all(worker_active.value == 0 for worker_active in self.worker_active):
+                break
+            # print(slaves_queue_idle,master_queue_idle,worker_idle )
+            # time.sleep(SLEEP)
+            
+        # Check if termination was requested
+        if terminate:
+            self.stop_workers()
+            
+        result:List[MetadataOut] = []
+        for out_queue in self.out_queues:
+            result += out_queue
+        return result
+    
+    def clear_result(self):
+        for i in range(self.max_workers):
+            del self.out_queues[i][:]
+        
+    def terminate(self):
+        self.stop_workers()
+                
             

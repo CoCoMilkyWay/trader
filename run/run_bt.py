@@ -8,11 +8,11 @@ import json
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from strategies.DualThrust import StraDualThrust
 from strategies.ML_pred import ML_pred
-from strategies.Main_Sel import Main_Sel
-from strategies.Main_Cta import Main_Cta
+# from strategies.Main_Sel import Main_Sel
+# from strategies.Main_Cta import Main_Cta
 from strategies.Main_Cta_Paral.Main_Cta import Main_Cta
 from db.run_db_maintain import cfg
-from db.util import *
+from db.util import combine_dsb_1m, resample, testBtSnooper, get_bao_stocks
 
 from wtpy import WtBtEngine, EngineType, WtDtServo
 from wtpy.monitor import WtBtSnooper
@@ -25,7 +25,7 @@ dtHelper = WtDataHelper()
 
 run         = True
 analyze     = True
-snoop       = False
+snoop       = True
 profile     = False
 period, n   = 'm', 5 # bar period
 start       = 201001020931
@@ -35,8 +35,8 @@ capital     = 1000000
 def run_bt():
     print('Pulling stock pool ...')
     assets, assets_valid = get_bao_stocks(pool='zz500') #　['sh.600000', ...]
+    assets = assets[:1]
     # assets = ['sh.600000', 'sh.600004', 'sh.600008']
-    print(assets)
     
     print('Preparing dsb data (Combining and Resampling) ...')
     asset_dict = {'sh':'SSE', 'sz':'SZSE'} # wt_asset = 'SSE.STK.600000'
@@ -86,22 +86,23 @@ def run_bt():
     
     engine.set_cta_strategy(straInfo, slippage=0)
     
-    print('Running Backtest ...')
     if run:
+        print('Running Backtest ...')
         engine.run_backtest()
-    
-    print('Analyzing ...')
-    analyst = WtBtAnalyst()
-    analyst.add_strategy(str_name, folder=bt_folder, init_capital=capital, rf=0.0, annual_trading_days=240)
+        print('Backtest Done')
+        
     if analyze:
+        print('Analyzing ...')
+        analyst = WtBtAnalyst()
+        analyst.add_strategy(str_name, folder=bt_folder, init_capital=capital, rf=0.0, annual_trading_days=240)
         analyst.run_new()
-    
+        
     if snoop:
         print('http://127.0.0.1:8081/backtest/backtest.html')
         testBtSnooper()
         # kw = input('press any key to exit\n')
         engine.release_backtest()
-
+        
 if __name__ == '__main__':
     if profile:
         import cProfile

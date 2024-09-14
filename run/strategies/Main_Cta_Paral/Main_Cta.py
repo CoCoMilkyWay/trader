@@ -2,6 +2,7 @@ import math
 import os, sys
 import numpy as np
 import pandas as pd
+from time import time
 from tqdm import tqdm
 from pprint import pprint
 from typing import List, Dict
@@ -15,8 +16,8 @@ from Chan.DataAPI.wtAPI import parse_time_column
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
 from db.util import print_class_attributes_and_methods, mkdir
-from strategies.Main_Cta_Paral.Parallel_pool import n_slave_1_master_queue
-from strategies.Main_Cta_Paral.Define import MetadataIn
+from strategies.Main_Cta_Paral.Parallel_pool import n_processor_queue
+from strategies.Main_Cta_Paral.Define import MetadataIn, MetadataOut, bt_config
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 red     = "\033[31m"
@@ -51,28 +52,11 @@ class Main_Cta(BaseCtaStrategy):
         self.__codes__          = codes
         self.__capital__        = capital
         self.__are_stks__       = areForStk
-        self.lv_list            = [KL_TYPE.K_DAY]
         self.barnum             = 0
-        self.date               = 0
         self.theCodes           : List[str] = []
         self.last_price         : Dict[str, float] = {}
         self.cur_money          = capital
         self.resample_buffer: Dict[str, List[CKLine_Unit]] = {}  # store temp bar to form larger bar
-
-        self.num_bsp_T1         = 0
-        self.num_bsp_T2         = 0
-        self.num_bsp_T3         = 0
-                
-        # tune Chan config for day bar
-        self.config = CChanConfig({
-            "trigger_step"      : True,
-            "skip_step"         : 0,
-            
-            # Bi
-            "bi_algo"           : "normal",
-            "bi_strict"         : True,
-            "bi_fx_check"       : "strict", # 突破够强，回撤不大(滤掉绞肉机行情)
-        })
         
         self.column_name = [
             DATA_FIELD.FIELD_TIME,
@@ -94,7 +78,8 @@ class Main_Cta(BaseCtaStrategy):
                 DATA_FIELD.FIELD_LOW: min(klu.low for klu in resample_buffer),
                 DATA_FIELD.FIELD_CLOSE: resample_buffer[-1].close,
                 DATA_FIELD.FIELD_VOLUME: sum(klu.volume for klu in resample_buffer),
-            }
+            },
+            autofix=True,
         )
         
     def on_init(self, context:CtaContext):
@@ -102,7 +87,6 @@ class Main_Cta(BaseCtaStrategy):
         # ThreadPoolExecutor: I/O-bound tasks
         # create a N salve 1 master queue as a process pool for assets (persist over the whole bt)
         self.xxx = context.user_load_data('xxx',1)
-        
         for idx, code in enumerate(self.__codes__):
             if self.__are_stks__[idx]:
                 self.theCodes.append(code + "-")   # +表示后复权，-表示前复权
@@ -112,20 +96,11 @@ class Main_Cta(BaseCtaStrategy):
             context.stra_prepare_bars(code, self.__period__, self.__bar_cnt__, isMain = True)
             self.last_price[code] = 0
             self.resample_buffer[code] = []
-            # self.chan_snapshot[code] = CChan(
-            #     code=code,
-            #     # begin_time=begin_time,
-            #     # end_time=end_time,
-            #     # data_src=data_src,
-            #     lv_list=self.lv_list,
-            #     config=self.config,
-            #     # autype=AUTYPE.QFQ,
-            #     )
-        self.processor = n_slave_1_master_queue(
+        self.processor = n_processor_queue(
             max_workers=128,
             concurrency_mode='process')
-        self.processor.execute()
         context.stra_log_text(stdio("Data-Struct Initiated"))
+        self.pbar = tqdm(total=len(self.__codes__), desc='Preparing Bars in DDR...')
         
     # if you have time sensitive processing (e.g. stop_loss / HFT pattern)
     def on_tick(self, context: CtaContext, stdCode: str, newTick: dict):
@@ -137,38 +112,39 @@ class Main_Cta(BaseCtaStrategy):
     
     def on_calculate(self, context:CtaContext):
         self.barnum += 1 # all sub-ed bars closed (main/non-main) at this period
-        curTime     = context.stra_get_time()
-        date        = context.get_date()
-        new_date    = False
+        curTime = context.stra_get_time()
+        
         rebalance   = False
-        
-        if self.date != date: # new date
-            if self.date != 0: # not the first day (data ready)
-                rebalance = True
-                Meta_queue: List[MetadataIn] = []
-            new_date    = True
-            self.date = date
+        if curTime == 1500: # new date
+            rebalance = True
+            Meta_queue: List[MetadataIn] = []
         else:
-            return
+            pass
         
-        for idx, code in enumerate(tqdm(self.__codes__)):
+        date = context.get_date()
+        health_asset = 0
+        for idx, code in enumerate(self.__codes__):
             theCode = self.theCodes[idx]
-            
+            if self.barnum == 1:
+                self.pbar.update(1)
+            else:
+                self.pbar.close()
             # sInfo = context.stra_get_sessioninfo(self.theCode)
             # pInfo = context.stra_get_comminfo(self.theCode)
             # if not sInfo.isInTradingTime(curTime): # type: ignore
             #     continue
-            np_bars = context.stra_get_bars(code, self.__period__, self.__bar_cnt__, isMain=False)
             capital = self.__capital__
-            if np_bars == None:
-                print(code)
+            try: # some asset may not have bar at xxx time
+                np_bars = context.stra_get_bars(code, self.__period__, self.__bar_cnt__, isMain=False)
+                open    = np_bars.opens[-1]
+                high    = np_bars.highs[-1]
+                low     = np_bars.lows[-1]
+                close   = np_bars.closes[-1]
+                volume  = np_bars.volumes[-1]
+                bartime = np_bars.bartimes[-1]
+                health_asset += 1
+            except:
                 continue
-            open    = np_bars.opens[-1]
-            high    = np_bars.highs[-1]
-            low     = np_bars.lows[-1]
-            close   = np_bars.closes[-1]
-            volume  = np_bars.volumes[-1]
-            bartime = np_bars.bartimes[-1]
             
             # ["time_key", "open", "high", "low", "close", "volume", "turnover"] # not include "turnover_rate"
             klu = CKLine_Unit(dict(zip(self.column_name, [
@@ -180,101 +156,83 @@ class Main_Cta(BaseCtaStrategy):
                 volume,
             ])))
             self.resample_buffer[code].append(klu)
-            if new_date:
-                if rebalance:
-                    combined_klu = self.combine_klu(self.resample_buffer[code])
-                    MetaIn = MetadataIn(
-                        idx=idx,
-                        code=code,
-                        date=date,
-                        curTime=curTime,
-                        bar=combined_klu,
-                        rebalance=rebalance,
-                    )
-                    Meta_queue.append(MetaIn)
-                self.resample_buffer[code] = []
-            '''
-
+            
             if rebalance:
-                # feed & calculate
-                chan_snapshot = self.chan_snapshot[code]
-                chan_snapshot.trigger_load({self.lv_list[0]: [combined_klu]}) # feed day bar
-                bsp_list = chan_snapshot.get_bsp()
+                combined_klu = self.combine_klu(self.resample_buffer[code])
+                Ctime = combined_klu.time
+                MetaIn = MetadataIn(
+                    idx=idx,
+                    code=code,
+                    date=date,
+                    curTime=curTime,
+                    bar=combined_klu,
+                    rebalance=rebalance,
+                )
+                Meta_queue.append(MetaIn)
+                self.resample_buffer[code] = []
                 
-                if not bsp_list:
-                    continue
-                last_bsp = bsp_list[-1]
-                t = last_bsp.type
-                T = [0,0,0]
-                if BSP_TYPE.T1 in t or BSP_TYPE.T1P in t:
-                    self.num_bsp_T1 += idx==0; T[0] = 1
-                if BSP_TYPE.T2 in t or BSP_TYPE.T2S in t:
-                    self.num_bsp_T2 += idx==0; T[1] = 1
-                if BSP_TYPE.T3A in t or BSP_TYPE.T3B in t:
-                    self.num_bsp_T3 += idx==0; T[2] = 1
-                    
-                cur_lv_kline = chan_snapshot[0] # __getitem__: return Kline list of level n
-                metrics = cur_lv_kline.metric_model_lst
-                if last_bsp.klu.klc.idx != cur_lv_kline[-2].idx:
-                    continue
-                
-                T_sum = 0
-                for idx, t in enumerate(T):
-                    T_sum += t * (idx+1)
+        # print(f'Healthy assets: {health_asset}/{len(self.__codes__)}')
+        
+        if rebalance:
+        # load data to other CPUs and do calc:
+        #   1bar        5bar    10bar   50bar   100bar  500bar
+        #   120000/s    60000/s 40000/s 8000/s  3500/s  1200/s
+            self.processor.clear_result()
+            self.processor.add_in_task(Meta_queue) # submit jobs
+            # ================================================
+            orders = self.processor.step_execute() # blocking until all cpu finish
+            # self.profile(date)
+            # waiting for exec
+            # ================================================
+            
+            # exec trade orders:
+            if len(orders) == 0:
+                return
+            # print('Main CTA: ', orders)
+            for order in orders:
+                cpu_id = order.cpu_id
+                code = order.code
+                buy = order.buy
+                sell = order.sell
 
-                top = False; bottom = False
-                if cur_lv_kline[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
-                    bottom = True
-                    # self.config.plot_para["marker"]["markers"][Ctime] = (f'B{T_sum}', 'down', 'red')
-                elif cur_lv_kline[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy:
-                    top = True
-                    # self.config.plot_para["marker"]["markers"][Ctime] = (f'S{T_sum}', 'up', 'green')
-                # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
-                
-                if T[0] != 1:
-                    continue
-                
                 curPos = context.stra_get_position(code)
                 curPrice = context.stra_get_price(code)
                 self.cur_money = capital + context.stra_get_fund_data(flag=0)
                 amount = 1000 # math.floor(self.cur_money/curPrice)
-                
+
                 pnl: float = 1
                 color: str = default
-                if top and curPos >= 0:
+                if sell and curPos >= 0:
                     if curPos != 0:
                         pnl, color = self.pnl_cal(self.last_price[code], close, False)
                         context.stra_set_position(code, 0, 'exitlong')
                     context.stra_set_position(code, -amount, 'entershort')
-                    context.stra_log_text(stdio(f"{date}-{curTime}:({code}) top    FX，enter short:{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
-                    self.config.plot_para["marker"]["markers"][Ctime] = ('short', 'down', 'orange')
+                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime}:({code}) top    FX，enter short:{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
+                    bt_config.plot_para["marker"]["markers"][Ctime] = ('short', 'down', 'orange')
                     # self.xxx = 1
                     # context.user_save_data('xxx', self.xxx)
                     self.last_price[code] = close
                     self.check_capital()
                     continue
-                elif bottom and curPos <= 0:
+                elif buy and curPos <= 0:
                     if curPos != 0:
                         pnl, color = self.pnl_cal(self.last_price[code], close, True)
                         context.stra_set_position(code, 0, 'exitshort')
                     context.stra_set_position(code, amount, 'enterlong')
-                    context.stra_log_text(stdio(f"{date}-{curTime}:({code}) bottom FX, enter long :{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
-                    self.config.plot_para["marker"]["markers"][Ctime] = ('long', 'up', 'blue')
+                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime}:({code}) bottom FX, enter long :{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
+                    bt_config.plot_para["marker"]["markers"][Ctime] = ('long', 'up', 'blue')
                     self.last_price[code] = close
                     self.check_capital()
                     continue
                 continue
-                '''
-        self.processor.add_slave_task(Meta_queue) # submit jobs
-        # processor.terminate()
-            
+                    
     def check_capital(self):
         try:
             assert self.cur_money>0
         except AssertionError:
             print(f"lost, stopping ...")
             os._exit(1)
-    
+            
     def pnl_cal(self, last_price: float, price: float, long_short: bool):
         if long_short: dir = 1
         else: dir = -1
@@ -284,14 +242,16 @@ class Main_Cta(BaseCtaStrategy):
         else: color = default
         return pnl, color
     
-    #　def on_backtest_end(self, context:CtaContext):
-    #　    print('Backtest Done, plotting ...')
-    #　    print('T1:', self.num_bsp_T1, ' T2:', self.num_bsp_T2, ' T3:', self.num_bsp_T3)
-    #　    self.config.plot_config["plot_bsp"] = False
-    #　    self.config.plot_config["plot_marker"] = True
-    #　    # self.config.plot_config["plot_mean"] = True
-    #　    self.config.plot_config["plot_eigen"] = True
-    #　    self.config.plot_config["plot_seg"] = True
-    #　    self.config.plot_para["seg"]["plot_trendline"] = True
-    #　    # print(self.config.plot_para["marker"]["markers"])
-    #　    self.chan_snapshot[self.__codes__[0]].plot(save=True, animation=False, update_conf=True, conf=self.config)
+    def profile(self, date):
+        try:
+            num = 1 # self.barnum-self.barnum_bak
+            print(f'({date}): {num/(time()-self.time):.2f} days/sec')
+        except:
+            pass
+        self.time = time()
+        self.barnum_bak = self.barnum
+        
+    def on_backtest_end(self, context:CtaContext):
+        print('Backtest Done ...')
+        self.processor.terminate()
+        
