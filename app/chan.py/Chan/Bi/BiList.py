@@ -2,14 +2,18 @@ from typing import List, Optional, Union, overload
 
 from Chan.Common.CEnum import FX_TYPE, KLINE_DIR
 from Chan.KLine.KLine import CKLine
+from Chan.Math.PA_Pattern_Chart import Chart_Patterns
 
-from .Bi import CBi
-from .BiConfig import CBiConfig
+from Chan.Bi.Bi import CBi
+from Chan.Bi.BiConfig import CBiConfig
 
 
 class CBiList:
     def __init__(self, bi_conf=CBiConfig()):
         self.bi_list: List[CBi] = []
+        
+        # Chart Patterns is a bi-level concept(metric), updated with bi
+        self.chart_patterns: Chart_Patterns = Chart_Patterns()
         self.last_end = None  # 最后一笔的尾部
         self.config = bi_conf
 
@@ -141,8 +145,17 @@ class CBiList:
         return False
 
     def add_new_bi(self, pre_klc, cur_klc, is_sure=True):
-        self.bi_list.append(CBi(pre_klc, cur_klc, idx=len(self.bi_list), is_sure=is_sure))
-        if len(self.bi_list) >= 2:
+        bi = CBi(pre_klc, cur_klc, idx=len(self.bi_list), is_sure=is_sure)
+        self.bi_list.append(bi)
+        # bi would be updated multiple times until it is sure
+        # update bi-based metric whenever new bi comes in, stabilize it when is sure
+        self.chart_patterns.add_bi(bi, is_sure=is_sure)
+        
+        # print(self.chart_patterns.get_shapes(with_idx=True))
+        # if is_sure:
+        #     print('==============================')
+                    
+        if len(self.bi_list) >= 2: # specify adjacent bi
             self.bi_list[-2].next = self.bi_list[-1]
             self.bi_list[-1].pre = self.bi_list[-2]
 

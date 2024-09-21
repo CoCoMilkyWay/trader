@@ -15,21 +15,21 @@ from db.run_db_maintain import cfg
 from db.util import combine_dsb_1m, resample, testBtSnooper, get_bao_stocks
 
 from wtpy import WtBtEngine, EngineType, WtDtServo
-from wtpy.monitor import WtBtSnooper
-from wtpy.wrapper import WtDataHelper
-from wtpy.apps import WtBtAnalyst
 from wtpy.WtCoreDefs import WTSBarStruct
 from wtpy.SessionMgr import SessionMgr
+from wtpy.wrapper import WtDataHelper
+from wtpy.monitor import WtBtSnooper
+from wtpy.apps import WtBtAnalyst
 
 dtHelper = WtDataHelper()
 
 run         = True
-analyze     = True
-snoop       = True
+analyze     = False
+snoop       = False
 profile     = False
 period, n   = 'm', 5 # bar period
-start       = 201001020931
-end         = 202401010000
+start       = 202001020931
+end         = 202311010000
 capital     = 1000000
 
 def run_bt():

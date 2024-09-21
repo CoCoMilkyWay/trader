@@ -1,6 +1,7 @@
 from typing import List
 
 from Chan.Bi.Bi import CBi
+from Chan.Math.PA_Pattern_Chart import Chart_Patterns
 from Chan.BuySellPoint.BS_Point import CBS_Point
 from Chan.Common.CEnum import FX_TYPE
 from Chan.KLine.KLine import CKLine
@@ -33,7 +34,10 @@ class CBi_meta:
         self.end_y = bi.get_end_val()
         self.id_sure = bi.is_sure
 
-
+class CChart_Patterns_meta:
+    def __init__(self, CP: Chart_Patterns):
+        self.shapes = CP.get_shapes(complete=True, potential=True)
+        
 class CSeg_meta:
     def __init__(self, seg: CSeg):
         if isinstance(seg.start_bi, CBi):
@@ -123,6 +127,8 @@ class CChanPlotMeta:
         self.klu_len = sum(len(klc.klu_list) for klc in self.klc_list)
 
         self.bi_list = [CBi_meta(bi) for bi in kl_list.bi_list]
+        self.chart_patterns_shapes = CChart_Patterns_meta(kl_list.bi_list.chart_patterns).shapes
+        
         self.seg_list: List[CSeg_meta] = []
         self.eigenfx_lst: List[CEigenFX_meta] = []
         for seg in kl_list.seg_list:

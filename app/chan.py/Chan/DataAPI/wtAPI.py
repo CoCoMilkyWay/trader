@@ -7,6 +7,13 @@ from Chan.Common.func_util import str2float
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
 from .CommonStockAPI import CCommonStockApi
+        
+# from wtpy import WtBtEngine, EngineType, WtDtServo
+# from wtpy.monitor import WtBtSnooper
+from wtpy.wrapper import WtDataHelper
+# from wtpy.apps import WtBtAnalyst
+# from wtpy.WtCoreDefs import WTSBarStruct
+# from wtpy.SessionMgr import SessionMgr
 
 def create_item_dict(data, column_name):
     for i in range(len(data)):
@@ -42,20 +49,14 @@ class WT_API(CCommonStockApi):
         ]  # 每一列字段
         self.time_column_idx = self.columns.index(DATA_FIELD.FIELD_TIME)
         super(WT_API, self).__init__(code, k_type, begin_date, end_date, autype)
+        self.dtHelper = WtDataHelper()
 
     def get_kl_data(self):
         sys.path.append("../../..")
         from run.db.run_db_maintain import cfg
         from run.db.util import combine_dsb_1m, resample, mkdir
         
-        # from wtpy import WtBtEngine, EngineType, WtDtServo
-        # from wtpy.monitor import WtBtSnooper
-        from wtpy.wrapper import WtDataHelper
-        # from wtpy.apps import WtBtAnalyst
-        # from wtpy.WtCoreDefs import WTSBarStruct
-        # from wtpy.SessionMgr import SessionMgr
-        dtHelper = WtDataHelper()
-        
+        dtHelper = self.dtHelper
         print('Preparing dsb data ...')
         asset = self.code # 'sh.000001'
         asset_dict = {'sh':'SSE', 'sz':'SZSE'}

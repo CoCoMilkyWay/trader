@@ -11,6 +11,7 @@ from Chan.Math.KDJ import KDJ
 from Chan.Math.MACD import CMACD
 from Chan.Math.RSI import RSI
 from Chan.Math.TrendModel import CTrendModel
+from Chan.Math.PA_Pattern_Chart import Chart_Patterns
 from Chan.Seg.SegConfig import CSegConfig
 from Chan.ZS.ZSConfig import CZSConfig
 
@@ -36,10 +37,12 @@ class CChanConfig:
             "plot_marker": False,
             "plot_rsi": False,
             "plot_kdj": False,
+            "plot_chart_patterns": False,
         }
         self.plot_para = {
             "seg": {
                 "plot_trendline": False,
+                "plot_trendline_num": 1,
             },
             "bi": {
                 "show_num": False,
@@ -54,7 +57,8 @@ class CChanConfig:
                     # '2024/02/01': ('marker here2', 'down')
                 },
             },
-            "animation_pause_time": 0
+            "animation_pause_time": 0,
+            "chart_patterns": {},
         }
 
         self.bi_conf = CBiConfig(
@@ -65,9 +69,9 @@ class CChanConfig:
             bi_fx_check=conf.get("bi_fx_check", "loss"),    #* 检查笔顶底分形是否成立的方法 (不建议放宽)
                                                             # NO.bsp: loss > half > strict > totally
                                                                 # totally: 底分型3元素的最高点必须必顶分型三元素的最低点还低
-                                                                # strict (默认) (突破够强,回撤不大) (底分型的最低点必须比顶分型3元素最低点的最小值还低，顶分型反之。
+                                                                # strict (默认) (突破够强,回撤不大,滤掉绞肉机行情) (底分型的最低点必须比顶分型3元素最低点的最小值还低，顶分型反之。
                                                                 # half: (突破够强,回撤可以大)对于上升笔，底分型的最低点比顶分型前两元素最低点还低，顶分型的最高点比底分型后两元素高点还高。下降笔反之。
-                                                                # loss: 底分型的最低点比顶分型中间元素低点还低，顶分型反之。
+                                                                # loss: (做波段可以考虑打开)底分型的最低点比顶分型中间元素低点还低，顶分型反之。
             gap_as_kl=conf.get("gap_as_kl", True),  # 缺口是否处理成一根K线
             bi_end_is_peak=conf.get("bi_end_is_peak", False), # 笔的尾部是否是整笔中最低/最高 (可以考虑模型学习时放宽)
             bi_allow_sub_peak=conf.get("bi_allow_sub_peak", True),
@@ -131,13 +135,16 @@ class CChanConfig:
             'countdown_cmp2close': True, # countdown计算当前K线的收盘价对比的是countdown_bias根K线前的close，如果不是，下跌setup对比的是low，上升对比的是close，默认为True
         })
         self.boll_n = conf.get("boll_n", 20) # 布林线参数 N，整数，默认为 20（用于生成特征及绘图时使用）
-
+        self.cal_charts = conf.get("cal_charts", True) # chart patterns
+        self.charts_config = conf.get("chart_patterns", {
+            'enable_patterns': [0] * 15
+        })
         self.set_bsp_config(conf)
 
         conf.check()
 
-    def GetMetricModel(self):
-        res: List[CMACD | CTrendModel | BollModel | CDemarkEngine | RSI | KDJ] = [
+    def GetMetricModel(self): # this is updated at klu level
+        res: List[CMACD | CTrendModel | BollModel | CDemarkEngine | RSI | KDJ | Chart_Patterns] = [
             CMACD(
                 fastperiod=self.macd_config['fast'],
                 slowperiod=self.macd_config['slow'],

@@ -4,6 +4,11 @@ from typing import List, Literal, Optional, TypedDict
 
 from Chan.Common.CEnum import BI_DIR
 
+# 当两个极点建立起一个趋势线后（上升中，support重要；下降中，resistance重要），
+# 如果在近期出现过一个趋势内的超买超卖（上升中，几根连续大阳烛；下降中，几根连续大阴烛），并迅速形成顶/底分型
+# 在价格反弹到趋势线并成功突破时，开仓
+# 预期价格会反弹到和当时超买超卖时间相同的背离深度（注意不是相对突破时的背离深度）
+# 因此止盈设置在目标价格，止损在止盈1/3 (预期胜率30%以上)
 
 @dataclass
 class C_KL:

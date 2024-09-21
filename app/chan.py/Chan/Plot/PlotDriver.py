@@ -274,7 +274,9 @@ class CPlotDriver:
             self.draw_rsi(meta, ax.twinx(), **plot_para.get('rsi', {}))
         if plot_config.get("plot_kdj", False):
             self.draw_kdj(meta, ax.twinx(), **plot_para.get('kdj', {}))
-
+        if plot_config.get("plot_chart_patterns", False):
+            self.draw_chart_patterns(meta, ax, **plot_para.get('chart_patterns', {}))
+            
     def ShowDrawFuncHelper(self):
         # 写README的时候显示所有画图函数的参数和默认值
         for func in dir(self):
@@ -283,7 +285,7 @@ class CPlotDriver:
             show_func_helper(eval(f'self.{func}'))
 
     def save2img(self, path):
-        plt.savefig(path, bbox_inches='tight')
+        plt.savefig(path, dpi=600, bbox_inches='tight')
 
     def draw_klu(self, meta: CChanPlotMeta, ax: Axes, width=0.4, rugd=True, plot_mode="kl"):
         # rugd: red up green down
@@ -388,6 +390,7 @@ class CPlotDriver:
         end_color='g',
         end_fontsize=13,
         plot_trendline=False,
+        plot_trendline_num=1,
         trendline_color='r',
         trendline_width=3,
     ):
@@ -403,12 +406,14 @@ class CPlotDriver:
             if disp_end:
                 bi_text(seg_idx, ax, seg_meta, end_fontsize, end_color)
             if plot_trendline:
-                if seg_meta.tl.get('support'):
-                    tl_meta = seg_meta.format_tl(seg_meta.tl['support'])
-                    ax.plot([tl_meta[0], tl_meta[2]], [tl_meta[1], tl_meta[3]], color=trendline_color, linewidth=trendline_width)
-                if seg_meta.tl.get('resistance'):
-                    tl_meta = seg_meta.format_tl(seg_meta.tl['resistance'])
-                    ax.plot([tl_meta[0], tl_meta[2]], [tl_meta[1], tl_meta[3]], color=trendline_color, linewidth=trendline_width)
+                # only plot the last 'plot_trendline_num' trendline (seg)
+                if seg_idx >= (len(meta.seg_list) - (plot_trendline_num+1)):
+                    if seg_meta.tl.get('support'):
+                        tl_meta = seg_meta.format_tl(seg_meta.tl['support'])
+                        ax.plot([tl_meta[0], tl_meta[2]], [tl_meta[1], tl_meta[3]], color=trendline_color, linewidth=trendline_width)
+                    if seg_meta.tl.get('resistance'):
+                        tl_meta = seg_meta.format_tl(seg_meta.tl['resistance'])
+                        ax.plot([tl_meta[0], tl_meta[2]], [tl_meta[1], tl_meta[3]], color=trendline_color, linewidth=trendline_width)
         if sub_lv_cnt is not None and len(self.lv_lst) > 1 and lv != self.lv_lst[-1]:
             if sub_lv_cnt >= len(meta.seg_list):
                 return
@@ -798,8 +803,46 @@ class CPlotDriver:
                     under_bias += getTextBox(ax, txt_instance).height
                 else:
                     upper_bias += getTextBox(ax, txt_instance).height
-
-
+                    
+    def draw_chart_patterns(
+        self,
+        meta: CChanPlotMeta,
+        ax: Axes,
+        arg={},
+        ):
+        print('plotting chart_patterns')
+        x_begin = ax.get_xlim()[0]
+        y_range = self.y_max-self.y_min
+        arrow_len = 0.15*y_range
+        for shape in meta.chart_patterns_shapes:
+            vertices = shape.vertices
+            for idx in range(len(vertices)-1):
+                if vertices[idx][0] < x_begin:
+                    continue
+                ax.plot([vertices[idx][0], vertices[idx+1][0]], [vertices[idx][1], vertices[idx+1][1]], color=shape.color, linewidth=2)
+            ax.plot(shape.top_x, shape.top_y, linewidth=4, color='red') # linestyle='dashed'
+            ax.plot(shape.bot_x, shape.bot_y, linewidth=4, color='green')
+            
+            arrow_dir = shape.entry_dir # 1 for buy
+            arrow_head = arrow_len*0.2
+            ax.text(vertices[-2][0], 
+                    vertices[-2][1]-arrow_len*arrow_dir, 
+                    shape.name, 
+                    color=shape.color,
+                    verticalalignment='bottom',
+                    horizontalalignment='center',
+                    alpha=0.6,
+                    )
+            ax.arrow(vertices[-2][0], 
+                     vertices[-2][1]-arrow_len*arrow_dir,
+                     0,
+                     (arrow_len-arrow_head)*arrow_dir,
+                     head_width=1,
+                     head_length=arrow_head,
+                     color=shape.color,
+                     alpha=0.6,
+                     )
+                    
 def getTextBox(ax: Axes, txt_instance):
     return txt_instance.get_window_extent().transformed(ax.transData.inverted())
 

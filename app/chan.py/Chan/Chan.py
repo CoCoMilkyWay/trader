@@ -305,19 +305,27 @@ class CChan:
             config = conf
         else:
             config = self.conf
+        
+        chan:CChan = self
         if not animation:
             plot_driver = CPlotDriver(
-                self,
+                chan, # type: ignore
                 plot_config=config.plot_config,
                 plot_para=config.plot_para,
             )
             if save:
-                plot_driver.save2img('./BT_chan.png')
+                plot_driver.save2img(mkdir(f'./outputs_bt/{self.code}.png'))
             else:
                 plot_driver.figure.show()
         else:
             CAnimateDriver(
-                self,
+                chan, # type: ignore
                 plot_config=config.plot_config,
                 plot_para=config.plot_para,
             )
+import os
+def mkdir(path_str):
+    path = os.path.dirname(path_str)
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+    return path_str

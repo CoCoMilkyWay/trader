@@ -22,6 +22,8 @@ green   = "\033[32m"
 yellow  = "\033[33m"
 default = "\033[0m"
 
+profile = False
+
 def stdio(str):
     print(str)
     return str
@@ -60,16 +62,16 @@ class Main_Cta(BaseCtaStrategy):
         self.num_bsp_T1         = 0
         self.num_bsp_T2         = 0
         self.num_bsp_T3         = 0
-                
+        
         # tune Chan config for day bar
         self.config = CChanConfig({
             "trigger_step"      : True,
             "skip_step"         : 0,
             
             # Bi
-            "bi_algo"           : "normal",
-            "bi_strict"         : True,
-            "bi_fx_check"       : "strict", # 突破够强，回撤不大(滤掉绞肉机行情)
+            "bi_algo"           : "fx",
+            "bi_strict"         : False,
+            "bi_fx_check"       : "loss",
         })
         
         self.column_name = [
@@ -177,12 +179,13 @@ class Main_Cta(BaseCtaStrategy):
                 self.resample_buffer[code] = []
             
             if rebalance:
-                self.profile(date)
+                if profile:
+                    self.profile(date)
                 # feed & calculate
                 chan_snapshot = self.chan_snapshot[code]
                 chan_snapshot.trigger_load({self.lv_list[0]: [combined_klu]}) # feed day bar
                 bsp_list = chan_snapshot.get_bsp()
-
+                
                 if not bsp_list:
                     continue
                 last_bsp = bsp_list[-1]
@@ -194,16 +197,16 @@ class Main_Cta(BaseCtaStrategy):
                     self.num_bsp_T2 += idx==0; T[1] = 1
                 if BSP_TYPE.T3A in t or BSP_TYPE.T3B in t:
                     self.num_bsp_T3 += idx==0; T[2] = 1
-
+                    
                 cur_lv_kline = chan_snapshot[0] # __getitem__: return Kline list of level n
                 metrics = cur_lv_kline.metric_model_lst
                 if last_bsp.klu.klc.idx != cur_lv_kline[-2].idx:
                     continue
-
+                
                 T_sum = 0
                 for idx, t in enumerate(T):
                     T_sum += t * (idx+1)
-
+                    
                 top = False; bottom = False
                 if cur_lv_kline[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
                     bottom = True
@@ -212,10 +215,10 @@ class Main_Cta(BaseCtaStrategy):
                     top = True
                     # self.config.plot_para["marker"]["markers"][Ctime] = (f'S{T_sum}', 'up', 'green')
                 # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
-
+                
                 if T[0] != 1:
                     continue
-
+                
                 curPos = context.stra_get_position(code)
                 curPrice = context.stra_get_price(code)
                 self.cur_money = capital + context.stra_get_fund_data(flag=0)
@@ -274,13 +277,18 @@ class Main_Cta(BaseCtaStrategy):
         return pnl, color
     
     def on_backtest_end(self, context:CtaContext):
+        bt_config = self.config
         print('Backtest Done, plotting ...')
         print('T1:', self.num_bsp_T1, ' T2:', self.num_bsp_T2, ' T3:', self.num_bsp_T3)
-        self.config.plot_config["plot_bsp"] = False
-        self.config.plot_config["plot_marker"] = True
-        # self.config.plot_config["plot_mean"] = True
-        self.config.plot_config["plot_eigen"] = True
-        self.config.plot_config["plot_seg"] = True
-        self.config.plot_para["seg"]["plot_trendline"] = True
-        # print(self.config.plot_para["marker"]["markers"])
+        bt_config.plot_config["plot_bsp"] = False
+        bt_config.plot_config["plot_marker"] = False
+        bt_config.plot_config["plot_zs"] = False
+        bt_config.plot_config["plot_channel"] = False
+        bt_config.plot_config["plot_mean"] = False
+        bt_config.plot_config["plot_eigen"] = False
+        bt_config.plot_config["plot_demark"] = False
+        bt_config.plot_config["plot_seg"] = False
+        bt_config.plot_para["seg"]["plot_trendline"] = False
+        bt_config.plot_config["plot_chart_patterns"] = True
+        # print(bt_config.plot_para["marker"]["markers"])
         self.chan_snapshot[self.__codes__[0]].plot(save=True, animation=False, update_conf=True, conf=self.config)

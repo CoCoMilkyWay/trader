@@ -59,20 +59,21 @@ class n_Processor:
                 
             cur_lv_kline = chan_snapshot[0] # __getitem__: return Kline list of level n
             metrics = cur_lv_kline.metric_model_lst
-            if last_bsp.klu.klc.idx != cur_lv_kline[-2].idx:
-                break
+            #　if last_bsp.klu.klc.idx != cur_lv_kline[-1].idx:
+            #　    break
             
             T_sum = 0
             for idx, t in enumerate(T):
                 T_sum += t * (idx+1)
                 
+            Ctime = combined_klu.time
             top = False; bottom = False
-            if cur_lv_kline[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy:
+            if cur_lv_kline[-2].fx == FX_TYPE.BOTTOM: # and last_bsp.is_buy:
                 bottom = True
-                # bt_config.plot_para["marker"]["markers"][Ctime] = (f'B{T_sum}', 'down', 'red')
-            elif cur_lv_kline[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy:
+                bt_config.plot_para["marker"]["markers"][Ctime] = (f'b{T_sum}', 'down', 'red')
+            elif cur_lv_kline[-2].fx == FX_TYPE.TOP: # and not last_bsp.is_buy:
                 top = True
-                # bt_config.plot_para["marker"]["markers"][Ctime] = (f'S{T_sum}', 'up', 'green')
+                bt_config.plot_para["marker"]["markers"][Ctime] = (f's{T_sum}', 'up', 'green')
             # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
             
             if T[0] != 1:
@@ -104,17 +105,22 @@ class n_Processor:
         )
     
     def on_backtest_end(self):
-        if self.id == 0:
+        try: # self.id == 0:
             code = self.code_list[0]
             print(f'Asset for Analyzing: cpu:{self.id:2} code:{code}')
             print('T1:', self.num_bsp_T1, ' T2:', self.num_bsp_T2, ' T3:', self.num_bsp_T3)
             bt_config.plot_config["plot_bsp"] = False
-            bt_config.plot_config["plot_marker"] = True
-            # bt_config.plot_config["plot_mean"] = True
-            bt_config.plot_config["plot_eigen"] = True
-            bt_config.plot_config["plot_seg"] = True
-            bt_config.plot_para["seg"]["plot_trendline"] = True
+            bt_config.plot_config["plot_zs"] = False
+            bt_config.plot_config["plot_marker"] = False
+            bt_config.plot_config["plot_channel"] = False
+            bt_config.plot_config["plot_mean"] = False
+            bt_config.plot_config["plot_eigen"] = False
+            bt_config.plot_config["plot_demark"] = False
+            bt_config.plot_config["plot_seg"] = False
+            bt_config.plot_para["seg"]["plot_trendline"] = False
             # print(bt_config.plot_para["marker"]["markers"])
+            bt_config.plot_config["plot_chart_patterns"] = True
             print('Plotting ...')
             self.chan_snapshot[code].plot(save=True, animation=False, update_conf=True, conf=bt_config)
-        
+        except:
+            pass
