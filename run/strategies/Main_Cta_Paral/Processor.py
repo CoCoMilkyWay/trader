@@ -10,6 +10,7 @@ from Chan.Common.CEnum import DATA_SRC, KL_TYPE, AUTYPE, DATA_FIELD, BSP_TYPE, F
 from Chan.DataAPI.wtAPI import parse_time_column
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
+from db.util import print_class_attributes_and_methods, mkdir
 from strategies.Main_Cta_Paral.Define import MetadataIn, MetadataOut, bt_config
 
 # Those Processors are largely insulated, try minimize data throughput
@@ -109,17 +110,6 @@ class n_Processor:
             code = self.code_list[0]
             print(f'Asset for Analyzing: cpu:{self.id:2} code:{code}')
             print('T1:', self.num_bsp_T1, ' T2:', self.num_bsp_T2, ' T3:', self.num_bsp_T3)
-            bt_config.plot_config["plot_bsp"] = False
-            bt_config.plot_config["plot_zs"] = False
-            bt_config.plot_config["plot_marker"] = False
-            bt_config.plot_config["plot_channel"] = False
-            bt_config.plot_config["plot_mean"] = False
-            bt_config.plot_config["plot_eigen"] = False
-            bt_config.plot_config["plot_demark"] = False
-            bt_config.plot_config["plot_seg"] = False
-            bt_config.plot_para["seg"]["plot_trendline"] = False
-            # print(bt_config.plot_para["marker"]["markers"])
-            bt_config.plot_config["plot_chart_patterns"] = True
             print('Plotting ...')
             self.chan_snapshot[code].plot(save=True, animation=False, update_conf=True, conf=bt_config)
         except:

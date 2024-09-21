@@ -14,6 +14,7 @@ from Chan.DataAPI.wtAPI import parse_time_column
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
 from db.util import print_class_attributes_and_methods, mkdir
+from strategies.Main_Cta_Paral.Define import bt_config
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -54,7 +55,6 @@ class Main_Cta(BaseCtaStrategy):
         self.lv_list            = [KL_TYPE.K_DAY]
         self.resample_buffer    : Dict[str, List[CKLine_Unit]] = {}  # store temp bar to form larger bar
         self.barnum             = 0
-        self.date               = 0
         self.theCodes           : List[str] = []
         self.last_price         : Dict[str, float] = {}
         self.cur_money          = capital
@@ -64,15 +64,7 @@ class Main_Cta(BaseCtaStrategy):
         self.num_bsp_T3         = 0
         
         # tune Chan config for day bar
-        self.config = CChanConfig({
-            "trigger_step"      : True,
-            "skip_step"         : 0,
-            
-            # Bi
-            "bi_algo"           : "fx",
-            "bi_strict"         : False,
-            "bi_fx_check"       : "loss",
-        })
+        self.config = bt_config
         
         self.column_name = [
             DATA_FIELD.FIELD_TIME,
@@ -135,16 +127,13 @@ class Main_Cta(BaseCtaStrategy):
         self.barnum += 1 # all sub-ed bars closed (main/non-main) at this period
         curTime     = context.stra_get_time()
         date        = context.get_date()
-        new_date    = False
-        rebalance   = False
         
-        if self.date != date: # new date
-            if self.date != 0: # not the first day (data ready)
-                rebalance = True
-            new_date    = True
-            self.date = date
+        rebalance   = False
+        if curTime == 1425: # new date
+            rebalance = True
         else:
-            return
+            pass
+        
         for idx, code in enumerate(self.__codes__):
             theCode = self.theCodes[idx]
             
@@ -152,15 +141,19 @@ class Main_Cta(BaseCtaStrategy):
             # pInfo = context.stra_get_comminfo(self.theCode)
             # if not sInfo.isInTradingTime(curTime): # type: ignore
             #     continue
-            np_bars = context.stra_get_bars(code, self.__period__, self.__bar_cnt__, isMain=False)
-            capital = self.__capital__
-            
-            open    = np_bars.opens[-1]
-            high    = np_bars.highs[-1]
-            low     = np_bars.lows[-1]
-            close   = np_bars.closes[-1]
-            volume  = np_bars.volumes[-1]
-            bartime = np_bars.bartimes[-1]
+            try: # some asset may not have bar at xxx time
+                np_bars = context.stra_get_bars(code, self.__period__, self.__bar_cnt__, isMain=False)
+                capital = self.__capital__
+
+                open    = np_bars.opens[-1]
+                high    = np_bars.highs[-1]
+                low     = np_bars.lows[-1]
+                close   = np_bars.closes[-1]
+                volume  = np_bars.volumes[-1]
+                bartime = np_bars.bartimes[-1]
+            except:
+                print(f'Err: getting {code}')
+                return
             
             # ["time_key", "open", "high", "low", "close", "volume", "turnover"] # not include "turnover_rate"
             klu = CKLine_Unit(dict(zip(self.column_name, [
@@ -172,10 +165,12 @@ class Main_Cta(BaseCtaStrategy):
                 volume,
             ])))
             self.resample_buffer[code].append(klu)
-            if new_date:
-                if rebalance:
-                    combined_klu = self.combine_klu(self.resample_buffer[code])
-                    Ctime = combined_klu.time
+            
+            if rebalance:
+                combined_klu = self.combine_klu(self.resample_buffer[code])
+                com_klu = combined_klu
+                print(len(self.resample_buffer[code]), com_klu.open, com_klu.high, com_klu.low, com_klu.close, com_klu.time)
+                Ctime = combined_klu.time
                 self.resample_buffer[code] = []
             
             if rebalance:
@@ -277,18 +272,6 @@ class Main_Cta(BaseCtaStrategy):
         return pnl, color
     
     def on_backtest_end(self, context:CtaContext):
-        bt_config = self.config
         print('Backtest Done, plotting ...')
         print('T1:', self.num_bsp_T1, ' T2:', self.num_bsp_T2, ' T3:', self.num_bsp_T3)
-        bt_config.plot_config["plot_bsp"] = False
-        bt_config.plot_config["plot_marker"] = False
-        bt_config.plot_config["plot_zs"] = False
-        bt_config.plot_config["plot_channel"] = False
-        bt_config.plot_config["plot_mean"] = False
-        bt_config.plot_config["plot_eigen"] = False
-        bt_config.plot_config["plot_demark"] = False
-        bt_config.plot_config["plot_seg"] = False
-        bt_config.plot_para["seg"]["plot_trendline"] = False
-        bt_config.plot_config["plot_chart_patterns"] = True
-        # print(bt_config.plot_para["marker"]["markers"])
         self.chan_snapshot[self.__codes__[0]].plot(save=True, animation=False, update_conf=True, conf=self.config)

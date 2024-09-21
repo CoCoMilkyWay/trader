@@ -116,7 +116,7 @@ class Main_Cta(BaseCtaStrategy):
         curTime = context.stra_get_time()
         
         rebalance   = False
-        if curTime == 1500: # new date
+        if curTime == 1425: # new date
             rebalance = True
             Meta_queue: List[MetadataIn] = []
         else:
@@ -157,6 +157,7 @@ class Main_Cta(BaseCtaStrategy):
             combined_klu: Dict[str, CKLine_Unit] = {}
             for code in self.__codes__:
                 combined_klu[code] = self.combine_klu(self.resample_buffer[code])
+                
             global_indicators = Glob_Ind(combined_klu)
             for idx, code in enumerate(self.__codes__):
                 MetaIn = MetadataIn(

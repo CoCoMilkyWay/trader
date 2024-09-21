@@ -9,8 +9,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from strategies.DualThrust import StraDualThrust
 from strategies.ML_pred import ML_pred
 # from strategies.Main_Sel import Main_Sel
-# from strategies.Main_Cta import Main_Cta
-from strategies.Main_Cta_Paral.Main_Cta import Main_Cta
+from strategies.Main_Cta import Main_Cta
+# from strategies.Main_Cta_Paral.Main_Cta import Main_Cta
 from db.run_db_maintain import cfg
 from db.util import combine_dsb_1m, resample, testBtSnooper, get_bao_stocks
 
@@ -29,7 +29,7 @@ snoop       = False
 profile     = False
 period, n   = 'm', 5 # bar period
 start       = 202001020931
-end         = 202311010000
+end         = 202401010000
 capital     = 1000000
 
 def run_bt():

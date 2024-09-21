@@ -28,3 +28,13 @@ bt_config = CChanConfig({
     "bi_strict"         : False,
     "bi_fx_check"       : "loss", 
 })
+bt_config.plot_config["plot_bsp"] = False
+bt_config.plot_config["plot_marker"] = False
+bt_config.plot_config["plot_zs"] = False
+bt_config.plot_config["plot_channel"] = False
+bt_config.plot_config["plot_mean"] = False
+bt_config.plot_config["plot_eigen"] = False
+bt_config.plot_config["plot_demark"] = False
+bt_config.plot_config["plot_seg"] = False
+bt_config.plot_para["seg"]["plot_trendline"] = False
+bt_config.plot_config["plot_chart_patterns"] = True

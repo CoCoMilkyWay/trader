@@ -79,12 +79,15 @@ class CBiList:
             return False
         _tmp_last_bi = self.bi_list[-1]
         self.bi_list.pop()
+        print('pop bi')
         if not self.try_update_end(klc, for_virtual=for_virtual):
             self.bi_list.append(_tmp_last_bi)
+            print('append bi')
             return False
         else:
             if for_virtual:
                 self.bi_list[-1].append_sure_end(_tmp_last_bi.end_klc)
+                print('append sure end bi')
             return True
 
     def update_bi_sure(self, klc: CKLine) -> bool:
@@ -111,12 +114,14 @@ class CBiList:
             sure_end_list = [klc for klc in self.bi_list[-1].sure_end]
             if len(sure_end_list):
                 self.bi_list[-1].restore_from_virtual_end(sure_end_list[0])
+                print('restore_from_virtual_end')
                 self.last_end = self[-1].end_klc
                 for sure_end in sure_end_list[1:]:
                     self.add_new_bi(self.last_end, sure_end, is_sure=True)
                     self.last_end = self[-1].end_klc
             else:
                 del self.bi_list[-1]
+                print('del bi')
         self.last_end = self[-1].end_klc if len(self) > 0 else None
         if len(self) > 0:
             self[-1].next = None
@@ -131,6 +136,7 @@ class CBiList:
         if (self[-1].is_up() and klc.high >= self[-1].end_klc.high) or (self[-1].is_down() and klc.low <= self[-1].end_klc.low):
             # 更新最后一笔
             self.bi_list[-1].update_virtual_end(klc)
+            print('update_virtual_end')
             return True
         _tmp_klc = klc
         while _tmp_klc and _tmp_klc.idx > self[-1].end_klc.idx:

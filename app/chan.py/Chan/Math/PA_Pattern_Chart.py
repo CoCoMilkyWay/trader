@@ -28,9 +28,9 @@
 #       bump and run
 #       .megaphone
 #   up:
-#       falling wedge
+#       .falling wedge
 #   down:
-#       rising wedge
+#       .rising wedge
 
 # 楔形回调入场
 # 窄幅区间突破入场
@@ -89,6 +89,7 @@ class Chart_Patterns:
         end_x:int = bi.get_end_klu().idx
         end_y:float = bi.get_end_val()
         end_bi_vertex = [end_x, end_y]
+        print('add bi: ', bi.idx, is_sure, end_bi_vertex)
         if len(self.bi_lst) == 0:
             if is_sure: # skip fist few bi that is not sure
                 begin_x:int = bi.get_begin_klu().idx
@@ -136,7 +137,7 @@ class Chart_Patterns:
                 if shape_name == 'nexus_type':
                     if is_sure:
                         self.shapes[shape_name].append(nexus_type(vertex))
-                    
+                        
 def util_distance(p1, p2):
     return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
@@ -176,15 +177,14 @@ def fit_linear(vertices:List[List[int|float]]):
     y:List[float] = [y_pred[0], y_pred[-1]]
     return m_percent, x, y, total_residual
     
-pnl_pri = 3 # primary pnl
-pnl_sec = 2 # secondary pnl (ease condition to allow more opportunities)
+pnl = 2 # pnl (filter: harder to get in/out of micro-structure)
 
 # bullish flag
 # bearish pennant
 # descending triangle
 # bearish channel
-# NOTE: sometimes it is better to wait for price break BOTH chart and certain support
-class nexus_type: # downwards (continuation or breakout or reversal)
+# NOTE: usually it is better to wait for price break BOTH chart and certain support
+class nexus_type: # continuation or breakout or reversal
     START = 0
     ENTRY = 1
     RISING_M = 2 # M: potential multiple entry
@@ -203,6 +203,8 @@ class nexus_type: # downwards (continuation or breakout or reversal)
         self.down_support:float = 0
         self.up_resistance:float = 0
         self.down_resistance:float = 0
+        self.high:float = 0
+        self.low:float = start_vertex[1]
         
         self.top_m = 0, 0
         self.top_x = [0, 0]
@@ -233,8 +235,14 @@ class nexus_type: # downwards (continuation or breakout or reversal)
         elif last_vertex_type == 'bot':
             top_vertices = vertices[-2::-2]  # Take -1, -3, -5, etc. (reversed odd indices)
             bottom_vertices = vertices[-1::-2]  # Take -2, -4, -6, etc. (reversed even indices)
-        self.top_m, self.top_x, self.top_y, self.top_residue = fit_linear(top_vertices)
-        self.bot_m, self.bot_x, self.bot_y, self.bot_residue = fit_linear(bottom_vertices)
+        top_m, top_x, top_y, top_residue = fit_linear(top_vertices)
+        bot_m, bot_x, bot_y, bot_residue = fit_linear(bottom_vertices)
+        
+        if max(top_residue, bot_residue) > 0.4:
+            return False
+        
+        self.top_m, self.top_x, self.top_y, self.top_residue = top_m, top_x, top_y, top_residue
+        self.bot_m, self.bot_x, self.bot_y, self.bot_residue = bot_m, bot_x, bot_y, bot_residue
         
         UP = 0.001
         DOWN = -0.001
@@ -268,7 +276,7 @@ class nexus_type: # downwards (continuation or breakout or reversal)
         elif near_away and far_away:
             self.name = f'channel'          # continuation
         elif near_cons and far_cons:
-            self.name = f'rect'             # continuation
+            self.name = f'rect'             # continuation or breakout
 
         elif near_revs and far_away:
             self.name = f'meg_sym'          # breakout, low pnl :(
@@ -279,18 +287,21 @@ class nexus_type: # downwards (continuation or breakout or reversal)
         elif near_away and far_revs:
             self.name = f'tri_sym'          # breakout
         elif near_away and far_cons:
-            self.name = f'tri_brk_far'      # continuation
+            self.name = f'tri_brk_far'      # continuation or reversal(wedge)
         elif near_cons and far_revs:
             self.name = f'tri_rev_bak'      # reversal
         
         if self.entry_dir == 1:
             self.name += f'.UP'
         elif self.entry_dir == -1:
-            self.name += f'.DOWN'
+            self.name += f'.DN'
+            
+        # self.name += f'.{self.top_residue:.3f}.{self.bot_residue:.3f}'
         # self.name += f'{m_near:.3f}.{m_far:.3f}.{top_vertices[0]}.{top_vertices[-1]}'
         # print('top: ', top_vertices,    self.top_x, self.top_y, self.top_residue)
         # print('bot: ', bottom_vertices, self.bot_x, self.bot_y, self.bot_residue)
-        
+        return True
+    
     def add_vertex(self, new_vertex:List[int|float]):
         UP = 1
         DOWN = -1
@@ -306,7 +317,7 @@ class nexus_type: # downwards (continuation or breakout or reversal)
             if delta_y < 0:
                 self.entry_dir = DOWN
                 self.abs_d1 = -delta_y
-                self.max_drawdown = self.abs_d1/pnl_sec
+                self.max_drawdown = self.abs_d1/pnl
                 self.down_resistance = new_vertex[1] + self.max_drawdown
                 self.state = self.ENTRY
                 self.vertices.append(new_vertex)
@@ -314,7 +325,7 @@ class nexus_type: # downwards (continuation or breakout or reversal)
             else:
                 self.entry_dir = UP
                 self.abs_d1 = delta_y
-                self.max_drawdown = self.abs_d1/pnl_sec
+                self.max_drawdown = self.abs_d1/pnl
                 self.up_support = new_vertex[1] - self.max_drawdown
                 self.state = self.ENTRY
                 self.vertices.append(new_vertex)
@@ -347,7 +358,10 @@ class nexus_type: # downwards (continuation or breakout or reversal)
                         self.vertices.append(new_vertex)
                         self.state = self.FALLING_M
                         if self.rising_cnt > 1:
-                            self.check_shape_fit(self.vertices[1:], 'bot')
+                            if not self.check_shape_fit(self.vertices[1:], 'bot'):
+                                # if residue goes out of bound, it is a breakout
+                                self.state = self.COMPLETED
+                                self.vertices.pop()
                         return True
                     if self.entry_dir == UP and new_vertex[1] > self.up_support:
                         self.up_resistance = new_vertex[1] + self.max_drawdown
@@ -355,7 +369,9 @@ class nexus_type: # downwards (continuation or breakout or reversal)
                         self.state = self.FALLING_M
                         self.falling_cnt += 1
                         if self.falling_cnt > 1:
-                            self.check_shape_fit(self.vertices[1:], 'bot')
+                            if not self.check_shape_fit(self.vertices[1:], 'bot'):
+                                self.state = self.COMPLETED
+                                self.vertices.pop()
                         return True
                     
                 # break resistance/support, opportunity lost
@@ -379,13 +395,18 @@ class nexus_type: # downwards (continuation or breakout or reversal)
                         self.state = self.RISING_M
                         self.rising_cnt += 1
                         if self.rising_cnt > 1:
-                            self.check_shape_fit(self.vertices[1:], 'top')
+                            if not self.check_shape_fit(self.vertices[1:], 'top'):
+                                # if residue goes out of bound, it is a breakout
+                                self.state = self.COMPLETED
+                                self.vertices.pop()
                         return True
                     if self.entry_dir == UP and new_vertex[1] < self.up_resistance:
                         self.vertices.append(new_vertex)
                         self.state = self.RISING_M
                         if self.falling_cnt > 1:
-                            self.check_shape_fit(self.vertices[1:], 'top')
+                            if not self.check_shape_fit(self.vertices[1:], 'top'):
+                                self.state = self.COMPLETED
+                                self.vertices.pop()
                         return True
                     
                 # break resistance/support, opportunity lost
