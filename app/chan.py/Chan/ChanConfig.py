@@ -137,7 +137,7 @@ class CChanConfig:
         self.boll_n = conf.get("boll_n", 20) # 布林线参数 N，整数，默认为 20（用于生成特征及绘图时使用）
         self.cal_charts = conf.get("cal_charts", True) # chart patterns
         self.charts_config = conf.get("chart_patterns", {
-            'enable_patterns': [0] * 15
+            'enable_patterns': [0] * 15,
         })
         self.set_bsp_config(conf)
 

@@ -28,7 +28,7 @@ analyze     = False
 snoop       = False
 profile     = False
 period, n   = 'm', 5 # bar period
-start       = 202001020931
+start       = 202201020931
 end         = 202401010000
 capital     = 1000000
 

@@ -42,6 +42,7 @@
 # ref: https://www.youtube.com/watch?v=2wIqCWKnWVk
 
 import copy
+import os, sys
 import math
 import numpy as np
 from numpy.polynomial import Polynomial
@@ -54,6 +55,11 @@ debug = False
 
 # Chart Pattern is afflicted under chan.bi, also updated with it
 class Chart_Patterns:
+    # top/bot FX has type: loss/half/strict
+    # for half/strict FX, weak FX will be overwrite by stronger FX in the same direction,
+    # this is effectively a breakthrough from microstructure
+    # using "loss" type FX for chart patterns is recommended
+    
     def __init__(self):
         self.bi_lst: List[List[int|float]] = []
         self.bi_lst_is_sure: bool = True # if the last bi in bi_lst is sure
@@ -85,11 +91,13 @@ class Chart_Patterns:
         return shapes
     
     def add_bi(self, bi:CBi, is_sure:bool = False):
+        # bi would be updated multiple times until it is sure
+        # update bi-based metric whenever new bi comes in, stabilize it when is sure
         self.bi_idx:int = bi.idx
         end_x:int = bi.get_end_klu().idx
         end_y:float = bi.get_end_val()
         end_bi_vertex = [end_x, end_y]
-        print('add bi: ', bi.idx, is_sure, end_bi_vertex)
+        # print('add bi: ', bi.idx, is_sure, end_bi_vertex)
         if len(self.bi_lst) == 0:
             if is_sure: # skip fist few bi that is not sure
                 begin_x:int = bi.get_begin_klu().idx
@@ -176,14 +184,11 @@ def fit_linear(vertices:List[List[int|float]]):
     x:List[int] = [x_coords[0], x_coords[-1]]
     y:List[float] = [y_pred[0], y_pred[-1]]
     return m_percent, x, y, total_residual
-    
-pnl = 2 # pnl (filter: harder to get in/out of micro-structure)
 
-# bullish flag
-# bearish pennant
-# descending triangle
-# bearish channel
+pnl = 1.5 # pnl (filter: harder to get in/out of micro-structure)
+
 # NOTE: usually it is better to wait for price break BOTH chart and certain support
+
 class nexus_type: # continuation or breakout or reversal
     START = 0
     ENTRY = 1
@@ -361,7 +366,6 @@ class nexus_type: # continuation or breakout or reversal
                             if not self.check_shape_fit(self.vertices[1:], 'bot'):
                                 # if residue goes out of bound, it is a breakout
                                 self.state = self.COMPLETED
-                                self.vertices.pop()
                         return True
                     if self.entry_dir == UP and new_vertex[1] > self.up_support:
                         self.up_resistance = new_vertex[1] + self.max_drawdown
@@ -371,7 +375,6 @@ class nexus_type: # continuation or breakout or reversal
                         if self.falling_cnt > 1:
                             if not self.check_shape_fit(self.vertices[1:], 'bot'):
                                 self.state = self.COMPLETED
-                                self.vertices.pop()
                         return True
                     
                 # break resistance/support, opportunity lost
@@ -398,7 +401,6 @@ class nexus_type: # continuation or breakout or reversal
                             if not self.check_shape_fit(self.vertices[1:], 'top'):
                                 # if residue goes out of bound, it is a breakout
                                 self.state = self.COMPLETED
-                                self.vertices.pop()
                         return True
                     if self.entry_dir == UP and new_vertex[1] < self.up_resistance:
                         self.vertices.append(new_vertex)
@@ -406,7 +408,6 @@ class nexus_type: # continuation or breakout or reversal
                         if self.falling_cnt > 1:
                             if not self.check_shape_fit(self.vertices[1:], 'top'):
                                 self.state = self.COMPLETED
-                                self.vertices.pop()
                         return True
                     
                 # break resistance/support, opportunity lost
@@ -424,3 +425,11 @@ class nexus_type: # continuation or breakout or reversal
         print('case not covered: ', self.state)
         return False
     
+# for head&shoulder, double/triple top/bot, it is better to model them directly as
+# liquidity distributions
+
+def round_type():
+    # cup with handle, round shape
+    # less frequent
+    # TODO
+    pass

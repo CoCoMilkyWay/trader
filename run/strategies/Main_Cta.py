@@ -168,8 +168,6 @@ class Main_Cta(BaseCtaStrategy):
             
             if rebalance:
                 combined_klu = self.combine_klu(self.resample_buffer[code])
-                com_klu = combined_klu
-                print(len(self.resample_buffer[code]), com_klu.open, com_klu.high, com_klu.low, com_klu.close, com_klu.time)
                 Ctime = combined_klu.time
                 self.resample_buffer[code] = []
             

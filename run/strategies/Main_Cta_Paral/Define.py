@@ -26,7 +26,7 @@ bt_config = CChanConfig({
     # Bi
     "bi_algo"           : "fx",
     "bi_strict"         : False,
-    "bi_fx_check"       : "loss", 
+    "bi_fx_check"       : "loss", # when use with chart patterns, use "loss"
 })
 bt_config.plot_config["plot_bsp"] = False
 bt_config.plot_config["plot_marker"] = False
