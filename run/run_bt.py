@@ -9,8 +9,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from strategies.DualThrust import StraDualThrust
 from strategies.ML_pred import ML_pred
 # from strategies.Main_Sel import Main_Sel
-from strategies.Main_Cta import Main_Cta
-# from strategies.Main_Cta_Paral.Main_Cta import Main_Cta
+# from strategies.Main_Cta import Main_Cta
+from strategies.Main_Cta_Paral.Main_Cta import Main_Cta
 from db.run_db_maintain import cfg
 from db.util import combine_dsb_1m, resample, testBtSnooper, get_bao_stocks
 
@@ -23,18 +23,20 @@ from wtpy.apps import WtBtAnalyst
 
 dtHelper = WtDataHelper()
 
-run         = True
-analyze     = False
-snoop       = False
-profile     = False
-period, n   = 'm', 5 # bar period
-start       = 202201020931
-end         = 202401010000
-capital     = 1000000
+run             = True
+analyze         = False
+snoop           = False
+profile         = False
+period, n       = 'm', 5 # bar period
+# bars per batch accumulated before send to processes
+session_batch   = 12 # 60/n
+start           = 202401010931
+end             = 202501010000
+capital         = 1000000
 
 def run_bt():
     print('Pulling stock pool ...')
-    assets, assets_valid = get_bao_stocks(pool='zz500') #　['sh.600000', ...]
+    assets, assets_valid = get_bao_stocks(pool='hs300') #　['sh.600000', ...]
     assets = assets[:1]
     # assets = ['sh.600000', 'sh.600004', 'sh.600008']
     
@@ -82,7 +84,7 @@ def run_bt():
     
     # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
-    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1, period=period_str, capital=capital, areForStk=wt_assets_skt)
+    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1, period=period_str, session_batch=session_batch ,capital=capital, areForStk=wt_assets_skt)
     
     engine.set_cta_strategy(straInfo, slippage=0)
     

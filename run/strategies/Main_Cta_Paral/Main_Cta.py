@@ -8,6 +8,7 @@ from pprint import pprint
 from typing import List, Dict
 from wtpy import BaseCtaStrategy, BaseSelStrategy
 from wtpy import CtaContext, SelContext
+from wtpy.WtDataDefs import WtNpTicks, WtNpKline
 
 from Chan.Chan import CChan
 from Chan.ChanConfig import CChanConfig
@@ -17,6 +18,7 @@ from Chan.KLine.KLine_Unit import CKLine_Unit
 
 from db.util import print_class_attributes_and_methods, mkdir
 from strategies.Main_Cta_Paral.Parallel_pool import n_processor_queue
+from strategies.Main_Cta_Paral.Processor import n_Processor
 from strategies.Main_Cta_Paral.Glob_Ind import Glob_Ind
 from strategies.Main_Cta_Paral.Define import MetadataIn, MetadataOut, bt_config
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -45,10 +47,11 @@ class Main_Cta(BaseCtaStrategy):
     # flow:
     #   1. daily chan with ML pred
     #   2. intra_day T/ stop_loss/gain
-    def __init__(self, name:str, codes:List[str], barCnt:int, period:str, capital:float, areForStk:List[bool] = []):
+    def __init__(self, name:str, codes:List[str], barCnt:int, period:str, session_batch:int, capital:float, areForStk:List[bool] = []):
         BaseCtaStrategy.__init__(self, name)
         # when declare __ as static variable, use with caution, compilier may do funny things
         self.__period__         = period
+        self.__session_batch__  = session_batch
         self.__bar_cnt__        = barCnt
         self.__codes__          = codes
         self.__capital__        = capital
@@ -57,31 +60,7 @@ class Main_Cta(BaseCtaStrategy):
         self.theCodes           : List[str] = []
         self.last_price         : Dict[str, float] = {}
         self.cur_money          = capital
-        self.resample_buffer: Dict[str, List[CKLine_Unit]] = {}  # store temp bar to form larger bar
-        
-        self.column_name = [
-            DATA_FIELD.FIELD_TIME,
-            DATA_FIELD.FIELD_OPEN,
-            DATA_FIELD.FIELD_HIGH,
-            DATA_FIELD.FIELD_LOW,
-            DATA_FIELD.FIELD_CLOSE,
-            DATA_FIELD.FIELD_VOLUME,
-            # DATA_FIELD.FIELD_TURNOVER,
-            # DATA_FIELD.FIELD_TURNRATE,
-            ]  # 每一列字段
-        
-    def combine_klu(self, resample_buffer: List[CKLine_Unit]) -> CKLine_Unit:
-        return CKLine_Unit(
-            {
-                DATA_FIELD.FIELD_TIME: resample_buffer[-1].time,
-                DATA_FIELD.FIELD_OPEN: resample_buffer[0].open,
-                DATA_FIELD.FIELD_HIGH: max(klu.high for klu in resample_buffer),
-                DATA_FIELD.FIELD_LOW: min(klu.low for klu in resample_buffer),
-                DATA_FIELD.FIELD_CLOSE: resample_buffer[-1].close,
-                DATA_FIELD.FIELD_VOLUME: sum(klu.volume for klu in resample_buffer),
-            },
-            autofix=True,
-        )
+        self.np_bars_batch: Dict[str, List[WtNpKline]] = {}  # store temp bar to form larger bar
         
     def on_init(self, context:CtaContext):
         # ProcessPoolExecutor: CPU-bound tasks
@@ -96,7 +75,7 @@ class Main_Cta(BaseCtaStrategy):
             # register main k_bar for on_bar(), set bar cache
             context.stra_prepare_bars(code, self.__period__, self.__bar_cnt__, isMain = True)
             self.last_price[code] = 0
-            self.resample_buffer[code] = []
+            self.np_bars_batch[code] = []
         self.processor = n_processor_queue(
             max_workers=128,
             concurrency_mode='process')
@@ -115,14 +94,13 @@ class Main_Cta(BaseCtaStrategy):
         self.barnum += 1 # all sub-ed bars closed (main/non-main) at this period
         curTime = context.stra_get_time()
         
-        rebalance   = False
-        if curTime == 1425: # new date
-            rebalance = True
+        batch_feed   = False
+        if curTime == n_Processor.REBALANCE_TIME \
+            or self.barnum % self.__session_batch__ == 0: # new batch
+            date = context.get_date()
+            batch_feed = True
             Meta_queue: List[MetadataIn] = []
-        else:
-            pass
         
-        date = context.get_date()
         health_asset = 0
         for idx, code in enumerate(self.__codes__):
             # theCode = self.theCodes[idx]
@@ -134,59 +112,42 @@ class Main_Cta(BaseCtaStrategy):
             # pInfo = context.stra_get_comminfo(self.theCode)
             # if not sInfo.isInTradingTime(curTime): # type: ignore
             #     continue
+            
             try: # some asset may not have bar at xxx time
                 np_bars = context.stra_get_bars(code, self.__period__, self.__bar_cnt__, isMain=False)
-                open    = np_bars.opens[-1]
-                high    = np_bars.highs[-1]
-                low     = np_bars.lows[-1]
-                close   = np_bars.closes[-1]
-                volume  = np_bars.volumes[-1]
-                bartime = np_bars.bartimes[-1]
                 health_asset += 1
-            except:
-                print(f'Err: getting {code}')
+                close = np_bars.closes[-1]
+                self.np_bars_batch[code].append(np_bars)
+                if batch_feed:
+                    # calc global indicator and prepare CPU tasks
+                    #　global_indicators = Glob_Ind(combined_klu)
+                    MetaIn = MetadataIn(
+                        idx=idx,
+                        code=code,
+                        date=date,
+                        curTime=curTime,
+                        bars=self.np_bars_batch[code],
+                    )
+                    Meta_queue.append(MetaIn)
+                    self.np_bars_batch[code] = []
+            except Exception as e:
+                print(f'Err: getting {code}: ', e)
                 continue
-            
-            # ["time_key", "open", "high", "low", "close", "volume", "turnover"] # not include "turnover_rate"
-            klu = CKLine_Unit(dict(zip(self.column_name, [parse_time_column(str(bartime)), open, high, low, close, volume,])),
-                              autofix=True,)
-            self.resample_buffer[code].append(klu)
-        
-        # calc global indicator and prepare CPU tasks
-        if rebalance:
-            combined_klu: Dict[str, CKLine_Unit] = {}
-            for code in self.__codes__:
-                combined_klu[code] = self.combine_klu(self.resample_buffer[code])
-                
-            global_indicators = Glob_Ind(combined_klu)
-            for idx, code in enumerate(self.__codes__):
-                MetaIn = MetadataIn(
-                    idx=idx,
-                    code=code,
-                    date=date,
-                    curTime=curTime,
-                    bar=combined_klu[code],
-                    rebalance=rebalance,
-                )
-                Meta_queue.append(MetaIn)
-                self.resample_buffer[code] = []
-            
         # print(f'Healthy assets: {health_asset}/{len(self.__codes__)}')
-        if rebalance:
+        
+        if batch_feed:
         # load data to other CPUs and do calc:
         #   1bar        5bar    10bar   50bar   100bar  500bar
         #   120000/s    60000/s 40000/s 8000/s  3500/s  1200/s
-            self.processor.clear_result()
             self.processor.add_in_task(Meta_queue) # submit jobs
             # ================================================
             orders = self.processor.step_execute() # blocking until all cpu finish
             # self.profile(date)
             # waiting for exec
             # ================================================
-            
+
             # exec trade orders:
             capital = self.__capital__
-            Ctime = combined_klu[code].time
             if len(orders) == 0:
                 return
             # print('Main CTA: ', orders)
@@ -195,12 +156,12 @@ class Main_Cta(BaseCtaStrategy):
                 code = order.code
                 buy = order.buy
                 sell = order.sell
-
+                
                 curPos = context.stra_get_position(code)
                 curPrice = context.stra_get_price(code)
                 self.cur_money = capital + context.stra_get_fund_data(flag=0)
                 amount = 1000 # math.floor(self.cur_money/curPrice)
-
+                
                 pnl: float = 1
                 color: str = default
                 if sell and curPos >= 0:
@@ -209,7 +170,6 @@ class Main_Cta(BaseCtaStrategy):
                         context.stra_set_position(code, 0, 'exitlong')
                     context.stra_set_position(code, -amount, 'entershort')
                     context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime}:({code}) top    FX，enter short:{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
-                    # bt_config.plot_para["marker"]["markers"][Ctime] = ('short', 'down', 'orange')
                     # self.xxx = 1
                     # context.user_save_data('xxx', self.xxx)
                     self.last_price[code] = close
@@ -221,7 +181,6 @@ class Main_Cta(BaseCtaStrategy):
                         context.stra_set_position(code, 0, 'exitshort')
                     context.stra_set_position(code, amount, 'enterlong')
                     context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime}:({code}) bottom FX, enter long :{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
-                    # bt_config.plot_para["marker"]["markers"][Ctime] = ('long', 'up', 'blue')
                     self.last_price[code] = close
                     self.check_capital()
                     continue

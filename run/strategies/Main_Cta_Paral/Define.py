@@ -1,15 +1,17 @@
 from typing import NamedTuple, Tuple, List
 
+from wtpy.WtDataDefs import WtNpTicks, WtNpKline
+
 from Chan.ChanConfig import CChanConfig
 from Chan.KLine.KLine_Unit import CKLine_Unit
+from Chan.Common.CEnum import DATA_SRC, KL_TYPE, AUTYPE, DATA_FIELD, BSP_TYPE, FX_TYPE
 
 class MetadataIn(NamedTuple):
     idx: int
     code: str
     date: int
     curTime: int
-    bar: CKLine_Unit
-    rebalance: bool
+    bars: List[WtNpKline]
     
 class MetadataOut(NamedTuple):
     cpu_id: int
@@ -19,7 +21,18 @@ class MetadataOut(NamedTuple):
     curTime: int
     buy: bool
     sell: bool
-    
+
+column_name = [
+    DATA_FIELD.FIELD_TIME,
+    DATA_FIELD.FIELD_OPEN,
+    DATA_FIELD.FIELD_HIGH,
+    DATA_FIELD.FIELD_LOW,
+    DATA_FIELD.FIELD_CLOSE,
+    DATA_FIELD.FIELD_VOLUME,
+    # DATA_FIELD.FIELD_TURNOVER,
+    # DATA_FIELD.FIELD_TURNRATE,
+    ]  # 每一列字段
+
 bt_config = CChanConfig({
     "trigger_step"      : True,
     "skip_step"         : 0,
@@ -28,6 +41,7 @@ bt_config = CChanConfig({
     "bi_strict"         : False,
     "bi_fx_check"       : "loss", # when use with chart patterns, use "loss"
 })
+
 bt_config.plot_config["plot_bsp"] = False
 bt_config.plot_config["plot_marker"] = False
 bt_config.plot_config["plot_zs"] = False
@@ -35,6 +49,6 @@ bt_config.plot_config["plot_channel"] = False
 bt_config.plot_config["plot_mean"] = False
 bt_config.plot_config["plot_eigen"] = False
 bt_config.plot_config["plot_demark"] = False
-bt_config.plot_config["plot_seg"] = False
-bt_config.plot_para["seg"]["plot_trendline"] = False
+bt_config.plot_config["plot_seg"] = True
+bt_config.plot_para["seg"]["plot_trendline"] = True
 bt_config.plot_config["plot_chart_patterns"] = True

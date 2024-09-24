@@ -22,7 +22,6 @@ def lock_print(lock, msg):
     with lock:
         print(msg)
 
-SLEEP = 0.0001
 import multiprocessing
 import threading
 class n_processor_queue:
@@ -34,23 +33,28 @@ class n_processor_queue:
         self.manager = multiprocessing.Manager()
         self.max_workers = min(multiprocessing.cpu_count(), max_workers)
         self.concurrency_mode = self.parallel_mode(concurrency_mode)
-        # self.task_queues = [multiprocessing.Queue() for _ in range(self.max_workers)]
-        self.in_queues = [self.manager.list() for _ in range(self.max_workers)]  # Shared list to store results
-        self.out_queues = [self.manager.list() for _ in range(self.max_workers)]  # Shared list to store results
-        self.print_lock = threading.Lock() if self.concurrency_mode == 'thread' else multiprocessing.Lock()
-        self.active_workers = multiprocessing.Value('i', 0)
-        self.worker_active = [multiprocessing.Value('i', 0) for _ in range(self.max_workers)]
+        
+        # multiprocessing.Queue() has less inter-process overhead than manager.list()
+        # self.in_queues = [self.manager.list() for _ in range(self.max_workers)]  # Shared list to store results
+        # self.out_queues = [self.manager.list() for _ in range(self.max_workers)]  # Shared list to store results
+        self.in_queues = [multiprocessing.Queue() for _ in range(self.max_workers)]  # Shared list to store results
+        self.out_queues = [multiprocessing.Queue() for _ in range(self.max_workers)]  # Shared list to store results
+        # self.print_lock = threading.Lock() if self.concurrency_mode == 'thread' else multiprocessing.Lock()
+        # self.active_workers = multiprocessing.Value('i', 0)
+        self.onfly_tasks = [multiprocessing.Value('i', 0) for _ in range(self.max_workers)]
         self.end = multiprocessing.Value('i', False)  # Shared memory for boolean
+        self.workers_active = [multiprocessing.Event() for _ in range(self.max_workers)]  # Event for signaling
         self.workers = []
         self.is_running = False
         
     # N-gets corresponds to N-puts
-    def add_in_task(self, tasks):
+    def add_in_task(self, tasks:List[MetadataIn]):
         for i, task in enumerate(tasks):
-            self.in_queues[i % self.max_workers].append(task) # round-robin like
-        self.active_workers.value = self.max_workers
+            self.in_queues[i % self.max_workers].put(task) # round-robin like
+            self.onfly_tasks[i % self.max_workers].value += 1
+        # self.active_workers.value = self.max_workers
         for i in range(self.max_workers):
-            self.worker_active[i].value = 1
+            self.workers_active[i].set() # start worker
             
     # def add_out_task(self, worker_id, tasks):
     #     for task in tasks:
@@ -60,34 +64,47 @@ class n_processor_queue:
     # can be modified in place (like pointers)
     @staticmethod # use global method or static method in a class
     def worker(
-                in_queue:List[MetadataIn],
-                out_queue:List[MetadataOut],
-                print_lock,
-                active_workers,
-                worker_active,
+                in_queue:multiprocessing.Queue,
+                out_queue:multiprocessing.Queue,
+                # print_lock,
+                # active_workers,
+                onfly_tasks,
                 # tqdm_cnt,
                 # tqdm_desc,
                 worker_id,
-                end,
+                worker_active,
+                end, # type: ignore
                ):
-        
         n_processor = n_Processor()
         global terminate
         while not terminate and not end.value: # if not sleep for too long, will be killed
-            while in_queue:
-                input = in_queue.pop(0)
-                result = n_processor.process_slave_task(worker_id, input)
-                if result is not None:
-                    out_queue.append(result)
+            
+            worker_active.wait()  # Blocks until the event is set
+            
+            if end.value:
+                break
+            
+            tasks = []
+            try:
+                while onfly_tasks.value != 0:
+                    tasks.append(in_queue.get(block=True, timeout=1))
+                    onfly_tasks.value -= 1
                     
-            if not in_queue:
-                with active_workers.get_lock():
-                    active_workers.value -= 1
-                worker_active.value = 0
-                # lock_print(print_lock, f'{worker_id}/{active_workers.value}:p')
-                while worker_active.value == 0 and not end.value:
-                    time.sleep(SLEEP)
-                # lock_print(print_lock, f'{worker_id}/{active_workers.value}:pr')
+                results = n_processor.process_slave_task(worker_id, tasks)
+                if results:
+                    out_queue.put(results)  # Store results
+                    
+            except Exception as e:
+                print(f"{type(e).__name__}")
+                print(e)
+                # # Get the traceback information
+                # import traceback
+                # tb_str = traceback.format_exc()
+                # print(tb_str)
+                break
+            
+            worker_active.clear()  # Reset the event to pause the worker
+            
         n_processor.on_backtest_end()
                             
     def parallel_mode(self, concurrency_mode):
@@ -103,22 +120,24 @@ class n_processor_queue:
                 # shareable:
                 self.in_queues[i],
                 self.out_queues[i],
-                self.print_lock,
-                self.active_workers,
-                self.worker_active[i],
+                # self.print_lock,
+                self.onfly_tasks[i],
+                # self.worker_active[i],
                 # self.tqdm_cnt_with_lock,
                 # self.tqdm_desc,
                 
                 # non-shareable(inout):
                 i,
+                self.workers_active[i],
                 self.end,
             )) if self.concurrency_mode == 'process' else threading.Thread(target=self.worker, args=(
                 self.in_queues[i],
                 self.out_queues[i],
-                self.print_lock,
-                self.active_workers,
-                self.worker_active[i],
+                # self.print_lock,
+                self.onfly_tasks[i],
+                # self.worker_active[i],
                 i,
+                self.workers_active[i],
                 self.end,
             ))
             w.start()
@@ -130,6 +149,8 @@ class n_processor_queue:
         
     def stop_workers(self):
         self.end.value = 1
+        for i in range(self.max_workers):
+            self.workers_active[i].set() # start worker
         for w in self.workers:
             w.join()
         self.is_running = False
@@ -145,24 +166,20 @@ class n_processor_queue:
         # Process current tasks in queues
         global terminate
         while not terminate:
-            if all(worker_active.value == 0 for worker_active in self.worker_active):
+            if all(not worker_active.is_set() for worker_active in self.workers_active):
                 break
             # print(slaves_queue_idle,master_queue_idle,worker_idle )
-            # time.sleep(SLEEP)
             
         # Check if termination was requested
         if terminate:
             self.stop_workers()
             
-        result:List[MetadataOut] = []
+        results:List[MetadataOut] = []
         for out_queue in self.out_queues:
-            result += out_queue
-        return result
+            while not out_queue.empty():
+                results.extend(out_queue.get())
+        return results
     
-    def clear_result(self):
-        for i in range(self.max_workers):
-            del self.out_queues[i][:]
-        
     def terminate(self):
         self.stop_workers()
                 
