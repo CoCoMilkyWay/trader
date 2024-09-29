@@ -41,110 +41,10 @@
 # ref: https://www.youtube.com/watch?v=NZKpJ71iZyU
 # ref: https://www.youtube.com/watch?v=2wIqCWKnWVk
 
-import copy
 import os, sys
 import math
 import numpy as np
-from numpy.polynomial import Polynomial
 from typing import List, Dict
-
-from Chan.Bi.Bi import CBi
-from Chan.Common.CEnum import BI_DIR, TREND_LINE_SIDE
-
-debug = False
-
-# Chart Pattern is afflicted under chan.bi, also updated with it
-class Chart_Patterns:
-    # top/bot FX has type: loss/half/strict
-    # for half/strict FX, weak FX will be overwrite by stronger FX in the same direction,
-    # this is effectively a breakthrough from microstructure
-    # using "loss" type FX for chart patterns is recommended
-    
-    def __init__(self):
-        self.bi_lst: List[List[int|float]] = []
-        self.bi_lst_is_sure: bool = True # if the last bi in bi_lst is sure
-        self.keys = ['nexus_type',]
-        self.shapes = self.init_shapes()
-        self.shapes_deep_copy = self.shapes
-        
-    def init_shapes(self):
-        shapes: Dict[str, List[
-            nexus_type
-            ]] = {}
-        for key in self.keys:
-            shapes[key] = []
-        return shapes
-    
-    def get_shapes(self, complete:bool=False, potential:bool=False, with_idx:bool=False):
-        shapes:List[
-            nexus_type
-            ] = []
-        for shape_name in self.keys:
-            for shape in self.shapes[shape_name]:
-                if complete and shape.is_complete():
-                    shapes.append(shape)
-                elif potential and not shape.is_potential():
-                    shapes.append(shape)
-                
-                # if with_idx:
-                #     shapes.append(shape.state)
-        return shapes
-    
-    def add_bi(self, bi:CBi, is_sure:bool = False):
-        # bi would be updated multiple times until it is sure
-        # update bi-based metric whenever new bi comes in, stabilize it when is sure
-        self.bi_idx:int = bi.idx
-        end_x:int = bi.get_end_klu().idx
-        end_y:float = bi.get_end_val()
-        end_bi_vertex = [end_x, end_y]
-        # print('add bi: ', bi.idx, is_sure, end_bi_vertex)
-        if len(self.bi_lst) == 0:
-            if is_sure: # skip fist few bi that is not sure
-                begin_x:int = bi.get_begin_klu().idx
-                begin_y:float = bi.get_begin_val()
-                start_bi_vertex = [begin_x, begin_y]
-                self.bi_lst.append(start_bi_vertex)
-                self.feed_vertex_to_all_chart_patterns(is_sure)
-                self.bi_lst.append(end_bi_vertex)
-        elif self.bi_lst_is_sure:
-            self.bi_lst.append(end_bi_vertex)
-        else:
-            self.bi_lst[-1] = end_bi_vertex
-        self.feed_vertex_to_all_chart_patterns(is_sure)
-        self.bi_lst_is_sure = is_sure
-        # if debug:
-        #     print(self.bi_lst)
-        
-    def feed_vertex_to_all_chart_patterns(self, is_sure:bool):
-        vertex = self.bi_lst[-1]
-        # only detect bi-level shapes, not seg-level shapes
-        if self.bi_lst_is_sure and not is_sure:
-            self.shapes_deep_copy = copy.deepcopy(self.shapes)
-        if not self.bi_lst_is_sure or not is_sure:
-            self.shapes = copy.deepcopy(self.shapes_deep_copy)
-                            
-        self.add_vertex_to_shapes(vertex, is_sure)
-        
-    def add_vertex_to_shapes(self, vertex:List[int|float], is_sure:bool):
-        for shape_name in self.keys:
-            num_of_shape = len(self.shapes[shape_name])
-            if num_of_shape > 0:
-                # Update existing shapes
-                for shape in self.shapes[shape_name][:]: # Use a slice to make a copy of the list so can remove item on-fly
-                    if shape.is_complete():
-                        continue
-                    success = shape.add_vertex(vertex)
-                    if debug:
-                        print(shape.name, shape.vertices, shape.state, success)
-                    if not success: # try add vertex and failed shape FSM check
-                        self.shapes[shape_name].remove(shape)
-            if is_sure:
-                if debug:
-                    print('=================================================: ', vertex)
-                # Start new potential shapes
-                if shape_name == 'nexus_type':
-                    if is_sure:
-                        self.shapes[shape_name].append(nexus_type(vertex))
                         
 def util_distance(p1, p2):
     return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
@@ -187,8 +87,7 @@ def fit_linear(vertices:List[List[int|float]]):
 
 pnl = 1.5 # pnl (filter: harder to get in/out of micro-structure)
 
-# NOTE: usually it is better to wait for price break BOTH chart and certain support
-
+# NOTE: usually it is better to wait for price to break BOTH chart and certain support
 class nexus_type: # continuation or breakout or reversal
     START = 0
     ENTRY = 1

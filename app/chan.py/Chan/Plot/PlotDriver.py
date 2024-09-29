@@ -274,9 +274,13 @@ class CPlotDriver:
             self.draw_rsi(meta, ax.twinx(), **plot_para.get('rsi', {}))
         if plot_config.get("plot_kdj", False):
             self.draw_kdj(meta, ax.twinx(), **plot_para.get('kdj', {}))
+        if plot_config.get("plot_trend_lines", False):
+            self.draw_trend_lines(meta, ax, **plot_para.get('trend_lines', {}))
         if plot_config.get("plot_chart_patterns", False):
             self.draw_chart_patterns(meta, ax, **plot_para.get('chart_patterns', {}))
-            
+        if plot_config.get("plot_volume_profile", False):
+            self.draw_volume_profile(meta, ax, **plot_para.get('volume_profile', {}))
+
     def ShowDrawFuncHelper(self):
         # 写README的时候显示所有画图函数的参数和默认值
         for func in dir(self):
@@ -381,16 +385,14 @@ class CPlotDriver:
         meta: CChanPlotMeta,
         ax: Axes,
         lv,
-        width=5,
-        color="g",
+        width=3,
+        color="orange",
         sub_lv_cnt=None,
         facecolor='green',
         alpha=0.1,
         disp_end=False,
         end_color='g',
         end_fontsize=13,
-        plot_trendline=False,
-        plot_trendline_num=1,
         trendline_color='r',
         trendline_width=3,
     ):
@@ -400,20 +402,11 @@ class CPlotDriver:
             if seg_meta.end_x < x_begin:
                 continue
             if seg_meta.is_sure:
-                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width)
+                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width, alpha=0.3)
             else:
-                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width, linestyle='dashed')
+                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width, linestyle='dashed', alpha=0.3)
             if disp_end:
                 bi_text(seg_idx, ax, seg_meta, end_fontsize, end_color)
-            if plot_trendline:
-                # only plot the last 'plot_trendline_num' trendline (seg)
-                if seg_idx >= (len(meta.seg_list) - (plot_trendline_num+1)):
-                    if seg_meta.tl.get('support'):
-                        tl_meta = seg_meta.format_tl(seg_meta.tl['support'])
-                        ax.plot([tl_meta[0], tl_meta[2]], [tl_meta[1], tl_meta[3]], color=trendline_color, linewidth=trendline_width)
-                    if seg_meta.tl.get('resistance'):
-                        tl_meta = seg_meta.format_tl(seg_meta.tl['resistance'])
-                        ax.plot([tl_meta[0], tl_meta[2]], [tl_meta[1], tl_meta[3]], color=trendline_color, linewidth=trendline_width)
         if sub_lv_cnt is not None and len(self.lv_lst) > 1 and lv != self.lv_lst[-1]:
             if sub_lv_cnt >= len(meta.seg_list):
                 return
@@ -803,14 +796,34 @@ class CPlotDriver:
                     under_bias += getTextBox(ax, txt_instance).height
                 else:
                     upper_bias += getTextBox(ax, txt_instance).height
-                    
+
+    def draw_trend_lines(
+        self,
+        meta: CChanPlotMeta,
+        ax: Axes,
+        plot_trendline_num,
+        trendline_color='yellow',
+        trendline_width=1,
+    ):
+        print('trend_lines..')
+        for seg_idx, seg_meta in enumerate(meta.seg_list):
+            # only plot the last 'plot_trendline_num' trendline (seg)
+            if seg_idx >= (len(meta.seg_list) - (plot_trendline_num+1)): # virtual segs have the same index
+                if seg_meta.tl.get('primary'):
+                    tl_meta_p = seg_meta.format_tl(seg_meta.tl['primary']) # suppS
+                    ax.plot([tl_meta_p[0], tl_meta_p[2]], [tl_meta_p[1], tl_meta_p[3]], color="orange", linewidth=trendline_width, alpha = 0.5)
+                if seg_meta.tl.get('secondary'):
+                    tl_meta_s = seg_meta.format_tl(seg_meta.tl['secondary'])
+                    ax.plot([tl_meta_s[0], tl_meta_s[2]], [tl_meta_s[1], tl_meta_s[3]], color="blue", linewidth=trendline_width, alpha = 0.5)
+                ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="orange", alpha=0.3)
+
     def draw_chart_patterns(
         self,
         meta: CChanPlotMeta,
         ax: Axes,
         arg={},
         ):
-        print('plotting chart_patterns')
+        print('chart_patterns..')
         x_begin = ax.get_xlim()[0]
         y_range = self.y_max-self.y_min
         arrow_len = 0.15*y_range
@@ -821,7 +834,7 @@ class CPlotDriver:
                     continue
                 ax.plot([vertices[idx][0], vertices[idx+1][0]], [vertices[idx][1], vertices[idx+1][1]], color=shape.color, linewidth=2)
             ax.plot(shape.top_x, shape.top_y, linewidth=4, color='red') # linestyle='dashed'
-            ax.plot(shape.bot_x, shape.bot_y, linewidth=4, color='green')
+            ax.plot(shape.bot_x, shape.bot_y, linewidth=4, color='blue')
             
             arrow_dir = shape.entry_dir # 1 for buy
             arrow_head = arrow_len*0.2
@@ -842,7 +855,22 @@ class CPlotDriver:
                      color=shape.color,
                      alpha=0.6,
                      )
-                    
+
+    def draw_volume_profile(self, meta: CChanPlotMeta, ax: Axes, arg={}):
+        print('volume_profile..')
+        if meta.volume_profile.PA_Volume_Profile.volume_inited:
+            import numpy as np
+            idx_min = meta.volume_profile.PA_Volume_Profile.volume_idx_min
+            idx_max = meta.volume_profile.PA_Volume_Profile.volume_idx_max
+            price_bin_width = meta.volume_profile.PA_Volume_Profile.price_bin_width
+            y_pos = np.arange(idx_min, idx_max+1) * price_bin_width
+            buyside, sellside, buyside_curve, sellside_curve = \
+            meta.volume_profile.PA_Volume_Profile.get_adjusted_volume_profile(max_mapped=20, type='bi')
+            ax.barh(y=y_pos, width=buyside,  height=price_bin_width, color='orange', label='Buyside', align='center', left=0,       alpha=0.4)
+            ax.barh(y=y_pos, width=sellside, height=price_bin_width, color='green', label='Sellside', align='center', left=buyside, alpha=0.4)
+            ax.plot(buyside_curve,                  y_pos, color='orange',  linewidth=4)
+            ax.plot(buyside_curve + sellside_curve, y_pos, color='green',   linewidth=4)
+
 def getTextBox(ax: Axes, txt_instance):
     return txt_instance.get_window_extent().transformed(ax.transData.inverted())
 

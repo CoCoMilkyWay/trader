@@ -2,6 +2,7 @@ import copy
 import datetime
 from collections import defaultdict
 from typing import Dict, Iterable, List, Optional, Union
+from collections import deque
 
 from Chan.BuySellPoint.BS_Point import CBS_Point
 from Chan.ChanConfig import CChanConfig
@@ -34,7 +35,10 @@ class CChan:
         self.autype = autype
         self.data_src = data_src
         self.lv_list: List[KL_TYPE] = lv_list
-
+        
+        # temp_batch
+        self.volume_profile_batch:List[int|List[int]]
+        
         if config is None:
             config = CChanConfig()
         self.conf = config
@@ -127,7 +131,7 @@ class CChan:
         if not yielded:
             yield self
 
-    def trigger_load(self, inp):
+    def trigger_load(self, klu_dict, batch_volume_profile:List[int|List[int]]):
         # 在已有pickle基础上继续计算新的
         # {type: [klu, ...]}
         if not hasattr(self, 'klu_cache'):
@@ -135,18 +139,20 @@ class CChan:
         if not hasattr(self, 'klu_last_t'):
             self.klu_last_t = [CTime(1980, 1, 1, 0, 0) for _ in self.lv_list]
         for lv_idx, lv in enumerate(self.lv_list):
-            if lv not in inp:
+            if lv not in klu_dict:
                 if lv_idx == 0:
                     raise CChanException(f"最高级别{lv}没有传入数据", ErrCode.NO_DATA)
                 continue
-            assert isinstance(inp[lv], list)
-            self.add_lv_iter(lv, iter(inp[lv]))
+            assert isinstance(klu_dict[lv], list)
+            self.add_lv_iter(lv, iter(klu_dict[lv]))
         for _ in self.load_iterator(lv_idx=0, parent_klu=None, step=False):
             ...
         if not self.conf.trigger_step:  # 非回放模式全部算完之后才算一次中枢和线段
             for lv in self.lv_list:
                 self.kl_datas[lv].cal_seg_and_zs()
-
+        # update volume_profile for highest level Kline_List
+        self.kl_datas[self.lv_list[0]].PA_Volume_Profile.update_volume_profile(batch_volume_profile, 'batch')
+                
     def init_lv_klu_iter(self, stockapi_cls):
         # 为了跳过一些获取数据失败的级别
         lv_klu_iter = []

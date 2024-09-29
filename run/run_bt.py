@@ -27,18 +27,17 @@ run             = True
 analyze         = False
 snoop           = False
 profile         = False
-period, n       = 'm', 5 # bar period
-# bars per batch accumulated before send to processes
-session_batch   = 12 # 60/n
-start           = 202401010931
+period, n       = 'm', 1 # bar period
+start           = 202001010931
 end             = 202501010000
-capital         = 1000000
+capital         = 1000000000
 
 def run_bt():
     print('Pulling stock pool ...')
-    assets, assets_valid = get_bao_stocks(pool='hs300') #　['sh.600000', ...]
-    assets = assets[:1]
-    # assets = ['sh.600000', 'sh.600004', 'sh.600008']
+    assets, assets_valid = get_bao_stocks(pool='zz500')
+    assets =  [asset for asset in assets if asset.startswith('sh')][:1]
+    assets += [asset for asset in assets if asset.startswith('sz')][:1]
+    assets = ['sh.000001']
     
     print('Preparing dsb data (Combining and Resampling) ...')
     asset_dict = {'sh':'SSE', 'sz':'SZSE'} # wt_asset = 'SSE.STK.600000'
@@ -84,7 +83,7 @@ def run_bt():
     
     # straInfo = StraDualThrust(name=str_name, code=wt_asset, barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
-    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1, period=period_str, session_batch=session_batch ,capital=capital, areForStk=wt_assets_skt)
+    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1, period=period_str, capital=capital, areForStk=wt_assets_skt)
     
     engine.set_cta_strategy(straInfo, slippage=0)
     

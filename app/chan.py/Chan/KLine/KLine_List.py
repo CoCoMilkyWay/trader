@@ -1,5 +1,6 @@
 import copy
 from typing import List, Union, overload
+from collections import deque
 
 from Chan.Bi.Bi import CBi
 from Chan.Bi.BiList import CBiList
@@ -11,9 +12,10 @@ from Chan.Seg.Seg import CSeg
 from Chan.Seg.SegConfig import CSegConfig
 from Chan.Seg.SegListComm import CSegListComm
 from Chan.ZS.ZSList import CZSList
+from Chan.Math.PA_Volume_Profile import PA_Volume_Profile
 
-from .KLine import CKLine
-from .KLine_Unit import CKLine_Unit
+from Chan.KLine.KLine import CKLine
+from Chan.KLine.KLine_Unit import CKLine_Unit
 
 
 def get_seglist_instance(seg_config: CSegConfig, lv) -> CSegListComm:
@@ -46,6 +48,8 @@ class CKLine_List:
 
         self.bs_point_lst = CBSPointList[CBi, CBiList](bs_point_config=conf.bs_point_conf)
         self.seg_bs_point_lst = CBSPointList[CSeg, CSegListComm](bs_point_config=conf.seg_bs_point_conf)
+
+        self.PA_Volume_Profile = PA_Volume_Profile()
 
         self.metric_model_lst = conf.GetMetricModel()
 

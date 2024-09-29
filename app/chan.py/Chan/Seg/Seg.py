@@ -4,7 +4,7 @@ from Chan.Bi.Bi import CBi
 from Chan.Common.CEnum import BI_DIR, MACD_ALGO, TREND_LINE_SIDE
 from Chan.Common.ChanException import CChanException, ErrCode
 from Chan.KLine.KLine_Unit import CKLine_Unit
-from Chan.Math.TrendLine import CTrendLine
+from Chan.Math.PA_TrendLine import PA_TrendLine
 
 from .EigenFX import CEigenFX
 
@@ -21,7 +21,7 @@ class CSeg(Generic[LINE_TYPE]):
         self.dir = end_bi.dir if seg_dir is None else seg_dir
 
         from Chan.ZS.ZS import CZS
-        self.zs_lst: List[CZS[LINE_TYPE]] = []
+        self.zs_lst: List[CZS[LINE_TYPE]] = [] # type: ignore
 
         self.eigen_fx: Optional[CEigenFX] = None
         self.seg_idx = None  # 线段的线段用
@@ -34,8 +34,8 @@ class CSeg(Generic[LINE_TYPE]):
 
         self.bi_list: List[LINE_TYPE] = []  # 仅通过self.update_bi_list来更新
         self.reason = reason
-        self.support_trend_line = None
-        self.resistance_trend_line = None
+        self.trend_line_primary = None
+        self.trend_line_secondary = None
         if end_bi.idx - start_bi.idx < 2:
             self.is_sure = False
         self.check()
@@ -134,8 +134,8 @@ class CSeg(Generic[LINE_TYPE]):
             bi_lst[bi_idx].parent_seg = self
             self.bi_list.append(bi_lst[bi_idx])
         if len(self.bi_list) >= 3:
-            self.support_trend_line = CTrendLine(self.bi_list, TREND_LINE_SIDE.INSIDE)
-            self.resistance_trend_line = CTrendLine(self.bi_list, TREND_LINE_SIDE.OUTSIDE)
+            self.trend_line_primary = PA_TrendLine(self.bi_list, TREND_LINE_SIDE.ALONG)
+            self.trend_line_secondary = PA_TrendLine(self.bi_list, TREND_LINE_SIDE.AGAINST)
 
     def get_first_multi_bi_zs(self):
         return next((zs for zs in self.zs_lst if not zs.is_one_bi_zs()), None)

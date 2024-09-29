@@ -11,7 +11,7 @@ from Chan.Math.KDJ import KDJ
 from Chan.Math.MACD import CMACD
 from Chan.Math.RSI import RSI
 from Chan.Math.TrendModel import CTrendModel
-from Chan.Math.PA_Pattern_Chart import Chart_Patterns
+from Chan.Math.PA_Core import PA_Core
 from Chan.Seg.SegConfig import CSegConfig
 from Chan.ZS.ZSConfig import CZSConfig
 
@@ -37,12 +37,13 @@ class CChanConfig:
             "plot_marker": False,
             "plot_rsi": False,
             "plot_kdj": False,
+            "plot_trend_lines": False,
             "plot_chart_patterns": False,
+            "plot_volume_profile": False,
         }
         self.plot_para = {
             "seg": {
-                "plot_trendline": False,
-                "plot_trendline_num": 1,
+                
             },
             "bi": {
                 "show_num": False,
@@ -58,6 +59,9 @@ class CChanConfig:
                 },
             },
             "animation_pause_time": 0,
+            "trend_lines": {
+                "plot_trendline_num": 2,
+                },
             "chart_patterns": {},
         }
 
@@ -144,7 +148,7 @@ class CChanConfig:
         conf.check()
 
     def GetMetricModel(self): # this is updated at klu level
-        res: List[CMACD | CTrendModel | BollModel | CDemarkEngine | RSI | KDJ | Chart_Patterns] = [
+        res: List[CMACD | CTrendModel | BollModel | CDemarkEngine | RSI | KDJ | PA_Core] = [
             CMACD(
                 fastperiod=self.macd_config['fast'],
                 slowperiod=self.macd_config['slow'],

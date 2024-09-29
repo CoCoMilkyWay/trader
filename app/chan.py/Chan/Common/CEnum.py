@@ -80,8 +80,8 @@ class TREND_TYPE(Enum):
 
 
 class TREND_LINE_SIDE(Enum):
-    INSIDE = auto()
-    OUTSIDE = auto()
+    ALONG = auto()
+    AGAINST = auto()
 
 
 class LEFT_SEG_METHOD(Enum):

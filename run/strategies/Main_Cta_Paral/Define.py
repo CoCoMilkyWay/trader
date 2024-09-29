@@ -41,7 +41,8 @@ bt_config = CChanConfig({
     "bi_strict"         : False,
     "bi_fx_check"       : "loss", # when use with chart patterns, use "loss"
 })
-
+bt_config.plot_para["trend_lines"]["plot_trendline_num"] = 1
+bt_config.plot_config["plot_kline"] = False
 bt_config.plot_config["plot_bsp"] = False
 bt_config.plot_config["plot_marker"] = False
 bt_config.plot_config["plot_zs"] = False
@@ -50,5 +51,6 @@ bt_config.plot_config["plot_mean"] = False
 bt_config.plot_config["plot_eigen"] = False
 bt_config.plot_config["plot_demark"] = False
 bt_config.plot_config["plot_seg"] = True
-bt_config.plot_para["seg"]["plot_trendline"] = True
+bt_config.plot_config["plot_trend_lines"] = True
 bt_config.plot_config["plot_chart_patterns"] = True
+bt_config.plot_config["plot_volume_profile"] = True

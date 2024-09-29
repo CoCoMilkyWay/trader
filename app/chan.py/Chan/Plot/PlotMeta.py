@@ -1,7 +1,9 @@
 from typing import List
+from collections import deque
 
 from Chan.Bi.Bi import CBi
-from Chan.Math.PA_Pattern_Chart import Chart_Patterns
+from Chan.Math.PA_Core import PA_Core
+from Chan.Math.PA_Volume_Profile import PA_Volume_Profile
 from Chan.BuySellPoint.BS_Point import CBS_Point
 from Chan.Common.CEnum import FX_TYPE
 from Chan.KLine.KLine import CKLine
@@ -35,9 +37,13 @@ class CBi_meta:
         self.id_sure = bi.is_sure
 
 class CChart_Patterns_meta:
-    def __init__(self, CP: Chart_Patterns):
-        self.shapes = CP.get_shapes(complete=True, potential=True)
-        
+    def __init__(self, CP: PA_Core):
+        self.PA_Shapes = CP.get_chart_pattern_shapes(complete=True, potential=True)
+
+class CVolume_Profile_meta:
+    def __init__(self, PA_Volume_Profile: PA_Volume_Profile):
+        self.PA_Volume_Profile = PA_Volume_Profile
+
 class CSeg_meta:
     def __init__(self, seg: CSeg):
         if isinstance(seg.start_bi, CBi):
@@ -55,20 +61,27 @@ class CSeg_meta:
         self.is_sure = seg.is_sure
 
         self.tl = {}
-        if seg.support_trend_line and seg.support_trend_line.line:
-            self.tl["support"] = seg.support_trend_line
-        if seg.resistance_trend_line and seg.resistance_trend_line.line:
-            self.tl["resistance"] = seg.resistance_trend_line
+        if seg.trend_line_primary and seg.trend_line_primary.line:
+            self.tl["primary"] = seg.trend_line_primary
+        if seg.trend_line_secondary and seg.trend_line_secondary.line:
+            self.tl["secondary"] = seg.trend_line_secondary
 
     def format_tl(self, tl):
+        cut_horizontally = False
         assert tl.line
         tl_slope = tl.line.slope + 1e-7
         tl_x = tl.line.p.x
         tl_y = tl.line.p.y
-        tl_y0 = self.begin_y
-        tl_y1 = self.end_y
-        tl_x0 = (tl_y0-tl_y)/tl_slope + tl_x
-        tl_x1 = (tl_y1-tl_y)/tl_slope + tl_x
+        if cut_horizontally:
+            tl_y0 = self.begin_y
+            tl_y1 = self.end_y
+            tl_x0 = (tl_y0-tl_y)/tl_slope + tl_x
+            tl_x1 = (tl_y1-tl_y)/tl_slope + tl_x
+        else:
+            tl_x0 = self.begin_x
+            tl_x1 = self.end_x
+            tl_y0 = (tl_x0-tl_x)*tl_slope + tl_y
+            tl_y1 = (tl_x1-tl_x)*tl_slope + tl_y
         return tl_x0, tl_y0, tl_x1, tl_y1
 
 
@@ -127,7 +140,8 @@ class CChanPlotMeta:
         self.klu_len = sum(len(klc.klu_list) for klc in self.klc_list)
 
         self.bi_list = [CBi_meta(bi) for bi in kl_list.bi_list]
-        self.chart_patterns_shapes = CChart_Patterns_meta(kl_list.bi_list.chart_patterns).shapes
+        self.chart_patterns_shapes = CChart_Patterns_meta(kl_list.bi_list.PA_Core).PA_Shapes
+        self.volume_profile = CVolume_Profile_meta(kl_list.PA_Volume_Profile)
         
         self.seg_list: List[CSeg_meta] = []
         self.eigenfx_lst: List[CEigenFX_meta] = []

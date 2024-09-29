@@ -97,16 +97,16 @@ class n_processor_queue:
             except Exception as e:
                 print(f"{type(e).__name__}")
                 print(e)
-                # # Get the traceback information
-                # import traceback
-                # tb_str = traceback.format_exc()
-                # print(tb_str)
+                # Get the traceback information
+                import traceback
+                tb_str = traceback.format_exc()
+                print(tb_str)
                 break
             
             worker_active.clear()  # Reset the event to pause the worker
             
         n_processor.on_backtest_end()
-                            
+        
     def parallel_mode(self, concurrency_mode):
         return concurrency_mode
     
@@ -182,5 +182,4 @@ class n_processor_queue:
     
     def terminate(self):
         self.stop_workers()
-                
-            
+        

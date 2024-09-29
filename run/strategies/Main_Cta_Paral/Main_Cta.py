@@ -47,11 +47,10 @@ class Main_Cta(BaseCtaStrategy):
     # flow:
     #   1. daily chan with ML pred
     #   2. intra_day T/ stop_loss/gain
-    def __init__(self, name:str, codes:List[str], barCnt:int, period:str, session_batch:int, capital:float, areForStk:List[bool] = []):
+    def __init__(self, name:str, codes:List[str], barCnt:int, period:str, capital:float, areForStk:List[bool] = []):
         BaseCtaStrategy.__init__(self, name)
         # when declare __ as static variable, use with caution, compilier may do funny things
         self.__period__         = period
-        self.__session_batch__  = session_batch
         self.__bar_cnt__        = barCnt
         self.__codes__          = codes
         self.__capital__        = capital
@@ -95,8 +94,7 @@ class Main_Cta(BaseCtaStrategy):
         curTime = context.stra_get_time()
         
         batch_feed   = False
-        if curTime == n_Processor.REBALANCE_TIME \
-            or self.barnum % self.__session_batch__ == 0: # new batch
+        if curTime in n_Processor.REBALANCE_TIME:
             date = context.get_date()
             batch_feed = True
             Meta_queue: List[MetadataIn] = []
@@ -162,14 +160,14 @@ class Main_Cta(BaseCtaStrategy):
                 self.cur_money = capital + context.stra_get_fund_data(flag=0)
                 amount = 1000 # math.floor(self.cur_money/curPrice)
                 
-                pnl: float = 1
+                pnl: float = 0
                 color: str = default
                 if sell and curPos >= 0:
                     if curPos != 0:
                         pnl, color = self.pnl_cal(self.last_price[code], close, False)
                         context.stra_set_position(code, 0, 'exitlong')
                     context.stra_set_position(code, -amount, 'entershort')
-                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime}:({code}) top    FX，enter short:{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
+                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime:4}:({code:>15}) top    FX，enter short:{self.cur_money:>10.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
                     # self.xxx = 1
                     # context.user_save_data('xxx', self.xxx)
                     self.last_price[code] = close
@@ -180,7 +178,7 @@ class Main_Cta(BaseCtaStrategy):
                         pnl, color = self.pnl_cal(self.last_price[code], close, True)
                         context.stra_set_position(code, 0, 'exitshort')
                     context.stra_set_position(code, amount, 'enterlong')
-                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime}:({code}) bottom FX, enter long :{self.cur_money:2f}, pnl:{color}{pnl:2f}{default}"))
+                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{curTime:4}:({code:>15}) bottom FX, enter long :{self.cur_money:>10.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
                     self.last_price[code] = close
                     self.check_capital()
                     continue
