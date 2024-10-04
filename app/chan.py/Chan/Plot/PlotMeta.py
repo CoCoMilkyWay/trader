@@ -36,6 +36,10 @@ class CBi_meta:
         self.end_y = bi.get_end_val()
         self.id_sure = bi.is_sure
 
+class CLiquidity_meta:
+    def __init__(self, CP: PA_Core):
+        self.PA_Liquidity = CP.get_liquidity_class()
+
 class CChart_Patterns_meta:
     def __init__(self, CP: PA_Core):
         self.PA_Shapes = CP.get_chart_pattern_shapes(complete=True, potential=True)
@@ -140,6 +144,7 @@ class CChanPlotMeta:
         self.klu_len = sum(len(klc.klu_list) for klc in self.klc_list)
 
         self.bi_list = [CBi_meta(bi) for bi in kl_list.bi_list]
+        self.liquidity = CLiquidity_meta(kl_list.bi_list.PA_Core)
         self.chart_patterns_shapes = CChart_Patterns_meta(kl_list.bi_list.PA_Core).PA_Shapes
         self.volume_profile = CVolume_Profile_meta(kl_list.PA_Volume_Profile)
         

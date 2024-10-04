@@ -38,6 +38,7 @@ class CChanConfig:
             "plot_rsi": False,
             "plot_kdj": False,
             "plot_trend_lines": False,
+            "plot_liquidity": False,
             "plot_chart_patterns": False,
             "plot_volume_profile": False,
         }

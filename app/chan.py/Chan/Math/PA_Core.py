@@ -6,7 +6,7 @@ from numpy.polynomial import Polynomial
 from typing import List, Dict
 
 from Chan.Bi.Bi import CBi
-from Chan.Common.CEnum import BI_DIR, TREND_LINE_SIDE
+from Chan.Math.PA_types import vertex
 from Chan.Math.PA_Pattern_Chart import nexus_type
 from Chan.Math.PA_Liquidity import PA_Liquidity
 
@@ -25,12 +25,10 @@ class PA_Core:
     # Volume-Profiles:
     
     def __init__(self):
-        self.bi_lst: List[List[int|float]] = []
+        self.bi_lst: List[vertex] = []
         self.bi_lst_is_sure: bool = True # if the last bi in bi_lst is sure
         self.shape_keys = ['nexus_type',]
         self.init_PA_elements()
-        self.shapes_deep_copy = self.PA_Shapes
-        self.liquidity_deep_copy = self.PA_Liquidity
         
     def add_bi(self, bi:CBi, is_sure:bool = False):
         # bi would be updated multiple times until it is sure
@@ -38,13 +36,15 @@ class PA_Core:
         self.bi_idx:int = bi.idx
         end_x:int = bi.get_end_klu().idx
         end_y:float = bi.get_end_val()
-        end_bi_vertex = [end_x, end_y]
+        self.end_open:float = bi.get_end_klu().open
+        self.end_close:float = bi.get_end_klu().close
+        end_bi_vertex = vertex(end_x, end_y)
         # print('add bi: ', bi.idx, is_sure, end_bi_vertex)
         if len(self.bi_lst) == 0:
             if is_sure: # skip fist few bi that is not sure
                 begin_x:int = bi.get_begin_klu().idx
                 begin_y:float = bi.get_begin_val()
-                start_bi_vertex = [begin_x, begin_y]
+                start_bi_vertex = vertex(begin_x, begin_y)
                 self.bi_lst.append(start_bi_vertex)
                 self.feed_vertex_to_all_PA_elements(is_sure)
                 self.bi_lst.append(end_bi_vertex)
@@ -64,8 +64,11 @@ class PA_Core:
             ]] = {}
         for key in self.shape_keys:
             self.PA_Shapes[key] = []
-        
+
         self.PA_Liquidity: PA_Liquidity = PA_Liquidity()
+        
+        self.shapes_deep_copy = self.PA_Shapes
+        # self.liquidity_deep_copy = self.PA_Liquidity
         
     def get_chart_pattern_shapes(self, complete:bool=False, potential:bool=False, with_idx:bool=False):
         shapes:List[
@@ -81,21 +84,22 @@ class PA_Core:
                 # if with_idx:
                 #     shapes.append(shape.state)
         return shapes
+    
+    def get_liquidity_class(self) -> PA_Liquidity:
+        return self.PA_Liquidity
         
     def feed_vertex_to_all_PA_elements(self, is_sure:bool):
         vertex = self.bi_lst[-1]
         # only detect bi-level shapes, not seg-level shapes
         if self.bi_lst_is_sure and not is_sure:
             self.shapes_deep_copy = copy.deepcopy(self.PA_Shapes)
-            self.liquidity_deep_copy = copy.deepcopy(self.PA_Liquidity)
         if not self.bi_lst_is_sure or not is_sure:
             self.PA_Shapes = copy.deepcopy(self.shapes_deep_copy)
-            self.PA_Liquidity = copy.deepcopy(self.liquidity_deep_copy)
                             
         self.add_vertex_to_shapes(vertex, is_sure)
-        self.add_vertex_to_liquidity(vertex, is_sure)
+        self.add_vertex_to_liquidity(vertex, is_sure, self.end_open, self.end_close) 
         
-    def add_vertex_to_shapes(self, vertex:List[int|float], is_sure:bool):
+    def add_vertex_to_shapes(self, vertex:vertex, is_sure:bool):
         for shape_name in self.shape_keys:
             num_of_shape = len(self.PA_Shapes[shape_name])
             if num_of_shape > 0:
@@ -116,5 +120,9 @@ class PA_Core:
                     if is_sure:
                         self.PA_Shapes[shape_name].append(nexus_type(vertex))
                         
-    def add_vertex_to_liquidity(self, vertex:List[int|float], is_sure:bool):
-        pass
+    def add_vertex_to_liquidity(self, vertex:vertex, is_sure:bool, end_open:float, end_close:float):
+        # liquidity zone should be formed at breakthrough, but for ease of computation
+        # only update at FX formation
+        
+        if is_sure: # it is fine to update later
+            self.PA_Liquidity.add_vertex(vertex, end_open, end_close)

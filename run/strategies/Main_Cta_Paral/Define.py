@@ -52,5 +52,6 @@ bt_config.plot_config["plot_eigen"] = False
 bt_config.plot_config["plot_demark"] = False
 bt_config.plot_config["plot_seg"] = True
 bt_config.plot_config["plot_trend_lines"] = True
+bt_config.plot_config["plot_liquidity"] = True
 bt_config.plot_config["plot_chart_patterns"] = True
 bt_config.plot_config["plot_volume_profile"] = True

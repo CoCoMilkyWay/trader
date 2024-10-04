@@ -276,6 +276,8 @@ class CPlotDriver:
             self.draw_kdj(meta, ax.twinx(), **plot_para.get('kdj', {}))
         if plot_config.get("plot_trend_lines", False):
             self.draw_trend_lines(meta, ax, **plot_para.get('trend_lines', {}))
+        if plot_config.get("plot_liquidity", False):
+            self.draw_liquidity_zones(meta, ax, **plot_para.get('liquidity', {}))
         if plot_config.get("plot_chart_patterns", False):
             self.draw_chart_patterns(meta, ax, **plot_para.get('chart_patterns', {}))
         if plot_config.get("plot_volume_profile", False):
@@ -816,6 +818,16 @@ class CPlotDriver:
                     tl_meta_s = seg_meta.format_tl(seg_meta.tl['secondary'])
                     ax.plot([tl_meta_s[0], tl_meta_s[2]], [tl_meta_s[1], tl_meta_s[3]], color="blue", linewidth=trendline_width, alpha = 0.5)
                 ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="orange", alpha=0.3)
+                
+    def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
+        from Chan.Math.PA_types import zone
+        liquidity_class = meta.liquidity.PA_Liquidity
+        supply_zones:List[zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
+        demand_zones:List[zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
+        for supply_zone in supply_zones:
+            ax.fill_between([supply_zone.idx_start, supply_zone.idx_end], supply_zone.top, supply_zone.bottom, facecolor="green", alpha=0.1)
+        for demand_zone in demand_zones:
+            ax.fill_between([demand_zone.idx_start, demand_zone.idx_end], demand_zone.top, demand_zone.bottom, facecolor="red", alpha=0.1)
 
     def draw_chart_patterns(
         self,
@@ -830,24 +842,24 @@ class CPlotDriver:
         for shape in meta.chart_patterns_shapes:
             vertices = shape.vertices
             for idx in range(len(vertices)-1):
-                if vertices[idx][0] < x_begin:
+                if vertices[idx].idx < x_begin:
                     continue
-                ax.plot([vertices[idx][0], vertices[idx+1][0]], [vertices[idx][1], vertices[idx+1][1]], color=shape.color, linewidth=2)
+                ax.plot([vertices[idx].idx, vertices[idx+1].idx], [vertices[idx].value, vertices[idx+1].value], color=shape.color, linewidth=2)
             ax.plot(shape.top_x, shape.top_y, linewidth=4, color='red') # linestyle='dashed'
             ax.plot(shape.bot_x, shape.bot_y, linewidth=4, color='blue')
             
             arrow_dir = shape.entry_dir # 1 for buy
             arrow_head = arrow_len*0.2
-            ax.text(vertices[-2][0], 
-                    vertices[-2][1]-arrow_len*arrow_dir, 
+            ax.text(vertices[-2].idx, 
+                    vertices[-2].value-arrow_len*arrow_dir, 
                     shape.name, 
                     color=shape.color,
                     verticalalignment='bottom',
                     horizontalalignment='center',
                     alpha=0.6,
                     )
-            ax.arrow(vertices[-2][0], 
-                     vertices[-2][1]-arrow_len*arrow_dir,
+            ax.arrow(vertices[-2].idx, 
+                     vertices[-2].value-arrow_len*arrow_dir,
                      0,
                      (arrow_len-arrow_head)*arrow_dir,
                      head_width=1,

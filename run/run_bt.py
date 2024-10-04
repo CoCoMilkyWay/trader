@@ -27,17 +27,17 @@ run             = True
 analyze         = False
 snoop           = False
 profile         = False
-period, n       = 'm', 1 # bar period
-start           = 202001010931
+period, n       = 'm', 5 # bar period
+start           = 202301010931
 end             = 202501010000
 capital         = 1000000000
 
 def run_bt():
     print('Pulling stock pool ...')
-    assets, assets_valid = get_bao_stocks(pool='zz500')
-    assets =  [asset for asset in assets if asset.startswith('sh')][:1]
-    assets += [asset for asset in assets if asset.startswith('sz')][:1]
-    assets = ['sh.000001']
+    # assets, assets_valid = get_bao_stocks(pool='zz500')
+    # assets =  [asset for asset in assets if asset.startswith('sh')][:1]
+    # assets += [asset for asset in assets if asset.startswith('sz')][:1]
+    assets = ['sh.600008']
     
     print('Preparing dsb data (Combining and Resampling) ...')
     asset_dict = {'sh':'SSE', 'sz':'SZSE'} # wt_asset = 'SSE.STK.600000'

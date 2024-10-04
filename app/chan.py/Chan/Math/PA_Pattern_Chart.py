@@ -41,11 +41,14 @@
 # ref: https://www.youtube.com/watch?v=NZKpJ71iZyU
 # ref: https://www.youtube.com/watch?v=2wIqCWKnWVk
 
+# TODO: regress to filter out FX @ balanced zone(no profit), and try to fix FX @ premium zone better
+
 import os, sys
 import math
 import numpy as np
 from typing import List, Dict
-                        
+from Chan.Math.PA_types import vertex
+
 def util_distance(p1, p2):
     return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
@@ -55,9 +58,9 @@ def util_angle(p1, p2, p3):
     c = util_distance(p1, p2)
     return math.acos((a**2 + c**2 - b**2) / (2 * a * c))
 
-def fit_linear(vertices:List[List[int|float]]):
-    x_coords = np.array([v[0] for v in vertices])
-    y_coords = np.array([v[1] for v in vertices])
+def fit_linear(vertices:List[vertex]):
+    x_coords = np.array([v.idx for v in vertices])
+    y_coords = np.array([v.value for v in vertices])
     
     # Number of points
     n = len(vertices)
@@ -94,7 +97,7 @@ class nexus_type: # continuation or breakout or reversal
     RISING_M = 2 # M: potential multiple entry
     FALLING_M = 3 # M: potential multiple entry
     COMPLETED = 4
-    def __init__(self, start_vertex:List[int|float]):
+    def __init__(self, start_vertex:vertex):
         self.vertices = [start_vertex]
         self.state = self.START
         self.rising_cnt:int = 0
@@ -108,7 +111,7 @@ class nexus_type: # continuation or breakout or reversal
         self.up_resistance:float = 0
         self.down_resistance:float = 0
         self.high:float = 0
-        self.low:float = start_vertex[1]
+        self.low:float = start_vertex.value
         
         self.top_m = 0, 0
         self.top_x = [0, 0]
@@ -206,7 +209,7 @@ class nexus_type: # continuation or breakout or reversal
         # print('bot: ', bottom_vertices, self.bot_x, self.bot_y, self.bot_residue)
         return True
     
-    def add_vertex(self, new_vertex:List[int|float]):
+    def add_vertex(self, new_vertex:vertex):
         UP = 1
         DOWN = -1
         if self.state == self.COMPLETED:
@@ -215,14 +218,14 @@ class nexus_type: # continuation or breakout or reversal
             return False
         
         last_vertex = self.vertices[-1]
-        delta_y = new_vertex[1] - last_vertex[1]
-        delta_x = new_vertex[0] - last_vertex[0]
+        delta_y = new_vertex.value - last_vertex.value
+        delta_x = new_vertex.idx - last_vertex.idx
         if self.state == self.START:
             if delta_y < 0:
                 self.entry_dir = DOWN
                 self.abs_d1 = -delta_y
                 self.max_drawdown = self.abs_d1/pnl
-                self.down_resistance = new_vertex[1] + self.max_drawdown
+                self.down_resistance = new_vertex.value + self.max_drawdown
                 self.state = self.ENTRY
                 self.vertices.append(new_vertex)
                 return True
@@ -230,7 +233,7 @@ class nexus_type: # continuation or breakout or reversal
                 self.entry_dir = UP
                 self.abs_d1 = delta_y
                 self.max_drawdown = self.abs_d1/pnl
-                self.up_support = new_vertex[1] - self.max_drawdown
+                self.up_support = new_vertex.value - self.max_drawdown
                 self.state = self.ENTRY
                 self.vertices.append(new_vertex)
                 return True
@@ -238,8 +241,8 @@ class nexus_type: # continuation or breakout or reversal
         if self.state == self.ENTRY:
             if delta_y > 0:
                 if delta_y < self.max_drawdown:
-                    if new_vertex[1] < self.down_resistance:
-                        self.down_support = new_vertex[1] - self.max_drawdown
+                    if new_vertex.value < self.down_resistance:
+                        self.down_support = new_vertex.value - self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.RISING_M
                         self.rising_cnt += 1
@@ -247,8 +250,8 @@ class nexus_type: # continuation or breakout or reversal
                 return False
             else:
                 if -delta_y < self.max_drawdown:
-                    if new_vertex[1] > self.up_support:
-                        self.up_resistance = new_vertex[1] + self.max_drawdown
+                    if new_vertex.value > self.up_support:
+                        self.up_resistance = new_vertex.value + self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.FALLING_M
                         self.falling_cnt += 1
@@ -258,7 +261,7 @@ class nexus_type: # continuation or breakout or reversal
         if self.state == self.RISING_M:
             if delta_y < 0:
                 if -delta_y < self.max_drawdown:
-                    if self.entry_dir == DOWN and new_vertex[1] > self.down_support:
+                    if self.entry_dir == DOWN and new_vertex.value > self.down_support:
                         self.vertices.append(new_vertex)
                         self.state = self.FALLING_M
                         if self.rising_cnt > 1:
@@ -266,8 +269,8 @@ class nexus_type: # continuation or breakout or reversal
                                 # if residue goes out of bound, it is a breakout
                                 self.state = self.COMPLETED
                         return True
-                    if self.entry_dir == UP and new_vertex[1] > self.up_support:
-                        self.up_resistance = new_vertex[1] + self.max_drawdown
+                    if self.entry_dir == UP and new_vertex.value > self.up_support:
+                        self.up_resistance = new_vertex.value + self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.FALLING_M
                         self.falling_cnt += 1
@@ -291,8 +294,8 @@ class nexus_type: # continuation or breakout or reversal
         if self.state == self.FALLING_M:
             if delta_y > 0:
                 if delta_y < self.max_drawdown:
-                    if self.entry_dir == DOWN and new_vertex[1] < self.down_resistance:
-                        self.down_support = new_vertex[1] - self.max_drawdown
+                    if self.entry_dir == DOWN and new_vertex.value < self.down_resistance:
+                        self.down_support = new_vertex.value - self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.RISING_M
                         self.rising_cnt += 1
@@ -301,7 +304,7 @@ class nexus_type: # continuation or breakout or reversal
                                 # if residue goes out of bound, it is a breakout
                                 self.state = self.COMPLETED
                         return True
-                    if self.entry_dir == UP and new_vertex[1] < self.up_resistance:
+                    if self.entry_dir == UP and new_vertex.value < self.up_resistance:
                         self.vertices.append(new_vertex)
                         self.state = self.RISING_M
                         if self.falling_cnt > 1:
