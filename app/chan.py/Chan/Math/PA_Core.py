@@ -38,6 +38,7 @@ class PA_Core:
         end_y:float = bi.get_end_val()
         self.end_open:float = bi.get_end_klu().open
         self.end_close:float = bi.get_end_klu().close
+        self.end_volume:int = int(bi.get_end_klu().volume)
         end_bi_vertex = vertex(end_x, end_y)
         # print('add bi: ', bi.idx, is_sure, end_bi_vertex)
         if len(self.bi_lst) == 0:
@@ -97,7 +98,7 @@ class PA_Core:
             self.PA_Shapes = copy.deepcopy(self.shapes_deep_copy)
                             
         self.add_vertex_to_shapes(vertex, is_sure)
-        self.add_vertex_to_liquidity(vertex, is_sure, self.end_open, self.end_close) 
+        self.add_vertex_to_liquidity(vertex, is_sure, self.end_open, self.end_close, self.end_volume)
         
     def add_vertex_to_shapes(self, vertex:vertex, is_sure:bool):
         for shape_name in self.shape_keys:
@@ -120,9 +121,9 @@ class PA_Core:
                     if is_sure:
                         self.PA_Shapes[shape_name].append(nexus_type(vertex))
                         
-    def add_vertex_to_liquidity(self, vertex:vertex, is_sure:bool, end_open:float, end_close:float):
+    def add_vertex_to_liquidity(self, vertex:vertex, is_sure:bool, end_open:float, end_close:float, end_volume:int):
         # liquidity zone should be formed at breakthrough, but for ease of computation
         # only update at FX formation
         
         if is_sure: # it is fine to update later
-            self.PA_Liquidity.add_vertex(vertex, end_open, end_close)
+            self.PA_Liquidity.add_vertex(vertex, end_open, end_close, end_volume)

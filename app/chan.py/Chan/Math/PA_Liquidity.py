@@ -28,8 +28,8 @@ from typing import List, Dict
 from enum import Enum, auto
 from dataclasses import dataclass
 
-from Chan.Math.PA_types import vertex, zone
-    
+from Chan.Math.PA_types import vertex, barrier_zone
+
 class PA_Liquidity:
     # for supply/demand zone, the strength the bar goes to FX is important, 
     # thus for i-th bar that is a bottom FX (as bottom of supply zone), 
@@ -42,42 +42,53 @@ class PA_Liquidity:
         
         # list[0]: zones_formed
         # list[1]: zones_forming
-        self.supply_zones:List[List[zone]] = [[],[]]
-        self.demand_zones:List[List[zone]] = [[],[]]
-        self.order_blocks:List[List[zone]] = [[],[]]
-        self.mitigation_zones:List[List[zone]] = [[],[]]
-        self.break_zones:List[List[zone]] = [[],[]]
-        self.rejection_zones:List[List[zone]] = [[],[]]
+        self.supply_zones:List[List[barrier_zone]] = [[],[]]
+        self.demand_zones:List[List[barrier_zone]] = [[],[]]
+        self.order_blocks:List[List[barrier_zone]] = [[],[]]
+        self.mitigation_zones:List[List[barrier_zone]] = [[],[]]
+        self.break_zones:List[List[barrier_zone]] = [[],[]]
+        self.rejection_zones:List[List[barrier_zone]] = [[],[]]
         
-    def add_vertex(self, new_vertex:vertex, end_open:float, end_close:float):
+        self.snapshot:List = [] # snapshot of all liquidity zones
+        
+    def add_vertex(self, new_vertex:vertex, end_open:float, end_close:float, end_volume:int):
         TOP = 1
         BOT = -1
         default_end = 1<<31
         if len(self.vertices) >= 2:
             last_vertex = self.vertices[-1]
-            second_last_vertex = self.vertices[-2]
             delta_y = new_vertex.value - last_vertex.value
             delta_x = new_vertex.idx - last_vertex.idx
-            FX_dir = TOP if delta_y > 0 else BOT
-            
+            FX_type = TOP if delta_y > 0 else BOT
+            bi_top:float = last_vertex.value if FX_type==BOT else new_vertex.value
+            bi_bottom:float = new_vertex.value if FX_type==BOT else last_vertex.value
+
             # close all zones within last bi when conditions are met
             for zones in [
                 self.supply_zones,
                 self.demand_zones,
                 ]:
+                zones_forming = []
                 for zone_forming in zones[1]:
-                    bi_top:float = last_vertex.value if FX_dir==BOT else new_vertex.value
-                    bi_bottom:float = new_vertex.value if FX_dir==BOT else last_vertex.value
-                        
-                    if bi_top > zone_forming.top and bi_bottom < zone_forming.bottom:
-                        zone_forming.idx_end = new_vertex.idx
-                        zones[0].append(zone_forming)
-                        print('zone formed: ', len(zones[0]), len(zones[1]))
-                        zones[1].remove(zone_forming)
-            
+                    zone_broken = (bi_top > zone_forming.top) and (bi_bottom < zone_forming.bottom)
+                    if zone_broken:
+                        zone_level:float = (zone_forming.top + zone_forming.bottom)/2
+                        zone_ratio_in_bi:float = (zone_level - bi_bottom) / abs(delta_y)
+                        if FX_type==TOP:
+                            zone_idx:int = last_vertex.idx + int(zone_ratio_in_bi * delta_x)
+                        else:
+                            zone_idx:int = last_vertex.idx + int((1-zone_ratio_in_bi) * delta_x)
+                        zone_formed = zone_forming
+                        zone_formed.idx_end = zone_idx
+                        zones[0].append(zone_formed) # zone_formed
+                        # print('zone formed: ', len(zones[0]), len(zones[1]))
+                    else:
+                        zones_forming.append(zone_forming) # zone_forming
+                zones[1] = zones_forming 
+
             # update all forming zones
-            if FX_dir==BOT:
-                self.supply_zones[1].append(zone(new_vertex.idx, default_end, end_open, new_vertex.value))
+            if FX_type==BOT:
+                self.demand_zones[1].append(barrier_zone(new_vertex.idx, default_end, end_open, new_vertex.value, end_volume, 0))
             else:
-                self.demand_zones[1].append(zone(new_vertex.idx, default_end, new_vertex.value, end_open))
+                self.supply_zones[1].append(barrier_zone(new_vertex.idx, default_end, new_vertex.value, end_open, end_volume, 1))
         self.vertices.append(new_vertex)

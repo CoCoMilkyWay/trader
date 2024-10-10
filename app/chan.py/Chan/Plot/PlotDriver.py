@@ -820,15 +820,27 @@ class CPlotDriver:
                 ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="orange", alpha=0.3)
                 
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
-        from Chan.Math.PA_types import zone
+        from Chan.Math.PA_types import barrier_zone
+        print('trend_lines..')
         liquidity_class = meta.liquidity.PA_Liquidity
-        supply_zones:List[zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
-        demand_zones:List[zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
+        supply_zones:List[barrier_zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
+        demand_zones:List[barrier_zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
         for supply_zone in supply_zones:
-            ax.fill_between([supply_zone.idx_start, supply_zone.idx_end], supply_zone.top, supply_zone.bottom, facecolor="green", alpha=0.1)
+            ax.fill_between([supply_zone.idx_start, supply_zone.idx_end], supply_zone.top, supply_zone.bottom, facecolor="red", alpha=0.2)
+            # ax.text(supply_zone.idx_start, supply_zone.top, f"{supply_zone.init_volume}", fontsize=5)
         for demand_zone in demand_zones:
-            ax.fill_between([demand_zone.idx_start, demand_zone.idx_end], demand_zone.top, demand_zone.bottom, facecolor="red", alpha=0.1)
-
+            ax.fill_between([demand_zone.idx_start, demand_zone.idx_end], demand_zone.top, demand_zone.bottom, facecolor="green", alpha=0.2)
+            # ax.text(demand_zone.idx_start, demand_zone.bottom, f"{demand_zone.init_volume}", fontsize=5)
+        # debug = True
+        # if debug:
+        #     x, y = [], []
+        #     for vertex in liquidity_class.vertices:
+        #         x.append(vertex.idx)
+        #         y.append(vertex.value)
+        #         ax.text(x[-1],y[-1],f"{x[-1]}")
+        #     ax.plot(x, y, 'o', markersize=3)
+            
+        
     def draw_chart_patterns(
         self,
         meta: CChanPlotMeta,
