@@ -50,7 +50,7 @@ class n_processor_queue:
     # N-gets corresponds to N-puts
     def add_in_task(self, tasks:List[MetadataIn]):
         for i, task in enumerate(tasks):
-            self.in_queues[i % self.max_workers].put(task) # round-robin like
+            self.in_queues[i % self.max_workers].put(task, block=True, timeout=1) # round-robin like
             self.onfly_tasks[i % self.max_workers].value += 1
         # self.active_workers.value = self.max_workers
         for i in range(self.max_workers):
@@ -58,7 +58,7 @@ class n_processor_queue:
             
     # def add_out_task(self, worker_id, tasks):
     #     for task in tasks:
-    #         self.out_queues[worker_id].put(task)
+    #         self.out_queues[worker_id].put(task, block=True, timeout=1)
 
     # mutable types (like lists, dictionaries, and other objects)
     # can be modified in place (like pointers)
@@ -86,13 +86,15 @@ class n_processor_queue:
             
             tasks = []
             try:
+                # use block operation when getting and putting to
+                # ensure consistency
                 while onfly_tasks.value != 0:
-                    tasks.append(in_queue.get(block=True, timeout=1))
+                    tasks.append(in_queue.get(block=True, timeout=1)) # prepare tasks
                     onfly_tasks.value -= 1
                     
                 results = n_processor.process_slave_task(worker_id, tasks)
                 if results:
-                    out_queue.put(results)  # Store results
+                    out_queue.put(results, block=True, timeout=1)  # Store results
                     
             except Exception as e:
                 print(f"{type(e).__name__}")
@@ -177,7 +179,7 @@ class n_processor_queue:
         results:List[MetadataOut] = []
         for out_queue in self.out_queues:
             while not out_queue.empty():
-                results.extend(out_queue.get())
+                results.extend(out_queue.get(block=True, timeout=1))
         return results
     
     def terminate(self):

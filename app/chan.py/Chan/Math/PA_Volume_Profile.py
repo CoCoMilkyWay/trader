@@ -13,48 +13,48 @@ class PA_Volume_Profile():
         self.session_volume_profile :deque[List[int]] = deque()
         self.history_volume_profile :deque[List[int]] = deque()
         
-    def update_volume_profile(self, batch_volume_profile, type:str): 
+    def update_volume_profile(self, batch_volume_profile:List, type:str):
         # batch -> bi (merge all batches within bi after new bi is sure)
         # bi -> session (with active trendlines)
         # session -> history
-        if type == 'batch':
-            batch_time:CTime                    = batch_volume_profile[0]
-            index_range_low:int                 = batch_volume_profile[1]
-            index_range_high:int                = batch_volume_profile[2]
-            batch_volume_buyside:List[int]      = batch_volume_profile[3]
-            batch_volume_sellside:List[int]     = batch_volume_profile[4]
-            price_bin_width                     = batch_volume_profile[5]
-            if not self.volume_inited:
-                self.volume_idx_min = index_range_low
-                self.volume_idx_max = index_range_high
-                new_max_idx = index_range_high - index_range_low + 1
-                new_min_idx = 0
-                self.price_bin_width = price_bin_width
-                self.volume_inited = True
-            else:
-                new_max_idx = index_range_high - self.volume_idx_max
-                new_min_idx = self.volume_idx_min - index_range_low
-            if new_max_idx > 0: # update profile index
-                for _ in range(new_max_idx):
-                    self.bi_volume_profile.append([0,0])
-                    self.session_volume_profile.append([0,0])
-                    self.history_volume_profile.append([0,0])
-                self.volume_idx_max = index_range_high
-            if new_min_idx > 0:
-                for _ in range(new_min_idx):
-                    self.bi_volume_profile.appendleft([0,0])
-                    self.session_volume_profile.appendleft([0,0])
-                    self.history_volume_profile.appendleft([0,0])
-                self.volume_idx_min = index_range_low
-
-            for i in range(index_range_low, index_range_high+1):
-                idx_batch = i - index_range_low
-                idx = i - self.volume_idx_min
-                self.bi_volume_profile[idx][0] += batch_volume_buyside[idx_batch]
-                self.bi_volume_profile[idx][1] += batch_volume_sellside[idx_batch]
-            # print(f'{self.volume_idx_min}[{index_range_low}, {index_range_high}]{self.volume_idx_max}: {len(self.bi_volume_profile)}')
+        # if type == 'batch':
+        batch_time:CTime                    = batch_volume_profile[0]
+        index_range_low:int                 = batch_volume_profile[1]
+        index_range_high:int                = batch_volume_profile[2]
+        batch_volume_buyside:List[int]      = batch_volume_profile[3]
+        batch_volume_sellside:List[int]     = batch_volume_profile[4]
+        price_bin_width                     = batch_volume_profile[5]
+        if not self.volume_inited:
+            self.volume_idx_min = index_range_low
+            self.volume_idx_max = index_range_high
+            new_max_idx = index_range_high - index_range_low + 1
+            new_min_idx = 0
+            self.price_bin_width = price_bin_width
+            self.volume_inited = True
+        else:
+            new_max_idx = index_range_high - self.volume_idx_max
+            new_min_idx = self.volume_idx_min - index_range_low
+        if new_max_idx > 0: # update profile index
+            for _ in range(new_max_idx):
+                self.bi_volume_profile.append([0,0])
+                self.session_volume_profile.append([0,0])
+                self.history_volume_profile.append([0,0])
+            self.volume_idx_max = index_range_high
+        if new_min_idx > 0:
+            for _ in range(new_min_idx):
+                self.bi_volume_profile.appendleft([0,0])
+                self.session_volume_profile.appendleft([0,0])
+                self.history_volume_profile.appendleft([0,0])
+            self.volume_idx_min = index_range_low
             
-    def get_adjusted_volume_profile(self, max_mapped:float, type:str): 
+        for i in range(index_range_low, index_range_high+1):
+            idx_batch = i - index_range_low
+            idx = i - self.volume_idx_min
+            self.bi_volume_profile[idx][0] += batch_volume_buyside[idx_batch]
+            self.bi_volume_profile[idx][1] += batch_volume_sellside[idx_batch]
+        # print(f'{self.volume_idx_min}[{index_range_low}, {index_range_high}]{self.volume_idx_max}: {len(self.bi_volume_profile)}')
+            
+    def get_adjusted_volume_profile(self, max_mapped:float, type:str):
         if type == 'bi':
             volume_profile = self.bi_volume_profile
         elif type == 'session':

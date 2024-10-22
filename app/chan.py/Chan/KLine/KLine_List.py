@@ -39,6 +39,7 @@ class CKLine_List:
         self.kl_type = kl_type
         self.config = conf
         self.lst: List[CKLine] = []  # K线列表，可递归  元素KLine类型
+        self.new_bi_is_sure:bool = False
         self.bi_list = CBiList(bi_conf=conf.bi_conf)
         self.seg_list: CSegListComm[CBi] = get_seglist_instance(seg_config=conf.seg_conf, lv=SEG_TYPE.BI)
         self.segseg_list: CSegListComm[CSeg[CBi]] = get_seglist_instance(seg_config=conf.seg_conf, lv=SEG_TYPE.SEG)
@@ -134,6 +135,9 @@ class CKLine_List:
                     self.cal_seg_and_zs()
             elif self.step_calculation and self.bi_list.try_add_virtual_bi(self.lst[-1], need_del_end=True):  # 这里的必要性参见issue#175
                 self.cal_seg_and_zs()
+            self.new_bi_is_sure = self.bi_list.is_sure
+            if self.bi_list.is_sure:
+                print("kline_list is sure")
 
     def klu_iter(self, klc_begin_idx=0):
         for klc in self.lst[klc_begin_idx:]:

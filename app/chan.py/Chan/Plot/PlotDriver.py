@@ -821,16 +821,16 @@ class CPlotDriver:
                 
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
         from Chan.Math.PA_types import barrier_zone
-        print('trend_lines..')
+        print('liquidity_zones..')
         liquidity_class = meta.liquidity.PA_Liquidity
         supply_zones:List[barrier_zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
         demand_zones:List[barrier_zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
         for supply_zone in supply_zones:
             ax.fill_between([supply_zone.idx_start, supply_zone.idx_end], supply_zone.top, supply_zone.bottom, facecolor="red", alpha=0.2)
-            # ax.text(supply_zone.idx_start, supply_zone.top, f"{supply_zone.init_volume}", fontsize=5)
+            ax.text(supply_zone.idx_start, supply_zone.top, f"{'*' * supply_zone.strength_rating}", fontsize=8)
         for demand_zone in demand_zones:
             ax.fill_between([demand_zone.idx_start, demand_zone.idx_end], demand_zone.top, demand_zone.bottom, facecolor="green", alpha=0.2)
-            # ax.text(demand_zone.idx_start, demand_zone.bottom, f"{demand_zone.init_volume}", fontsize=5)
+            ax.text(demand_zone.idx_start, demand_zone.bottom, f"{'*' * supply_zone.strength_rating}", fontsize=8)
         # debug = True
         # if debug:
         #     x, y = [], []
@@ -890,10 +890,15 @@ class CPlotDriver:
             y_pos = np.arange(idx_min, idx_max+1) * price_bin_width
             buyside, sellside, buyside_curve, sellside_curve = \
             meta.volume_profile.PA_Volume_Profile.get_adjusted_volume_profile(max_mapped=20, type='bi')
+            value = (buyside_curve - sellside_curve)*50
+            minimum = min(value)
+            if minimum < 0:
+                value -= minimum
             ax.barh(y=y_pos, width=buyside,  height=price_bin_width, color='orange', label='Buyside', align='center', left=0,       alpha=0.4)
             ax.barh(y=y_pos, width=sellside, height=price_bin_width, color='green', label='Sellside', align='center', left=buyside, alpha=0.4)
-            ax.plot(buyside_curve,                  y_pos, color='orange',  linewidth=4)
-            ax.plot(buyside_curve + sellside_curve, y_pos, color='green',   linewidth=4)
+            ax.plot(value, y_pos, color='orange',  linewidth=4)
+            # ax.plot(buyside_curve,                  y_pos, color='orange',  linewidth=4)
+            # ax.plot(buyside_curve + sellside_curve, y_pos, color='green',   linewidth=4)
 
 def getTextBox(ax: Axes, txt_instance):
     return txt_instance.get_window_extent().transformed(ax.transData.inverted())

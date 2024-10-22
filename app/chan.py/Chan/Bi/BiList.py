@@ -10,10 +10,11 @@ from Chan.Bi.BiConfig import CBiConfig
 
 class CBiList:
     def __init__(self, bi_conf=CBiConfig()):
-        self.bi_list: List[CBi] = []
+        self.bi_list:List[CBi] = []
+        self.is_sure:bool = False
         
         # Chart Patterns is a bi-level concept(metric), updated with bi
-        self.PA_Core: PA_Core = PA_Core()
+        self.PA_Core:PA_Core = PA_Core()
         self.last_end = None  # 最后一笔的尾部
         self.config = bi_conf
 
@@ -149,6 +150,9 @@ class CBiList:
         bi = CBi(pre_klc, cur_klc, idx=len(self.bi_list), is_sure=is_sure)
         self.bi_list.append(bi)
         self.PA_Core.add_bi(bi, is_sure=is_sure)
+        if is_sure:
+            print("bi_list is sure: ", cur_klc.idx, len(self.bi_list))
+        self.is_sure = is_sure
         
         # print(self.PA_Core.get_chart_pattern_shapes(with_idx=True))
         # if is_sure:

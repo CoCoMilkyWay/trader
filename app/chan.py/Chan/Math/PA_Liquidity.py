@@ -40,14 +40,19 @@ class PA_Liquidity:
     def __init__(self):
         self.vertices:List[vertex] = []
         
-        # list[0]: zones_formed
-        # list[1]: zones_forming
+        # xxx_zones = List[zones_formed, zones_forming]
         self.supply_zones:List[List[barrier_zone]] = [[],[]]
         self.demand_zones:List[List[barrier_zone]] = [[],[]]
         self.order_blocks:List[List[barrier_zone]] = [[],[]]
         self.mitigation_zones:List[List[barrier_zone]] = [[],[]]
         self.break_zones:List[List[barrier_zone]] = [[],[]]
         self.rejection_zones:List[List[barrier_zone]] = [[],[]]
+        
+        # average & percentile
+        self.supply_volume_sum:float = 0
+        self.supply_sample_num:int = 0
+        self.demand_volume_sum:float = 0
+        self.demand_sample_num:int = 0
         
         self.snapshot:List = [] # snapshot of all liquidity zones
         
@@ -84,11 +89,23 @@ class PA_Liquidity:
                         # print('zone formed: ', len(zones[0]), len(zones[1]))
                     else:
                         zones_forming.append(zone_forming) # zone_forming
-                zones[1] = zones_forming 
-
+                zones[1] = zones_forming
+                
             # update all forming zones
             if FX_type==BOT:
-                self.demand_zones[1].append(barrier_zone(new_vertex.idx, default_end, end_open, new_vertex.value, end_volume, 0))
+                self.demand_volume_sum, self.demand_sample_num, strength_rating = self.get_strength_rating(self.demand_volume_sum, self.demand_sample_num, end_volume)
+                self.demand_zones[1].append(barrier_zone(new_vertex.idx, default_end, end_open, new_vertex.value, end_volume, 0, strength_rating))
             else:
-                self.supply_zones[1].append(barrier_zone(new_vertex.idx, default_end, new_vertex.value, end_open, end_volume, 1))
+                self.supply_volume_sum, self.supply_sample_num, strength_rating = self.get_strength_rating(self.supply_volume_sum, self.supply_sample_num, end_volume)
+                self.supply_zones[1].append(barrier_zone(new_vertex.idx, default_end, new_vertex.value, end_open, end_volume, 1, strength_rating))
         self.vertices.append(new_vertex)
+        
+    @staticmethod
+    def get_strength_rating(historical_sum:float, historical_sample_num:int, new_sample_value:float):
+        new_sum = historical_sum + new_sample_value
+        new_sample_num = historical_sample_num + 1
+        new_average = new_sum / new_sample_num
+        strength_rating = round(new_sample_value / new_average / 0.5) # 0:<25%, 1:<75%, 2:<125%, ...
+        if strength_rating > 10:
+            strength_rating = 10
+        return new_sum, new_sample_num, strength_rating

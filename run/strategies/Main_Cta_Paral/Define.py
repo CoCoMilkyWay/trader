@@ -39,7 +39,8 @@ bt_config = CChanConfig({
     # Bi
     "bi_algo"           : "fx",
     "bi_strict"         : False,
-    "bi_fx_check"       : "loss", # when use with chart patterns, use "loss"
+    "bi_fx_check"       : "loss",   # when use with chart patterns, use "loss"
+                                    # if not use "loss", can not capture convergence pattern of volatility
 })
 bt_config.plot_para["trend_lines"]["plot_trendline_num"] = 1
 bt_config.plot_config["plot_kline"] = False

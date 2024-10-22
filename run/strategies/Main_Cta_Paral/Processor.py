@@ -33,26 +33,26 @@ class n_Processor:
         935,
         # 940,
         # 950,
-        # 1000,
+        1000,
         # 1010,
         # 1020,
-        # 1030,
+        1030,
         # 1040,
         # 1050,
-        # 1100,
+        1100,
         # 1110,
         # 1120,
         # 1125,
         1305,
         # 1310,
         # 1320,
-        # 1330,
+        1330,
         # 1340,
         # 1350,
-        # 1400,
+        1400,
         # 1410,
         # 1420,
-        # 1430,
+        1430,
         # 1440,
         1450,
         # 1455,
@@ -74,9 +74,9 @@ class n_Processor:
         if self.id == UNDEFINED_ID:
             self.id = id
         
-        trade = False
         orders:List[MetadataOut] = []
         for task in tasks:
+            trade = False
             code = task.code
             date = task.date
             curTime = task.curTime
@@ -136,13 +136,13 @@ class n_Processor:
                         bt_config.plot_para["marker"]["markers"][Ctime] = (f's{T_sum}', 'up', 'green')
                     # note that for fine data period (e.g. 1m_bar), fx(thus bsp) of the same type would occur consecutively
 
-                    if T[0] != 1:
+                    if T_sum == 0:
                         break
                     trade = True # trade signal generated
                     break
                 
             if trade:
-                # print(f'cpu:{id}: {code}-{date}-{curTime}: buy:{bottom} sell:{top}')
+                print(f'cpu:{id}: {code}-{date}-{curTime}: buy:{bottom} sell:{top}')
                 orders.append(
                     MetadataOut(
                         cpu_id=id,

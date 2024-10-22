@@ -35,6 +35,7 @@ class CChan:
         self.autype = autype
         self.data_src = data_src
         self.lv_list: List[KL_TYPE] = lv_list
+        self.new_bi_is_sure: bool = False # highest level kline bi
         
         # temp_batch
         self.volume_profile_batch:List[int|List[int]]
@@ -131,7 +132,7 @@ class CChan:
         if not yielded:
             yield self
 
-    def trigger_load(self, klu_dict, batch_volume_profile:List[int|List[int]]):
+    def trigger_load(self, klu_dict, batch_volume_profile:List):
         # 在已有pickle基础上继续计算新的
         # {type: [klu, ...]}
         if not hasattr(self, 'klu_cache'):
@@ -150,8 +151,14 @@ class CChan:
         if not self.conf.trigger_step:  # 非回放模式全部算完之后才算一次中枢和线段
             for lv in self.lv_list:
                 self.kl_datas[lv].cal_seg_and_zs()
+                
         # update volume_profile for highest level Kline_List
-        self.kl_datas[self.lv_list[0]].PA_Volume_Profile.update_volume_profile(batch_volume_profile, 'batch')
+        if self.new_bi_is_sure:
+            print('end_bi: ', batch_volume_profile[0].toDateStr)
+            # mark the current batch correspond to the end of this bi
+            self.kl_datas[self.lv_list[0]].PA_Volume_Profile.update_volume_profile(batch_volume_profile, 'bi')
+        else:
+            self.kl_datas[self.lv_list[0]].PA_Volume_Profile.update_volume_profile(batch_volume_profile, 'batch')
                 
     def init_lv_klu_iter(self, stockapi_cls):
         # 为了跳过一些获取数据失败的级别
@@ -224,6 +231,10 @@ class CChan:
     def add_new_kl(self, cur_lv: KL_TYPE, kline_unit):
         try:
             self.kl_datas[cur_lv].add_single_klu(kline_unit)
+            
+            # check if is new bi
+            if cur_lv == self.lv_list[0]: # highest level kline
+                self.new_bi_is_sure = self.kl_datas[cur_lv].new_bi_is_sure
         except Exception:
             if self.conf.print_err_time:
                 print(f"[ERROR-{self.code}]在计算{kline_unit.time}K线时发生错误!")

@@ -16,6 +16,7 @@ class barrier_zone:
     types:int
     # 0: demand
     # 1: supply
+    strength_rating:int # 0~10
     
     def __init_(self):
         self.broken:bool = False
