@@ -315,7 +315,7 @@ class CChan:
         assert len(self.lv_list) == 1
         return sorted(self[0].bs_point_lst.lst, key=lambda x: x.klu.time)
 
-    def plot(self, save: bool = True, animation: bool = False, update_conf: bool = False, conf: CChanConfig = CChanConfig()):
+    def plot(self, save: bool = True, print: bool = False, animation: bool = False, update_conf: bool = False, conf: CChanConfig = CChanConfig()):
         from Chan.Plot.AnimatePlotDriver import CAnimateDriver
         from Chan.Plot.PlotDriver import CPlotDriver
         if update_conf:
@@ -329,6 +329,7 @@ class CChan:
                 chan, # type: ignore
                 plot_config=config.plot_config,
                 plot_para=config.plot_para,
+                print=print,
             )
             if save:
                 plot_driver.save2img(mkdir(f'./outputs_bt/{self.code}.png'))

@@ -27,17 +27,19 @@ run             = True
 analyze         = False
 snoop           = False
 profile         = False
-period, n       = 'm', 5 # bar period
-start           = 202301010931
-end             = 202501010000
+period, n       = 'm', 1 # bar period
+start           = 202401010931
+end             = 202404010000
 capital         = 1000000000
 
 def run_bt():
+    NUM= 10 # N/None
     print('Pulling stock pool ...')
-    # assets, assets_valid = get_bao_stocks(pool='zz500')
-    # assets =  [asset for asset in assets if asset.startswith('sh')][:1]
-    # assets += [asset for asset in assets if asset.startswith('sz')][:1]
-    assets = ['sh.600008']
+    if NUM:
+        assets_list, assets_valid = get_bao_stocks(pool='zz500')
+        assets =  [asset for asset in assets_list if asset.startswith('sh')][:NUM]
+        assets += [asset for asset in assets_list if asset.startswith('sz')][:NUM]
+    else: assets = ['sh.600008',] # 'sz.000009']
     
     print('Preparing dsb data (Combining and Resampling) ...')
     asset_dict = {'sh':'SSE', 'sz':'SZSE'} # wt_asset = 'SSE.STK.600000'
@@ -89,8 +91,9 @@ def run_bt():
     
     if run:
         print('Running Backtest ...')
+        print('Use CTRL+4 to interrupt')
         engine.run_backtest()
-        print('Backtest Done')
+        print(f'Backtest Done')
         
     if analyze:
         print('Analyzing ...')

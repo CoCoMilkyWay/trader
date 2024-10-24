@@ -154,7 +154,9 @@ def GetPlotMeta(chan: CChan, figure_config) -> List[CChanPlotMeta]:
 
 
 class CPlotDriver:
-    def __init__(self, chan: CChan, plot_config: Union[str, dict, list] = '', plot_para=None):
+    def __init__(self, chan: CChan, plot_config: Union[str, dict, list] = '', plot_para=None, print: bool = False):
+        self.print = print
+
         if plot_para is None:
             plot_para = {}
         figure_config: dict = plot_para.get('figure', {})
@@ -807,7 +809,7 @@ class CPlotDriver:
         trendline_color='yellow',
         trendline_width=1,
     ):
-        print('trend_lines..')
+        if self.print: print('trend_lines..')
         for seg_idx, seg_meta in enumerate(meta.seg_list):
             # only plot the last 'plot_trendline_num' trendline (seg)
             if seg_idx >= (len(meta.seg_list) - (plot_trendline_num+1)): # virtual segs have the same index
@@ -821,7 +823,7 @@ class CPlotDriver:
                 
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
         from Chan.Math.PA_types import barrier_zone
-        print('liquidity_zones..')
+        if self.print: print('liquidity_zones..')
         liquidity_class = meta.liquidity.PA_Liquidity
         supply_zones:List[barrier_zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
         demand_zones:List[barrier_zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
@@ -847,7 +849,7 @@ class CPlotDriver:
         ax: Axes,
         arg={},
         ):
-        print('chart_patterns..')
+        if self.print: print('chart_patterns..')
         x_begin = ax.get_xlim()[0]
         y_range = self.y_max-self.y_min
         arrow_len = 0.15*y_range
@@ -881,7 +883,7 @@ class CPlotDriver:
                      )
 
     def draw_volume_profile(self, meta: CChanPlotMeta, ax: Axes, arg={}):
-        print('volume_profile..')
+        if self.print: print('volume_profile..')
         if meta.volume_profile.PA_Volume_Profile.volume_inited:
             import numpy as np
             idx_min = meta.volume_profile.PA_Volume_Profile.volume_idx_min

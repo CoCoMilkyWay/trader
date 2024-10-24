@@ -28,6 +28,8 @@ green   = "\033[32m"
 yellow  = "\033[33m"
 default = "\033[0m"
 
+CHECK_SYNC = False
+
 def stdio(str):
     print(str)
     return str
@@ -80,6 +82,8 @@ class Main_Cta(BaseCtaStrategy):
             concurrency_mode='process')
         context.stra_log_text(stdio("Data-Struct Initiated"))
         self.pbar = tqdm(total=len(self.__codes__), desc='Preparing Bars in DDR...')
+        
+        self.start_time = time()
         
     # if you have time sensitive processing (e.g. stop_loss / HFT pattern)
     def on_tick(self, context: CtaContext, stdCode: str, newTick: dict):
@@ -156,25 +160,31 @@ class Main_Cta(BaseCtaStrategy):
                 buy = order.buy
                 sell = order.sell
                 time = order.curTime # because of multiprocessing, order may come later (in backtest)
-                if time == curTime:
-                    print("===========================================")
-                else:
-                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", len(orders), curTime, )
-
+                if CHECK_SYNC and time != curTime:
+                    print("check multi-processing sync", len(orders), curTime,)
+                    
                 curPos = context.stra_get_position(code)
                 curPrice = context.stra_get_price(code)
                 self.cur_money = capital + context.stra_get_fund_data(flag=0)
-                amount = 1000 # math.floor(self.cur_money/curPrice)
-
+                amount = math.floor(self.cur_money/curPrice/len(self.__codes__))
+                
                 pnl: float = 0
                 color: str = default
-                context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{time:4}:({code:>15}) top    FX，enter short:{self.cur_money:>10.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
+                DEBUG = False
+                if DEBUG:
+                    if sell:
+                        context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{time:4}:({code:>16}) top    FX，enter short:{self.cur_money:>12.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
+                    if buy:
+                        context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{time:4}:({code:>16}) bottom FX, enter long :{self.cur_money:>12.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
+                    continue
+                
+                FX = '^' if sell else 'v' if buy else '?'
                 if sell and curPos >= 0:
                     if curPos != 0:
                         pnl, color = self.pnl_cal(self.last_price[code], close, False)
                         context.stra_set_position(code, 0, 'exitlong')
                     context.stra_set_position(code, -amount, 'entershort')
-                    # context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{time:4}:({code:>15}) top    FX，enter short:{self.cur_money:>10.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
+                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{time:4}:({code:>15}) {FX}，enter short:{self.cur_money:>12.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
                     # self.xxx = 1
                     # context.user_save_data('xxx', self.xxx)
                     self.last_price[code] = close
@@ -185,7 +195,7 @@ class Main_Cta(BaseCtaStrategy):
                         pnl, color = self.pnl_cal(self.last_price[code], close, True)
                         context.stra_set_position(code, 0, 'exitshort')
                     context.stra_set_position(code, amount, 'enterlong')
-                    # context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{time:4}:({code:>15}) bottom FX, enter long :{self.cur_money:>10.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
+                    context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{date}-{time:4}:({code:>15}) {FX}, enter long :{self.cur_money:>12.2f}, pnl:{color}{pnl*100:>+5.1f}%{default}"))
                     self.last_price[code] = close
                     self.check_capital()
                     continue
@@ -217,6 +227,7 @@ class Main_Cta(BaseCtaStrategy):
         self.barnum_bak = self.barnum
         
     def on_backtest_end(self, context:CtaContext):
-        print('Backtest Done ...')
-        self.processor.terminate()
+        self.elapsed_time = time() - self.start_time
+        self.processor.stop_workers()
+        print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         
