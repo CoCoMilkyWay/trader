@@ -824,7 +824,7 @@ class CPlotDriver:
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
         from Chan.Math.PA_types import barrier_zone
         if self.print: print('liquidity_zones..')
-        liquidity_class = meta.liquidity.PA_Liquidity
+        liquidity_class = meta.liquidity
         supply_zones:List[barrier_zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
         demand_zones:List[barrier_zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
         for supply_zone in supply_zones:
@@ -884,14 +884,14 @@ class CPlotDriver:
 
     def draw_volume_profile(self, meta: CChanPlotMeta, ax: Axes, arg={}):
         if self.print: print('volume_profile..')
-        if meta.volume_profile.PA_Volume_Profile.volume_inited:
+        if meta.volume_profile.volume_inited:
             import numpy as np
-            idx_min = meta.volume_profile.PA_Volume_Profile.volume_idx_min
-            idx_max = meta.volume_profile.PA_Volume_Profile.volume_idx_max
-            price_bin_width = meta.volume_profile.PA_Volume_Profile.price_bin_width
+            idx_min = meta.volume_profile.volume_idx_min
+            idx_max = meta.volume_profile.volume_idx_max
+            price_bin_width = meta.volume_profile.price_bin_width
             y_pos = np.arange(idx_min, idx_max+1) * price_bin_width
             buyside, sellside, buyside_curve, sellside_curve = \
-            meta.volume_profile.PA_Volume_Profile.get_adjusted_volume_profile(max_mapped=20, type='bi')
+            meta.volume_profile.get_adjusted_volume_profile(max_mapped=20, type='bi')
             value = (buyside_curve - sellside_curve)*50
             minimum = min(value)
             if minimum < 0:

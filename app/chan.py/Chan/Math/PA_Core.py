@@ -9,8 +9,9 @@ from Chan.Bi.Bi import CBi
 from Chan.Math.PA_types import vertex
 from Chan.Math.PA_Pattern_Chart import nexus_type
 from Chan.Math.PA_Liquidity import PA_Liquidity
+from Chan.Math.PA_Volume_Profile import PA_Volume_Profile
 
-debug = False
+DEBUG = False
 
 # PA algos are afflicted under chan.bi, also updated with it
 class PA_Core:
@@ -55,7 +56,7 @@ class PA_Core:
             self.bi_lst[-1] = end_bi_vertex
         self.feed_vertex_to_all_PA_elements(is_sure)
         self.bi_lst_is_sure = is_sure
-        # if debug:
+        # if DEBUG:
         #     print(self.bi_lst)
         
     def init_PA_elements(self):
@@ -68,27 +69,11 @@ class PA_Core:
 
         self.PA_Liquidity: PA_Liquidity = PA_Liquidity()
         
+        self.PA_Volume_Profile: PA_Volume_Profile = PA_Volume_Profile()
+        
         self.shapes_deep_copy = self.PA_Shapes
         # self.liquidity_deep_copy = self.PA_Liquidity
-        
-    def get_chart_pattern_shapes(self, complete:bool=False, potential:bool=False, with_idx:bool=False):
-        shapes:List[
-            nexus_type
-            ] = []
-        for shape_name in self.shape_keys:
-            for shape in self.PA_Shapes[shape_name]:
-                if complete and shape.is_complete():
-                    shapes.append(shape)
-                elif potential and not shape.is_potential():
-                    shapes.append(shape)
-                
-                # if with_idx:
-                #     shapes.append(shape.state)
-        return shapes
     
-    def get_liquidity_class(self) -> PA_Liquidity:
-        return self.PA_Liquidity
-        
     def feed_vertex_to_all_PA_elements(self, is_sure:bool):
         vertex = self.bi_lst[-1]
         # only detect bi-level shapes, not seg-level shapes
@@ -109,12 +94,12 @@ class PA_Core:
                     if shape.is_complete():
                         continue
                     success = shape.add_vertex(vertex)
-                    if debug:
+                    if DEBUG:
                         print(shape.name, shape.vertices, shape.state, success)
                     if not success: # try add vertex and failed shape FSM check
                         self.PA_Shapes[shape_name].remove(shape)
             if is_sure:
-                if debug:
+                if DEBUG:
                     print('=================================================: ', vertex)
                 # Start new potential shapes
                 if shape_name == 'nexus_type':
@@ -127,3 +112,24 @@ class PA_Core:
         
         if is_sure: # it is fine to update later
             self.PA_Liquidity.add_vertex(vertex, end_open, end_close, end_volume)
+            
+    def get_chart_pattern_shapes(self, complete:bool=False, potential:bool=False, with_idx:bool=False):
+        shapes:List[
+            nexus_type
+            ] = []
+        for shape_name in self.shape_keys:
+            for shape in self.PA_Shapes[shape_name]:
+                if complete and shape.is_complete():
+                    shapes.append(shape)
+                elif potential and not shape.is_potential():
+                    shapes.append(shape)
+
+                # if with_idx:
+                #     shapes.append(shape.state)
+        return shapes
+    
+    def get_liquidity_class(self) -> PA_Liquidity:
+        return self.PA_Liquidity
+    
+    def get_volume_profile(self) -> PA_Volume_Profile:
+        return self.PA_Volume_Profile

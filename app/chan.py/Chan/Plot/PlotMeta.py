@@ -45,8 +45,8 @@ class CChart_Patterns_meta:
         self.PA_Shapes = CP.get_chart_pattern_shapes(complete=True, potential=True)
 
 class CVolume_Profile_meta:
-    def __init__(self, PA_Volume_Profile: PA_Volume_Profile):
-        self.PA_Volume_Profile = PA_Volume_Profile
+    def __init__(self, CP: PA_Core):
+        self.PA_Volume_Profile = CP.get_volume_profile()
 
 class CSeg_meta:
     def __init__(self, seg: CSeg):
@@ -144,9 +144,9 @@ class CChanPlotMeta:
         self.klu_len = sum(len(klc.klu_list) for klc in self.klc_list)
 
         self.bi_list = [CBi_meta(bi) for bi in kl_list.bi_list]
-        self.liquidity = CLiquidity_meta(kl_list.bi_list.PA_Core)
-        self.chart_patterns_shapes = CChart_Patterns_meta(kl_list.bi_list.PA_Core).PA_Shapes
-        self.volume_profile = CVolume_Profile_meta(kl_list.PA_Volume_Profile)
+        self.liquidity = CLiquidity_meta(kl_list.PA_Core).PA_Liquidity
+        self.chart_patterns_shapes = CChart_Patterns_meta(kl_list.PA_Core).PA_Shapes
+        self.volume_profile = CVolume_Profile_meta(kl_list.PA_Core).PA_Volume_Profile
         
         self.seg_list: List[CSeg_meta] = []
         self.eigenfx_lst: List[CEigenFX_meta] = []

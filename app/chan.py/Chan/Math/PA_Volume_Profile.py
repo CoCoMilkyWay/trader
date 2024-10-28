@@ -1,5 +1,6 @@
 from typing import Dict, Iterable, List, Optional, Union
 from collections import deque
+from pprint import pprint
 
 from Chan.Common.CTime import CTime
 
@@ -14,16 +15,21 @@ from Chan.Common.CTime import CTime
 #   b-shaped: bearish-trend, bullish if new low
 #   multiple peak distribution: watchout for news
 #   trend proflie: one sided movement(trend) leaves an imbalanced area
-# VWAP to track market cost (find out percent of people curently winning)
+# VWAP to track market cost (e.g. percent of people winning in 1/5 day)
 # sub-interval session VP (day, segment etc.)
 # volume clusters
 
+N = 5 # weekly
 class PA_Volume_Profile():
     def __init__(self):
         self.volume_inited:bool = False
         self.price_bin_width:float
         self.volume_idx_min :int
         self.volume_idx_max :int
+        
+        self.batch_day_last: int
+        self.day_idx: int
+        self.list_day_idx: int
         
         # DAY: because of T+1 for A-stocks, day VP maybe of more importance
         # SESSION: how do you define session?
@@ -34,8 +40,13 @@ class PA_Volume_Profile():
         #   2. thus, session here means a higher level trend (aka. segment from Chan theory)
         
         # (price_bin * buy/sellside): volume
-        self.day_volume_profile     :deque[List[int]] = deque()
-        self.bi_volume_profile      :deque[List[int]] = deque()
+            # rolling: (time based):
+            # WEEK
+        self.n_day_volume_profile :List[deque[List[int]]] = [deque() for _ in range(N)]
+        
+            # event based (empty at event start):
+            # SESSION, history
+        # self.bi_volume_profile      :deque[List[int]] = deque()
         self.session_volume_profile :deque[List[int]] = deque()
         self.history_volume_profile :deque[List[int]] = deque()
         
@@ -51,40 +62,71 @@ class PA_Volume_Profile():
         index_range_high:int            = batch_volume_profile[2]
         batch_volume_buyside:List[int]  = batch_volume_profile[3]
         batch_volume_sellside:List[int] = batch_volume_profile[4]
-        price_bin_width                 = batch_volume_profile[5]
+        price_bin_width                 = batch_volume_profile[5] # static
         if not self.volume_inited:
+            self.batch_day_last = -1
+            self.day_idx = 0
             self.volume_idx_min = index_range_low
             self.volume_idx_max = index_range_high
             new_max_idx = index_range_high - index_range_low + 1
             new_min_idx = 0
             self.price_bin_width = price_bin_width
-            self.volume_inited = True
         else:
             new_max_idx = index_range_high - self.volume_idx_max
             new_min_idx = self.volume_idx_min - index_range_low
-        if new_max_idx > 0: # update profile index
+            
+        # n-day rolling volume profile
+        if self.batch_day_last != batch_time.day:
+            new_day = True
+            self.day_idx += 1
+            self.batch_day_last = batch_time.day
+        else:
+            new_day = False
+        self.list_day_idx = self.day_idx % N
+        if new_day and not self.volume_inited: # clear last rolling buffer
+            _len = len(self.n_day_volume_profile[self.list_day_idx])
+            self.n_day_volume_profile[self.list_day_idx].clear()
+            self.n_day_volume_profile[self.list_day_idx].extend([[0,0]] * _len)
+                        
+        if type == 'week':
+            pass
+        elif type == 'session':
+            pass
+        elif type == 'history':
+            pass
+            
+        # update profile index
+        if new_max_idx > 0:
             for _ in range(new_max_idx):
-                self.bi_volume_profile.append([0,0])
-                self.session_volume_profile.append([0,0])
                 self.history_volume_profile.append([0,0])
+                for i in range(N):
+                    self.n_day_volume_profile[i].append([0,0])
             self.volume_idx_max = index_range_high
         if new_min_idx > 0:
             for _ in range(new_min_idx):
-                self.bi_volume_profile.appendleft([0,0])
-                self.session_volume_profile.appendleft([0,0])
                 self.history_volume_profile.appendleft([0,0])
+                for i in range(N):
+                    self.n_day_volume_profile[i].appendleft([0,0])
             self.volume_idx_min = index_range_low
             
         for i in range(index_range_low, index_range_high+1):
             idx_batch = i - index_range_low
-            idx = i - self.volume_idx_min
-            self.bi_volume_profile[idx][0] += batch_volume_buyside[idx_batch]
-            self.bi_volume_profile[idx][1] += batch_volume_sellside[idx_batch]
+            idx_history = i - self.volume_idx_min
+            buy_side = int(batch_volume_buyside[idx_batch])
+            sell_side = int(batch_volume_sellside[idx_batch])
+            self.n_day_volume_profile[self.list_day_idx][idx_history][0] += buy_side
+            self.n_day_volume_profile[self.list_day_idx][idx_history][1] += sell_side
+            self.history_volume_profile[idx_history][0] += buy_side
+            self.history_volume_profile[idx_history][1] += sell_side
+            
+        if not self.volume_inited:
+            self.volume_inited = True
+            
         # print(f'{self.volume_idx_min}[{index_range_low}, {index_range_high}]{self.volume_idx_max}: {len(self.bi_volume_profile)}')
             
     def get_adjusted_volume_profile(self, max_mapped:float, type:str):
         if type == 'bi':
-            volume_profile = self.bi_volume_profile
+            volume_profile = self.history_volume_profile
         elif type == 'session':
             volume_profile = self.session_volume_profile
         elif type == 'history':

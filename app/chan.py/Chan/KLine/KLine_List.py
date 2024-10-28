@@ -12,10 +12,10 @@ from Chan.Seg.Seg import CSeg
 from Chan.Seg.SegConfig import CSegConfig
 from Chan.Seg.SegListComm import CSegListComm
 from Chan.ZS.ZSList import CZSList
-from Chan.Math.PA_Volume_Profile import PA_Volume_Profile
 
 from Chan.KLine.KLine import CKLine
 from Chan.KLine.KLine_Unit import CKLine_Unit
+from Chan.Math.PA_Core import PA_Core
 
 
 def get_seglist_instance(seg_config: CSegConfig, lv) -> CSegListComm:
@@ -41,9 +41,15 @@ class CKLine_List:
         self.lst: List[CKLine] = []  # K线列表，可递归  元素KLine类型
         
         self.new_bi_start:bool = False
-        self.num_bi:int        = 0
+        self.new_seg_start:bool = False
+        self.num_bi:int = 0
+        # self.num_seg:int = 0
         
-        self.bi_list = CBiList(bi_conf=conf.bi_conf)
+        # Chart Patterns is a bi-level concept(metric), updated with bi
+        self.PA_Core:PA_Core = PA_Core()
+        self.bi_level_callback_func0 = self.PA_Core.add_bi
+        
+        self.bi_list = CBiList(bi_conf=conf.bi_conf, callback=self.bi_level_callback_func0)
         self.seg_list: CSegListComm[CBi] = get_seglist_instance(seg_config=conf.seg_conf, lv=SEG_TYPE.BI)
         self.segseg_list: CSegListComm[CSeg[CBi]] = get_seglist_instance(seg_config=conf.seg_conf, lv=SEG_TYPE.SEG)
 
@@ -52,8 +58,6 @@ class CKLine_List:
 
         self.bs_point_lst = CBSPointList[CBi, CBiList](bs_point_config=conf.bs_point_conf)
         self.seg_bs_point_lst = CBSPointList[CSeg, CSegListComm](bs_point_config=conf.seg_bs_point_conf)
-
-        self.PA_Volume_Profile = PA_Volume_Profile()
 
         self.metric_model_lst = conf.GetMetricModel()
 
@@ -142,10 +146,10 @@ class CKLine_List:
         # now klu(klc/combined kline) are added, bi list is also updated, now check if new bi is formed
         if self.num_bi != len(self.bi_list):
             self.new_bi_start = True
+            self.num_bi = len(self.bi_list)
         else:
             self.new_bi_start = False
-        self.num_bi = len(self.bi_list)
-                
+            
     def klu_iter(self, klc_begin_idx=0):
         for klc in self.lst[klc_begin_idx:]:
             yield from klc.lst

@@ -1,20 +1,18 @@
-from typing import List, Optional, Union, overload
+from typing import List, Optional, Union, overload, Callable
 
 from Chan.Common.CEnum import FX_TYPE, KLINE_DIR
 from Chan.KLine.KLine import CKLine
-from Chan.Math.PA_Core import PA_Core
 
 from Chan.Bi.Bi import CBi
 from Chan.Bi.BiConfig import CBiConfig
 
 
 class CBiList:
-    def __init__(self, bi_conf=CBiConfig()):
+    def __init__(self, bi_conf=CBiConfig(), callback=Callable[[CKLine, CKLine, bool], None]):
         self.bi_list:List[CBi] = []
         self.is_sure:bool = False
+        self.callback = callback
         
-        # Chart Patterns is a bi-level concept(metric), updated with bi
-        self.PA_Core:PA_Core = PA_Core()
         self.last_end = None  # 最后一笔的尾部
         self.config = bi_conf
 
@@ -149,7 +147,8 @@ class CBiList:
     def add_new_bi(self, pre_klc, cur_klc, is_sure=True):
         bi = CBi(pre_klc, cur_klc, idx=len(self.bi_list), is_sure=is_sure)
         self.bi_list.append(bi)
-        self.PA_Core.add_bi(bi, is_sure=is_sure)
+        self.callback(bi, is_sure=is_sure) #　self.PA_Core.add_bi(bi, is_sure=is_sure)
+        
         #　if is_sure:
         #　    print("bi_list is sure: ", cur_klc.idx, len(self.bi_list))
         self.is_sure = is_sure

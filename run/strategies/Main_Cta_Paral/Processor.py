@@ -330,7 +330,7 @@ class n_Processor:
         for klu in resample_buffer:
             open:float = klu.opens[-1]
             close:float = klu.closes[-1]
-            volume:int = klu.volumes[-1]
+            volume:int = int(klu.volumes[-1])
             total_volume += volume
             index:int = int(close//price_bin_width)
             # error correction:
