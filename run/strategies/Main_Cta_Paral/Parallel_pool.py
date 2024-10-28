@@ -127,12 +127,12 @@ class n_processor_queue:
             try:
                 while True:
                     worker_ready.wait()  # Blocks until the event is set
-
+                    
                     if end.value:
                         break
                     
                     tasks = []
-
+                    
                     results = []
                     # use block operation when getting and putting to
                     # ensure consistency
@@ -140,15 +140,15 @@ class n_processor_queue:
                         while task_count.value != 0:
                             tasks.append(in_queue.get(block=True, timeout=TIMEOUT)) # prepare tasks
                             task_count.value -= 1
-
+                            
                     results = n_processor.process_slave_task(worker_id, tasks)
-
+                    
                     if results:
                         with result_lock:
                             out_queue.put(results, block=True, timeout=TIMEOUT)  # Store results
                             result_count.value += len(results)
                             time.sleep(SLEEP)
-
+                            
                     # Signal task completion
                     task_complete.set()
                     worker_ready.clear() # Reset the event to pause the worker
@@ -195,10 +195,9 @@ class n_processor_queue:
             
             # 6. this handler thread exit automatically after return
             
-        
         with HotkeyManager(handler_thread=sigint_handler_main, remove_hot_key_on_exit=False):
             self.workers = [] # thread or process
-
+            
             for i in range(self.max_workers):
                 worker_cls = multiprocessing.Process if self.concurrency_mode == 'process' else threading.Thread
                 w = worker_cls(
@@ -218,21 +217,21 @@ class n_processor_queue:
                     # self.tqdm_cnt_with_lock,
                     # self.tqdm_desc,
                     # self.debug[i],
-
+                    
                     # non-shareable(inout):
                     i,
                     ), 
                     daemon=True,
                     )
-
+                
                 w.start()
                 self.workers.append(w)
-
+                
             self.is_running = True
             # # Start a separate thread to update the progress bar
             # self.pbar_updater = threading.Thread(target=self.update_pbar)
             # self.pbar_updater.start()
-    
+            
     def stop_workers(self):
         if not self.is_running:
             return
@@ -241,13 +240,13 @@ class n_processor_queue:
             self.worker_ready[i].set() # start worker
         for w in self.workers:
             w.join()
-        
+            
         self.is_running = False
         # self.pbar_stop_event.set()
         # if hasattr(self, 'pbar_updater'):
         #     self.pbar_updater.join()
         print("All workers have been stopped.")
-    
+        
     # N-gets corresponds to N-puts
     def add_in_task(self, tasks:List[MetadataIn]):
         for i, task in enumerate(tasks):

@@ -33,7 +33,7 @@ end             = 202404010000
 capital         = 1000000000
 
 def run_bt():
-    NUM= 10 # N/None
+    NUM= None # N/None
     print('Pulling stock pool ...')
     if NUM:
         assets_list, assets_valid = get_bao_stocks(pool='zz500')
