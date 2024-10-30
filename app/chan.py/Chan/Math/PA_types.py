@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List, Dict, Optional, Union
+from collections import deque
 
 @dataclass
 class vertex:
@@ -8,15 +9,22 @@ class vertex:
 
 @dataclass
 class barrier_zone:
-    idx_start:int # starting time
-    idx_end:int # ending time
+    index:int # e.g. bi index
+    
+    left:int # starting time
+    right:int # ending time
     top:float
     bottom:float
-    init_volume:int
+    
+    volume:int
     types:int
     # 0: demand
     # 1: supply
+    
     strength_rating:int # 0~10
+    
+    enter_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
+    leaving_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
     
     def __init_(self):
         self.broken:bool = False

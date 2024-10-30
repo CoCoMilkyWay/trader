@@ -63,6 +63,7 @@ class PA_Liquidity:
     SD_ZONE = 1 # established supply/demand zone (formed with breakthrough)
     
     def __init__(self):
+        self.bi_index: int = 0
         self.vertices:List[vertex] = []
         
         # xxx_zones = List[zones_formed, zones_forming]
@@ -85,14 +86,21 @@ class PA_Liquidity:
         TOP = 1
         BOT = -1
         default_end = 1<<31
+        
+        self.bi_index += 1
+        
         if len(self.vertices) >= 2:
             last_vertex = self.vertices[-1]
             delta_y = new_vertex.value - last_vertex.value
             delta_x = new_vertex.idx - last_vertex.idx
             FX_type = TOP if delta_y > 0 else BOT
-            bi_top:float = last_vertex.value if FX_type==BOT else new_vertex.value
-            bi_bottom:float = new_vertex.value if FX_type==BOT else last_vertex.value
-
+            if FX_type==BOT:
+                bi_top:float = last_vertex.value
+                bi_bottom:float = new_vertex.value
+            else:
+                bi_top:float = new_vertex.value
+                bi_bottom:float = last_vertex.value
+                
             # close all zones within last bi when conditions are met
             for zones in [
                 self.supply_zones,
@@ -109,21 +117,37 @@ class PA_Liquidity:
                         else:
                             zone_idx:int = last_vertex.idx + int((1-zone_ratio_in_bi) * delta_x)
                         zone_formed = zone_forming
-                        zone_formed.idx_end = zone_idx
+                        zone_formed.right = zone_idx
+                        
+                        
+                        # delete VP if zone is already formed to save memory
+                        zone_formed.enter_bi_VP = None
+                        zone_formed.leaving_bi_VP = None
                         zones[0].append(zone_formed) # zone_formed
+                        
                         # print('zone formed: ', len(zones[0]), len(zones[1]))
                     else:
                         zones_forming.append(zone_forming) # zone_forming
                 zones[1] = zones_forming
                 
-            # update all forming zones
+            # add new forming zones
             if FX_type==BOT:
+                zone_bot = new_vertex.value
+                zone_top = min(end_open, zone_bot + 0.1 * delta_y) # avoid zone to be too thick (rapid price change)
                 self.demand_volume_sum, self.demand_sample_num, strength_rating = self.get_strength_rating(self.demand_volume_sum, self.demand_sample_num, end_volume)
-                self.demand_zones[1].append(barrier_zone(new_vertex.idx, default_end, end_open, new_vertex.value, end_volume, 0, strength_rating))
+                self.demand_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, default_end, zone_top, zone_bot, end_volume, 0, strength_rating, None, None))
             else:
+                zone_top = new_vertex.value
+                zone_bot = max(end_open, zone_top - 0.1 * delta_y) # avoid zone to be too thick (rapid price change)
                 self.supply_volume_sum, self.supply_sample_num, strength_rating = self.get_strength_rating(self.supply_volume_sum, self.supply_sample_num, end_volume)
-                self.supply_zones[1].append(barrier_zone(new_vertex.idx, default_end, new_vertex.value, end_open, end_volume, 1, strength_rating))
+                self.supply_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, default_end, zone_top, zone_bot, end_volume, 1, strength_rating, None, None))
         self.vertices.append(new_vertex)
+        
+        #　s = self.supply_zones[1]
+        #　d = self.demand_zones[1]
+        #　if len(s) > 1 and len(d) > 1:
+        #　    print(s[-1].index, s[-1].left, s[-2].index, s[-2].left)
+        #　    print(d[-1].index, d[-1].left, d[-2].index, d[-2].left)
         
     @staticmethod
     def get_strength_rating(historical_sum:float, historical_sample_num:int, new_sample_value:float):

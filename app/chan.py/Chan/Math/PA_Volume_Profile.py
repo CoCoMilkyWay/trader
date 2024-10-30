@@ -1,8 +1,9 @@
-from typing import Dict, Iterable, List, Optional, Union
+from typing import List, Dict, Tuple, Iterable, Optional, Union, cast
 from collections import deque
 from pprint import pprint
 import numpy as np
 import pandas as pd
+import copy
 
 from Chan.Common.CTime import CTime
 
@@ -69,7 +70,7 @@ class PA_Volume_Profile():
         
     # trigger step -> kline iteration over levels -> add klu -> add klc / update bi
     #   -> check if new bi formed -> update volume profiles accordingly
-    def update_volume_profile(self, batch_volume_profile:List, type:str):
+    def update_volume_profile(self, batch_volume_profile:List, type:str) -> None|List[Union[List[int], List[float]]]:
         # batch -> bi (merge all batches within bi after new bi is sure)
         # bi -> session (with active trendlines)
         # session -> history
@@ -121,8 +122,28 @@ class PA_Volume_Profile():
         self.list_bi_idx = self.bi_idx % self.N_bi
         if new_bi and self.volume_inited:
             _len = len(self.n_bi_volume_profile[self.list_bi_idx])
+            # bi_volume_profile =copy.deepcopy(self.n_bi_volume_profile[self.list_bi_idx])
+            bi_volume_profile = self.n_bi_volume_profile[self.list_bi_idx]
+            bi_volume_profile_total = [bi_volume_profile[i][0] + bi_volume_profile[i][1] for i in range(_len)]
             self.n_bi_volume_profile[self.list_bi_idx].clear()
             self.n_bi_volume_profile[self.list_bi_idx].extend([[0,0] for _ in range(_len)])
+        else:
+            bi_volume_profile_total = None
+            
+        # this is bi volume profile (not a lot of data)
+        # convert to price map first to ease later calculation
+        # array[price, volume]
+        if bi_volume_profile_total:
+            price_mapped_volume:None|List[Union[List[int], List[float]]] = [[],[]] # :List[List[Union[int, float]]]
+            left_cnt = next((i for i, x in enumerate(bi_volume_profile_total) if x != 0), None)
+            right_cnt = next((i for i, x in enumerate(reversed(bi_volume_profile_total)) if x != 0), None)
+            if left_cnt is not None and right_cnt is not None:
+                left_index  =  left_cnt
+                right_index =  (_len - 1) - right_cnt
+                price_mapped_volume[0] = [round((i+self.volume_idx_min) * self.price_bin_width, 2) for i in range(left_index, right_index+1)] # price
+                price_mapped_volume[1] = bi_volume_profile_total[left_index:right_index+1] # volume
+        else:
+            price_mapped_volume = None
             
         # update profile index
         if new_max_idx > 0:
@@ -158,6 +179,8 @@ class PA_Volume_Profile():
             self.volume_inited = True
             
         # print(f'{self.volume_idx_min}[{index_range_low}, {index_range_high}]{self.volume_idx_max}: {len(self.bi_volume_profile)}')
+        
+        return price_mapped_volume
             
     def get_adjusted_volume_profile(self, max_mapped:float, type:str, sigma:float = 1.5):
         if type == 'day':

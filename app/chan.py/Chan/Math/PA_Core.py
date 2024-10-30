@@ -4,6 +4,7 @@ import math
 import numpy as np
 from numpy.polynomial import Polynomial
 from typing import List, Dict
+import copy
 
 from Chan.Bi.Bi import CBi
 from Chan.Math.PA_types import vertex
@@ -62,6 +63,18 @@ class PA_Core:
         self.bi_lst_is_sure = is_sure
         # if DEBUG:
         #     print(self.bi_lst)
+        
+    def add_volume_profile(self, batch_volume_profile:List, type:str):
+        price_mapped_volume = self.PA_Volume_Profile.update_volume_profile(batch_volume_profile, type)
+        if price_mapped_volume: # update bi volume profile to forming zones
+            
+            bi_index = self.PA_Liquidity.bi_index
+            for zones in [self.PA_Liquidity.demand_zones[1], self.PA_Liquidity.supply_zones[1]]:
+                for zone in zones:
+                    if zone.index == bi_index:
+                        zone.enter_bi_VP = copy.deepcopy(price_mapped_volume)
+                    if zone.index == (bi_index-1):
+                        zone.leaving_bi_VP = copy.deepcopy(price_mapped_volume)
         
     def init_PA_elements(self):
         # init shapes

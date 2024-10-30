@@ -134,6 +134,10 @@ class CChan:
             yield self
 
     def trigger_load(self, klu_dict, batch_volume_profile:List):
+        # PA update flow:
+        #   1. update new bi
+        #   2. update volume profile
+        
         # 在已有pickle基础上继续计算新的
         # {type: [klu, ...]}
         if not hasattr(self, 'klu_cache'):
@@ -156,7 +160,7 @@ class CChan:
         # update volume_profile for highest level Kline_List
         batch_volume_profile[6] = self.new_bi_start
         # batch_volume_profile[7] = self.new_seg_start
-        self.kl_datas[self.lv_list[0]].PA_Core.PA_Volume_Profile.update_volume_profile(batch_volume_profile, 'batch')
+        self.kl_datas[self.lv_list[0]].PA_Core.add_volume_profile(batch_volume_profile, 'batch')
                 
     def init_lv_klu_iter(self, stockapi_cls):
         # 为了跳过一些获取数据失败的级别
