@@ -36,7 +36,7 @@ class CChan:
         self.data_src = data_src
         self.lv_list: List[KL_TYPE] = lv_list
         self.new_bi_start: bool = False # highest level kline bi
-        self.new_seg_start: bool = False # highest level kline seg
+        # self.new_seg_start: bool = False # highest level kline seg
         
         # temp_batch
         self.volume_profile_batch:List[int|List[int]]
@@ -154,10 +154,8 @@ class CChan:
                 self.kl_datas[lv].cal_seg_and_zs()
                 
         # update volume_profile for highest level Kline_List
-        #　if self.new_bi_start:
-        #　    print('new_bi')
-        #　if self.new_seg_start:
-        #　    print('new_seg')
+        batch_volume_profile[6] = self.new_bi_start
+        # batch_volume_profile[7] = self.new_seg_start
         self.kl_datas[self.lv_list[0]].PA_Core.PA_Volume_Profile.update_volume_profile(batch_volume_profile, 'batch')
                 
     def init_lv_klu_iter(self, stockapi_cls):
@@ -235,7 +233,7 @@ class CChan:
             # check if is new bi
             if cur_lv == self.lv_list[0]: # highest level kline
                 self.new_bi_start = self.kl_datas[cur_lv].new_bi_start
-                self.new_seg_start = self.kl_datas[cur_lv].new_seg_start
+                # self.new_seg_start = self.kl_datas[cur_lv].new_seg_start
         except Exception:
             if self.conf.print_err_time:
                 print(f"[ERROR-{self.code}]在计算{kline_unit.time}K线时发生错误!")

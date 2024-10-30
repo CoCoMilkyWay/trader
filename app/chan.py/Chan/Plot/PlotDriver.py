@@ -824,14 +824,23 @@ class CPlotDriver:
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
         from Chan.Math.PA_types import barrier_zone
         if self.print: print('liquidity_zones..')
+        x_end   = int(ax.get_xlim()[1])
         liquidity_class = meta.liquidity
         supply_zones:List[barrier_zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
         demand_zones:List[barrier_zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
         for supply_zone in supply_zones:
-            ax.fill_between([supply_zone.idx_start, supply_zone.idx_end], supply_zone.top, supply_zone.bottom, facecolor="red", alpha=0.2)
+            start = supply_zone.idx_start
+            end = supply_zone.idx_end
+            if end > x_end:
+                end = x_end
+            ax.fill_between([start, end], supply_zone.top, supply_zone.bottom, facecolor="red", alpha=0.2)
             ax.text(supply_zone.idx_start, supply_zone.top, f"{'*' * supply_zone.strength_rating}", fontsize=8)
         for demand_zone in demand_zones:
-            ax.fill_between([demand_zone.idx_start, demand_zone.idx_end], demand_zone.top, demand_zone.bottom, facecolor="green", alpha=0.2)
+            start = demand_zone.idx_start
+            end = demand_zone.idx_end
+            if end > x_end:
+                end = x_end
+            ax.fill_between([start, end], demand_zone.top, demand_zone.bottom, facecolor="green", alpha=0.2)
             ax.text(demand_zone.idx_start, demand_zone.bottom, f"{'*' * supply_zone.strength_rating}", fontsize=8)
         # debug = True
         # if debug:
@@ -886,21 +895,98 @@ class CPlotDriver:
         if self.print: print('volume_profile..')
         if meta.volume_profile.volume_inited:
             import numpy as np
+            import matplotlib.pyplot as plt
+            from matplotlib.colors import Normalize
+            
             idx_min = meta.volume_profile.volume_idx_min
             idx_max = meta.volume_profile.volume_idx_max
             price_bin_width = meta.volume_profile.price_bin_width
             y_pos = np.arange(idx_min, idx_max+1) * price_bin_width
-            buyside, sellside, buyside_curve, sellside_curve = \
-            meta.volume_profile.get_adjusted_volume_profile(max_mapped=20, type='bi')
-            value = (buyside_curve - sellside_curve)*50
-            minimum = min(value)
-            if minimum < 0:
-                value -= minimum
-            ax.barh(y=y_pos, width=buyside,  height=price_bin_width, color='orange', label='Buyside', align='center', left=0,       alpha=0.4)
-            ax.barh(y=y_pos, width=sellside, height=price_bin_width, color='green', label='Sellside', align='center', left=buyside, alpha=0.4)
-            ax.plot(value, y_pos, color='orange',  linewidth=4)
-            # ax.plot(buyside_curve,                  y_pos, color='orange',  linewidth=4)
-            # ax.plot(buyside_curve + sellside_curve, y_pos, color='green',   linewidth=4)
+            
+            x_begin = int(ax.get_xlim()[0])
+            x_end   = int(ax.get_xlim()[1])
+            y_begin = y_pos[0]
+            y_end   = y_pos[-1]
+            x_extend = int((x_end - x_begin) *0.05) # 5% x range
+            y_extend = (y_end - y_begin) *0.05 # 5% x range
+            
+            ax.set_xlim(xmin=x_begin, xmax=x_end + x_extend*3) # n-day, session, history
+            
+            # [0] buyside,
+            # [1] sellside,
+            # [2] total,
+            # [3] buyside_curve,
+            # [4] sellside_curve,
+            # [5] volume_weighted_cost,
+            # [6] percentile_30,
+            # [7] percentile_50,
+            # [8] percentile_70,
+            
+            [buyside, sellside, buyside_curve, sellside_curve, volume_weighted_cost, p20, p50, p80] = \
+            meta.volume_profile.get_adjusted_volume_profile(max_mapped=x_extend, type='history', sigma=1.5)
+            [buyside_bi, sellside_bi, buyside_curve_bi, sellside_curve_bi, volume_weighted_cost_bi, p20_bi, p50_bi, p80_bi] = \
+            meta.volume_profile.get_adjusted_volume_profile(max_mapped=x_extend, type='bi', sigma=0.01)
+            [buyside_day, sellside_day, buyside_curve_day, sellside_curve_day, volume_weighted_cost_day, p20_day, p50_day, p80_day] = \
+            meta.volume_profile.get_adjusted_volume_profile(max_mapped=x_extend, type='day', sigma=0.01)
+            # value = (buyside_curve - sellside_curve)*50
+            # minimum = min(value)
+            # if minimum < 0:
+            #     value -= minimum
+            # ax.plot(value, y_pos, color='red',  linewidth=4)
+            
+            ax.barh(y=y_pos, width=buyside_day,  height=price_bin_width, color='orange',   label='Buyside',  align='center', left=[x_end + 0*x_extend     for _ in buyside_day], alpha=0.4)
+            ax.barh(y=y_pos, width=sellside_day, height=price_bin_width, color='purple',   label='Sellside', align='center', left=[x_end + 0*x_extend + i for i in buyside_day], alpha=0.4)
+            ax.plot(x_end + 0*x_extend + buyside_curve_day,                        y_pos, color='orange', linewidth=2)
+            ax.plot(x_end + 0*x_extend + buyside_curve_day + sellside_curve_day, y_pos, color='purple', linewidth=2)
+            ax.plot(range(x_end + 0*x_extend, x_end + 1*x_extend), [volume_weighted_cost_day] * x_extend, color='black', linewidth=4)
+            ax.plot(range(x_end + 0*x_extend, x_end + 1*x_extend), [p20_day] * x_extend, color='gray', linewidth=2)
+            ax.plot(range(x_end + 0*x_extend, x_end + 1*x_extend), [p50_day] * x_extend, color='gray', linewidth=2)
+            ax.plot(range(x_end + 0*x_extend, x_end + 1*x_extend), [p80_day] * x_extend, color='gray', linewidth=2)
+            ax.text(x_end + 0*x_extend, y_pos[-1] - y_extend, f'{meta.volume_profile.N_day}-day VP', fontsize=10, color='black')
+            
+            ax.barh(y=y_pos, width=buyside_bi,  height=price_bin_width, color='orange',   label='Buyside',  align='center', left=[x_end + 0*x_extend     for _ in buyside_bi], alpha=0.4)
+            ax.barh(y=y_pos, width=sellside_bi, height=price_bin_width, color='purple',   label='Sellside', align='center', left=[x_end + 0*x_extend + i for i in buyside_bi], alpha=0.4)
+            ax.plot(x_end + 1*x_extend + buyside_curve_bi,                        y_pos, color='orange', linewidth=2)
+            ax.plot(x_end + 1*x_extend + buyside_curve_bi + sellside_curve_bi, y_pos, color='purple', linewidth=2)
+            ax.plot(range(x_end + 1*x_extend, x_end + 2*x_extend), [volume_weighted_cost_bi] * x_extend, color='black', linewidth=4)
+            ax.plot(range(x_end + 1*x_extend, x_end + 2*x_extend), [p20_bi] * x_extend, color='gray', linewidth=2)
+            ax.plot(range(x_end + 1*x_extend, x_end + 2*x_extend), [p50_bi] * x_extend, color='gray', linewidth=2)
+            ax.plot(range(x_end + 1*x_extend, x_end + 2*x_extend), [p80_bi] * x_extend, color='gray', linewidth=2)
+            ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'{meta.volume_profile.N_bi}-bi VP', fontsize=10, color='black')
+            
+            ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'session VP', fontsize=10, color='black')
+            
+            ax.barh(y=y_pos, width=buyside,  height=price_bin_width, color='red',   label='Buyside',  align='center', left=[x_end + 2*x_extend     for _ in buyside],  alpha=0.4)
+            ax.barh(y=y_pos, width=sellside, height=price_bin_width, color='green', label='Sellside', align='center', left=[x_end + 2*x_extend + i for i in buyside], alpha=0.4)
+            ax.plot(x_end + 2*x_extend + buyside_curve,                  y_pos, color='red',   linewidth=2)
+            ax.plot(x_end + 2*x_extend + buyside_curve + sellside_curve, y_pos, color='green', linewidth=2)
+            ax.plot(range(x_end + 2*x_extend, x_end + 3*x_extend), [volume_weighted_cost] * x_extend, color='black', linewidth=4)
+            ax.plot(range(x_end + 2*x_extend, x_end + 3*x_extend), [p20] * x_extend, color='gray', linewidth=2)
+            ax.plot(range(x_end + 2*x_extend, x_end + 3*x_extend), [p50] * x_extend, color='gray', linewidth=2)
+            ax.plot(range(x_end + 2*x_extend, x_end + 3*x_extend), [p80] * x_extend, color='gray', linewidth=2)
+            ax.text(x_end + 2*x_extend, y_pos[-1] - y_extend, f'history VP', fontsize=10, color='black')
+            
+            # inner-outer order ratio
+            ratio = meta.volume_profile.inner_outer_order_ratio
+            x_list = range(len(ratio))
+            y_list = ratio
+            y_height = y_extend / 2
+            
+            x = np.array(x_list)          # Convert to numpy arrays
+            values = np.array(y_list)
+            y_bottom = np.full_like(x, y_begin+0.1)
+            
+            norm = Normalize(vmin=values.min(), vmax=values.max())
+            cmap = plt.get_cmap('RdYlGn')
+            for i in range(len(x) - 1):
+                ax.fill_between(
+                    [x[i], x[i + 1]], 
+                    [y_bottom[i], y_bottom[i]], 
+                    [y_bottom[i] + y_height, y_bottom[i] + y_height],
+                    color=cmap(norm(values[i]))  # Normalize value for color mapping
+                )
+            
+            ax.text(x_end, y_pos[0], f'inner-outer order ratio', fontsize=10, color='black')
 
 def getTextBox(ax: Axes, txt_instance):
     return txt_instance.get_window_extent().transformed(ax.transData.inverted())

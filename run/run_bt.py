@@ -27,19 +27,23 @@ run             = True
 analyze         = False
 snoop           = False
 profile         = False
-period, n       = 'm', 5 # bar period
+period, n       = 'm', 1 # bar period
 start           = 202401010931
 end             = 202404010000
 capital         = 1000000000
 
 def run_bt():
+    
+    # Restart the Python interpreter, effectively killing all threads
+    # os.execv(sys.executable, [sys.executable] + sys.argv)
+    
     NUM= None # N/None
     print('Pulling stock pool ...')
     if NUM:
         assets_list, assets_valid = get_bao_stocks(pool='zz500')
         assets =  [asset for asset in assets_list if asset.startswith('sh')][:NUM]
         assets += [asset for asset in assets_list if asset.startswith('sz')][:NUM]
-    else: assets = ['sh.600008',] # 'sz.000009']
+    else: assets = ['sh.600004',] # 'sz.000009']
     
     print('Preparing dsb data (Combining and Resampling) ...')
     asset_dict = {'sh':'SSE', 'sz':'SZSE'} # wt_asset = 'SSE.STK.600000'
@@ -140,4 +144,51 @@ print('PC版控制台入口地址: http://127.0.0.1:8099/console')
 print('移动版控制台入口地址： http://127.0.0.1:8099/mobile')
 print('superman/Helloworld!')
 input('press enter key to exit\n')
+'''
+
+'''
+Exchange Location: Mainland China ======================================================
+Share Class: A-shares
+Description: China securities incorporated in mainland China, listed on the Shanghai or Shenzhen Stock Exchange and traded in yuan (CNY).
+Trading FX: CNY
+Largest Sector: Financials
+Companies: Kweichow Moutai, Ping An Insurance, China Merchants Bank
+
+Share Class: B-shares
+Description: China securities incorporated in mainland China, listed on the Shanghai Stock Exchange (USD) and Shenzhen Stock Exchange (HKD).
+Trading FX: USD/HKD
+Largest Sector: Industrials
+Companies: Shanghai Lujiazui Fin & Trade Dev, Inner Mongolia Yitai Coal, Chongqing
+
+Exchange Location: International ======================================================
+Share Class: H-shares
+Description: China securities incorporated in mainland China, listed on the Hong Kong Stock Exchange (HKD).
+Trading FX: HKD
+Largest Sector: Financials
+Companies: China Construction Bank, ICBC, Ping An Insurance
+
+Share Class: Red chips
+Description: China securities of state-owned companies incorporated outside mainland China, listed on the Hong Kong Stock Exchange (HKD).
+Trading FX: HKD
+Largest Sector: Telecom. Services
+Companies: China Mobile, CNOOC, BOC Hong Kong
+
+Share Class: P chips
+Description: China securities of non-government-owned companies incorporated outside mainland China, listed on the Hong Kong Stock Exchange (HKD).
+Trading FX: HKD
+Largest Sector: Consumer Discretionary
+Companies: Tencent, Geely Automobile, China Evergrande
+
+Share Class: N-shares
+Description: China securities (including ADRs) incorporated outside Greater China (mainland China, Hong Kong, Macao, and Taiwan), listed on the NYSE Euronext-New York, NASDAQ, and NYSE AMEX.
+Trading FX: USD
+Largest Sector: Information Technology
+Companies: Alibaba, Baidu, JD.com
+
+Share Class: S-shares
+Description: China securities traded on Singapore Exchanges, in Singapore dollars (SGD).
+Trading FX: SGD
+Largest Sector: Industrials
+Companies: Yangzijiang Shipbuilding Holdings, Yanlord Land Group, SIIC Environmental
+
 '''

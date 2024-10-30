@@ -5,4 +5,5 @@ outputs_bt/*
 ./data.db
 *.xlsx
 junk/*
+*.dmp
 run_bt.prof

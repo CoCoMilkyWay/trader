@@ -21,6 +21,31 @@
 # 9. CISD: Change in state of delivery
 # 10. market maker model
 
+# ICT SMC concepts:
+# Customizable Timeframe - Calculate ICT concepts on off-chart timeframes
+# Unicorn Strategy Model
+# 2022 Strategy Model
+# Liquidity Raid Strategy Model
+# OTE (Optimal Trade Entry) Strategy Model
+# Silver Bullet Strategy Model
+# Order blocks
+# Breaker blocks
+# Rejection blocks
+# FVG
+# Strong highs and lows
+# Displacements
+# Liquidity sweeps
+# Power of 3
+# ICT Macros
+# HTF previous bar high and low
+# Break of Structure indications
+# Market Structure Shift indications
+# Equal highs and lows
+# Swings highs and swing lows
+# Fibonacci TPs and SLs
+# Swing level TPs and SLs
+# Previous day high and low TPs and SLs
+
 import os, sys
 import math
 import numpy as np
@@ -31,8 +56,8 @@ from dataclasses import dataclass
 from Chan.Math.PA_types import vertex, barrier_zone
 
 class PA_Liquidity:
-    # for supply/demand zone, the strength the bar goes to FX is important, 
-    # thus for i-th bar that is a bottom FX (as bottom of supply zone), 
+    # for supply/demand zone, the strength the bar goes to FX is important,
+    # thus for i-th bar that is a bottom FX (as bottom of supply zone),
     # take close of negative bar and open of positive bar as top of supply zone
     POT_SD_ZONE = 0 # potential supply/ demand zone (formed with FX)
     SD_ZONE = 1 # established supply/demand zone (formed with breakthrough)
@@ -41,18 +66,18 @@ class PA_Liquidity:
         self.vertices:List[vertex] = []
         
         # xxx_zones = List[zones_formed, zones_forming]
-        self.supply_zones:List[List[barrier_zone]] = [[],[]]
-        self.demand_zones:List[List[barrier_zone]] = [[],[]]
-        self.order_blocks:List[List[barrier_zone]] = [[],[]]
-        self.mitigation_zones:List[List[barrier_zone]] = [[],[]]
-        self.break_zones:List[List[barrier_zone]] = [[],[]]
-        self.rejection_zones:List[List[barrier_zone]] = [[],[]]
+        self.supply_zones:      List[List[barrier_zone]] = [[],[]]
+        self.demand_zones:      List[List[barrier_zone]] = [[],[]]
+        self.order_blocks:      List[List[barrier_zone]] = [[],[]]
+        self.mitigation_zones:  List[List[barrier_zone]] = [[],[]]
+        self.break_zones:       List[List[barrier_zone]] = [[],[]]
+        self.rejection_zones:   List[List[barrier_zone]] = [[],[]]
         
         # average & percentile
-        self.supply_volume_sum:float = 0
-        self.supply_sample_num:int = 0
-        self.demand_volume_sum:float = 0
-        self.demand_sample_num:int = 0
+        self.supply_volume_sum: float = 0
+        self.supply_sample_num: int = 0
+        self.demand_volume_sum: float = 0
+        self.demand_sample_num: int = 0
         
         self.snapshot:List = [] # snapshot of all liquidity zones
         

@@ -310,7 +310,7 @@ class n_Processor:
             return 10
     
     # @jit(nopython=True, parallel=False) # acceleration(static compile before run)
-    def process_batch_klu(self, resample_buffer: List[WtNpKline], price_bin_width) -> Tuple[CKLine_Unit, List[int|List[int]]]:
+    def process_batch_klu(self, resample_buffer: List[WtNpKline], price_bin_width:float) -> Tuple[CKLine_Unit, List[int|List[int]]]:
         # batch -> bi -> session -> history
         
         # only session volume profile is important:
@@ -341,6 +341,7 @@ class n_Processor:
             else:
                 batch_volume_sellside[index-index_range_low] += volume
         batch_time:CTime = parse_time_column(str(resample_buffer[-1].bartimes[-1]))
+        new_bi = False
         batch_combined_klu = CKLine_Unit(
             {
                 DATA_FIELD.FIELD_TIME:      batch_time,
@@ -358,5 +359,6 @@ class n_Processor:
             batch_volume_buyside,
             batch_volume_sellside,
             price_bin_width,
+            new_bi, # wait for upper function to fill it
         ]
         return batch_combined_klu, batch_volume_profile

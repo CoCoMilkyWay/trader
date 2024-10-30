@@ -41,7 +41,7 @@ class CKLine_List:
         self.lst: List[CKLine] = []  # K线列表，可递归  元素KLine类型
         
         self.new_bi_start:bool = False
-        self.new_seg_start:bool = False
+        # self.new_seg_start:bool = False
         self.num_bi:int = 0
         # self.num_seg:int = 0
         
@@ -52,17 +52,17 @@ class CKLine_List:
         self.bi_list = CBiList(bi_conf=conf.bi_conf, callback=self.bi_level_callback_func0)
         self.seg_list: CSegListComm[CBi] = get_seglist_instance(seg_config=conf.seg_conf, lv=SEG_TYPE.BI)
         self.segseg_list: CSegListComm[CSeg[CBi]] = get_seglist_instance(seg_config=conf.seg_conf, lv=SEG_TYPE.SEG)
-
+        
         self.zs_list = CZSList(zs_config=conf.zs_conf)
         self.segzs_list = CZSList(zs_config=conf.zs_conf)
-
+        
         self.bs_point_lst = CBSPointList[CBi, CBiList](bs_point_config=conf.bs_point_conf)
         self.seg_bs_point_lst = CBSPointList[CSeg, CSegListComm](bs_point_config=conf.seg_bs_point_conf)
-
+        
         self.metric_model_lst = conf.GetMetricModel()
-
+        
         self.step_calculation = self.need_cal_step_by_step()
-
+        
     def __deepcopy__(self, memo):
         new_obj = CKLine_List(self.kl_type, self.config)
         memo[id(self)] = new_obj

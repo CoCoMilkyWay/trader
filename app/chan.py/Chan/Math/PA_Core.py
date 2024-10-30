@@ -13,6 +13,10 @@ from Chan.Math.PA_Volume_Profile import PA_Volume_Profile
 
 DEBUG = False
 
+# PA update flow(per batch klu): with callback functions
+#   1. add new bi (vertex) (if exist)
+#   2. add batch volume profile
+
 # PA algos are afflicted under chan.bi, also updated with it
 class PA_Core:
     # PA: Price Action
