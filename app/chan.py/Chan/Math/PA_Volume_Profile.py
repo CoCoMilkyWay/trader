@@ -70,7 +70,7 @@ class PA_Volume_Profile():
         
     # trigger step -> kline iteration over levels -> add klu -> add klc / update bi
     #   -> check if new bi formed -> update volume profiles accordingly
-    def update_volume_profile(self, batch_volume_profile:List, type:str) -> None|List[Union[List[int], List[float]]]:
+    def update_volume_profile(self, batch_volume_profile:List, type:str) -> None|List[Union[List[float], List[int]]]:
         # batch -> bi (merge all batches within bi after new bi is sure)
         # bi -> session (with active trendlines)
         # session -> history
@@ -134,7 +134,7 @@ class PA_Volume_Profile():
         # convert to price map first to ease later calculation
         # array[price, volume]
         if bi_volume_profile_total:
-            price_mapped_volume:None|List[Union[List[int], List[float]]] = [[],[]] # :List[List[Union[int, float]]]
+            price_mapped_volume:None|List[Union[List[float], List[int]]] = [[],[]] # List[Union[List[int], List[float]]]
             left_cnt = next((i for i, x in enumerate(bi_volume_profile_total) if x != 0), None)
             right_cnt = next((i for i, x in enumerate(reversed(bi_volume_profile_total)) if x != 0), None)
             if left_cnt is not None and right_cnt is not None:
@@ -181,7 +181,7 @@ class PA_Volume_Profile():
         # print(f'{self.volume_idx_min}[{index_range_low}, {index_range_high}]{self.volume_idx_max}: {len(self.bi_volume_profile)}')
         
         return price_mapped_volume
-            
+    
     def get_adjusted_volume_profile(self, max_mapped:float, type:str, sigma:float = 1.5):
         if type == 'day':
             _len = len(self.n_day_volume_profile[0])

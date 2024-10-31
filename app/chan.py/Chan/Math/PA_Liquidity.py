@@ -56,23 +56,28 @@ from dataclasses import dataclass
 from Chan.Math.PA_types import vertex, barrier_zone
 
 class PA_Liquidity:
+    # TOP and BOT of zones:
     # for supply/demand zone, the strength the bar goes to FX is important,
     # thus for i-th bar that is a bottom FX (as bottom of supply zone),
     # take close of negative bar and open of positive bar as top of supply zone
-    POT_SD_ZONE = 0 # potential supply/ demand zone (formed with FX)
-    SD_ZONE = 1 # established supply/demand zone (formed with breakthrough)
+    
+    # reversion between supply and demand:
+    # most trades positions are opened around critical zones, once the zone is broken
+    # it marks the conclusion of most reversion strategies,
+    # also marks the beginning of some breakthrough strategies,
+    # thus when price come back to this region, it would act as zone of reversed polarity
+    # note that the effect of 2nd/3rd/... rejection is probably weaker than 1st rejection
     
     def __init__(self):
         self.bi_index: int = 0
         self.vertices:List[vertex] = []
         
         # xxx_zones = List[zones_formed, zones_forming]
-        self.supply_zones:      List[List[barrier_zone]] = [[],[]]
-        self.demand_zones:      List[List[barrier_zone]] = [[],[]]
-        self.order_blocks:      List[List[barrier_zone]] = [[],[]]
-        self.mitigation_zones:  List[List[barrier_zone]] = [[],[]]
-        self.break_zones:       List[List[barrier_zone]] = [[],[]]
-        self.rejection_zones:   List[List[barrier_zone]] = [[],[]]
+        self.barrier_zones:     List[List[barrier_zone]] = [[],[]] # [formed, forming]
+        self.order_blocks:      List[List[barrier_zone]] = [[],[]] # [formed, forming]
+        self.mitigation_zones:  List[List[barrier_zone]] = [[],[]] # [formed, forming]
+        self.break_zones:       List[List[barrier_zone]] = [[],[]] # [formed, forming]
+        self.rejection_zones:   List[List[barrier_zone]] = [[],[]] # [formed, forming]
         
         # average & percentile
         self.supply_volume_sum: float = 0
@@ -103,44 +108,58 @@ class PA_Liquidity:
                 
             # close all zones within last bi when conditions are met
             for zones in [
-                self.supply_zones,
-                self.demand_zones,
+                self.barrier_zones,
                 ]:
-                zones_forming = []
+                zones_forming_buffer = []
                 for zone_forming in zones[1]:
                     zone_broken = (bi_top > zone_forming.top) and (bi_bottom < zone_forming.bottom)
                     if zone_broken:
+                        zone_type = zone_forming.type
+                        
+                        # calculating horizontal span
                         zone_level:float = (zone_forming.top + zone_forming.bottom)/2
                         zone_ratio_in_bi:float = (zone_level - bi_bottom) / abs(delta_y)
                         if FX_type==TOP:
                             zone_idx:int = last_vertex.idx + int(zone_ratio_in_bi * delta_x)
                         else:
                             zone_idx:int = last_vertex.idx + int((1-zone_ratio_in_bi) * delta_x)
-                        zone_formed = zone_forming
-                        zone_formed.right = zone_idx
-                        
                         
                         # delete VP if zone is already formed to save memory
-                        zone_formed.enter_bi_VP = None
-                        zone_formed.leaving_bi_VP = None
-                        zones[0].append(zone_formed) # zone_formed
-                        
-                        # print('zone formed: ', len(zones[0]), len(zones[1]))
+                        # NOTE: after 1st breakthrough, the old volume already means nothing
+                        #       (even though this position is still critical with reversed polarity),
+                        #       the only thing we care is the new breakthrough volume, which will be
+                        #       recorded in the volume of newly formed zone(not the old zone)
+                        zone_forming.enter_bi_VP = None # refer to above
+                        zone_forming.leaving_bi_VP = None # refer to above
+                        if zone_type == 0: # demand
+                            zone_forming.right0 = zone_idx
+                            zone_forming.type = 3
+                            zones_forming_buffer.append(zone_forming) # zone_forming
+                        elif zone_type == 1: # supply
+                            zone_forming.right0 = zone_idx
+                            zone_forming.type = 2
+                            zones_forming_buffer.append(zone_forming) # zone_forming
+                        elif zone_type == 2: # demand (1st break supply)
+                            zone_forming.right1 = zone_idx
+                            zones[0].append(zone_forming) # zone_formed
+                        elif zone_type == 3: # supply (1st break demand)
+                            zone_forming.right1 = zone_idx
+                            zones[0].append(zone_forming) # zone_formed
                     else:
-                        zones_forming.append(zone_forming) # zone_forming
-                zones[1] = zones_forming
+                        zones_forming_buffer.append(zone_forming) # zone_forming
+                zones[1] = zones_forming_buffer
                 
             # add new forming zones
             if FX_type==BOT:
                 zone_bot = new_vertex.value
-                zone_top = min(end_open, zone_bot + 0.1 * delta_y) # avoid zone to be too thick (rapid price change)
+                zone_top = min(end_open, zone_bot + 0.1 * abs(delta_y)) # avoid zone to be too thick (from rapid price change)
                 self.demand_volume_sum, self.demand_sample_num, strength_rating = self.get_strength_rating(self.demand_volume_sum, self.demand_sample_num, end_volume)
-                self.demand_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, default_end, zone_top, zone_bot, end_volume, 0, strength_rating, None, None))
+                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 0, end_volume, strength_rating, None, None))
             else:
                 zone_top = new_vertex.value
-                zone_bot = max(end_open, zone_top - 0.1 * delta_y) # avoid zone to be too thick (rapid price change)
+                zone_bot = max(end_open, zone_top - 0.1 * abs(delta_y)) # avoid zone to be too thick (from rapid price change)
                 self.supply_volume_sum, self.supply_sample_num, strength_rating = self.get_strength_rating(self.supply_volume_sum, self.supply_sample_num, end_volume)
-                self.supply_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, default_end, zone_top, zone_bot, end_volume, 1, strength_rating, None, None))
+                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 1, end_volume, strength_rating, None, None))
         self.vertices.append(new_vertex)
         
         #　s = self.supply_zones[1]

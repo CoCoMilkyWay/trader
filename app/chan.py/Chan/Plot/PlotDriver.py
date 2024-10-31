@@ -283,7 +283,7 @@ class CPlotDriver:
         if plot_config.get("plot_chart_patterns", False):
             self.draw_chart_patterns(meta, ax, **plot_para.get('chart_patterns', {}))
         if plot_config.get("plot_volume_profile", False):
-            self.draw_volume_profile(meta, ax, **plot_para.get('volume_profile', {}))
+            self.draw_volume_profile(meta, ax, ax_macd, **plot_para.get('volume_profile', {}))
 
     def ShowDrawFuncHelper(self):
         # 写README的时候显示所有画图函数的参数和默认值
@@ -406,9 +406,9 @@ class CPlotDriver:
             if seg_meta.end_x < x_begin:
                 continue
             if seg_meta.is_sure:
-                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width, alpha=0.3)
+                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width, alpha=0.8)
             else:
-                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width, linestyle='dashed', alpha=0.3)
+                ax.plot([seg_meta.begin_x, seg_meta.end_x], [seg_meta.begin_y, seg_meta.end_y], color=color, linewidth=width, linestyle='dashed', alpha=0.8)
             if disp_end:
                 bi_text(seg_idx, ax, seg_meta, end_fontsize, end_color)
         if sub_lv_cnt is not None and len(self.lv_lst) > 1 and lv != self.lv_lst[-1]:
@@ -826,22 +826,27 @@ class CPlotDriver:
         if self.print: print('liquidity_zones..')
         x_end   = int(ax.get_xlim()[1])
         liquidity_class = meta.liquidity
-        supply_zones:List[barrier_zone] = liquidity_class.supply_zones[0] + liquidity_class.supply_zones[1]
-        demand_zones:List[barrier_zone] = liquidity_class.demand_zones[0] + liquidity_class.demand_zones[1]
-        for supply_zone in supply_zones:
-            start = supply_zone.left
-            end = supply_zone.right
-            if end > x_end:
-                end = x_end
-            ax.fill_between([start, end], supply_zone.top, supply_zone.bottom, facecolor="red", alpha=0.2)
-            ax.text(supply_zone.left, supply_zone.top, f"{'*' * supply_zone.strength_rating}", fontsize=8)
-        for demand_zone in demand_zones:
-            start = demand_zone.left
-            end = demand_zone.right
-            if end > x_end:
-                end = x_end
-            ax.fill_between([start, end], demand_zone.top, demand_zone.bottom, facecolor="green", alpha=0.2)
-            ax.text(demand_zone.left, demand_zone.bottom, f"{'*' * supply_zone.strength_rating}", fontsize=8)
+        barrier_zones:List[barrier_zone] = liquidity_class.barrier_zones[0] + liquidity_class.barrier_zones[1]
+        for zone in barrier_zones:
+            start = zone.left
+            type = zone.type
+            
+            end0 = zone.right0
+            end1 = zone.right1
+            # if end > x_end:
+            #     end = x_end
+
+            if type == 0 or type == 3:
+                ax.fill_between([start, end0], zone.top, zone.bottom, facecolor="green", alpha=0.3)
+                ax.text(zone.left, zone.bottom, f"{'*' * zone.strength_rating}", fontsize=8)
+                if type == 3: # supply (1st break demand)
+                    ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="red", alpha=0.1)
+            elif type == 1 or type == 2:
+                ax.fill_between([start, end0], zone.top, zone.bottom, facecolor="red", alpha=0.3)
+                ax.text(zone.left, zone.top, f"{'*' * zone.strength_rating}", fontsize=8)
+                if type == 2: # demand (1st break supply)
+                    ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="green", alpha=0.1)
+                
         # debug = True
         # if debug:
         #     x, y = [], []
@@ -891,7 +896,7 @@ class CPlotDriver:
                      alpha=0.6,
                      )
 
-    def draw_volume_profile(self, meta: CChanPlotMeta, ax: Axes, arg={}):
+    def draw_volume_profile(self, meta: CChanPlotMeta, ax: Axes, ax_macd: Axes|None, arg={}):
         if self.print: print('volume_profile..')
         if meta.volume_profile.volume_inited:
             import numpy as np
@@ -911,6 +916,8 @@ class CPlotDriver:
             y_extend = (y_end - y_begin) *0.05 # 5% x range
             
             ax.set_xlim(xmin=x_begin, xmax=x_end + x_extend*3) # n-day, session, history
+            if ax_macd is not None:
+                ax_macd.set_xlim(xmin=x_begin, xmax=x_end + x_extend*3) # n-day, session, history
             
             # [0] buyside,
             # [1] sellside,
@@ -928,12 +935,22 @@ class CPlotDriver:
             
             # 2.session ==============================
             total_session = [0] * (idx_max+1-idx_min)
-            for zones in [meta.liquidity.demand_zones[1], meta.liquidity.supply_zones[1]]:
+            for zones in [meta.liquidity.barrier_zones[1]]:
                 for zone in zones:
-                    print(zone.enter_bi_VP)
-                    print(zone.leaving_bi_VP)
-                    # for idx, price in enumerate(y_pos):
-                    
+                    if zone.type == 0 or zone.type == 1:
+                        for price_mapped_volume in [zone.enter_bi_VP, zone.leaving_bi_VP]:
+                            if not price_mapped_volume:
+                                continue
+                            for idx_his, price_his in enumerate(y_pos):
+                                if price_his == price_mapped_volume[0][0]:
+                                    break
+                            for idx_ses, volume_ses in enumerate(price_mapped_volume[1]):
+                                total_session[idx_his+idx_ses] += int(volume_ses)
+                            
+            max_session_volume = max(total_session)
+            max_mapped = x_extend
+            total_session_adjusted = np.array([price_bin/max_session_volume*max_mapped for price_bin in total_session])
+
             # 3.bi ==============================
             # [buyside_bi, sellside_bi, buyside_curve_bi, sellside_curve_bi, volume_weighted_cost_bi, p20_bi, p50_bi, p80_bi] = \
             # meta.volume_profile.get_adjusted_volume_profile(max_mapped=x_extend, type='bi', sigma=0.01)
@@ -941,12 +958,6 @@ class CPlotDriver:
             # 4.day ==============================
             [buyside_day, sellside_day, buyside_curve_day, sellside_curve_day, volume_weighted_cost_day, p20_day, p50_day, p80_day] = \
             meta.volume_profile.get_adjusted_volume_profile(max_mapped=x_extend, type='day', sigma=0.01)
-            
-            # value = (buyside_curve - sellside_curve)*50
-            # minimum = min(value)
-            # if minimum < 0:
-            #     value -= minimum
-            # ax.plot(value, y_pos, color='red',  linewidth=4)
             
             ax.barh(y=y_pos, width=buyside_day,  height=price_bin_width, color='orange',   label='Buyside',  align='center', left=[x_end + 0*x_extend     for _ in buyside_day], alpha=0.4)
             ax.barh(y=y_pos, width=sellside_day, height=price_bin_width, color='purple',   label='Sellside', align='center', left=[x_end + 0*x_extend + i for i in buyside_day], alpha=0.4)
@@ -958,6 +969,9 @@ class CPlotDriver:
             ax.plot(range(x_end + 0*x_extend, x_end + 1*x_extend), [p80_day] * x_extend, color='gray', linewidth=2)
             ax.text(x_end + 0*x_extend, y_pos[-1] - y_extend, f'{meta.volume_profile.N_day}-day VP', fontsize=10, color='black')
             
+            ax.plot(x_end + 1*x_extend + total_session_adjusted, y_pos, color='black', linewidth=2)
+            ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'session VP', fontsize=10, color='black')
+            
             # ax.barh(y=y_pos, width=buyside_bi,  height=price_bin_width, color='orange',   label='Buyside',  align='center', left=[x_end + 0*x_extend     for _ in buyside_bi], alpha=0.4)
             # ax.barh(y=y_pos, width=sellside_bi, height=price_bin_width, color='purple',   label='Sellside', align='center', left=[x_end + 0*x_extend + i for i in buyside_bi], alpha=0.4)
             # ax.plot(x_end + 1*x_extend + buyside_curve_bi,                        y_pos, color='orange', linewidth=2)
@@ -966,9 +980,7 @@ class CPlotDriver:
             # ax.plot(range(x_end + 1*x_extend, x_end + 2*x_extend), [p20_bi] * x_extend, color='gray', linewidth=2)
             # ax.plot(range(x_end + 1*x_extend, x_end + 2*x_extend), [p50_bi] * x_extend, color='gray', linewidth=2)
             # ax.plot(range(x_end + 1*x_extend, x_end + 2*x_extend), [p80_bi] * x_extend, color='gray', linewidth=2)
-            ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'{meta.volume_profile.N_bi}-bi VP', fontsize=10, color='black')
-            
-            ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'session VP', fontsize=10, color='black')
+            # ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'{meta.volume_profile.N_bi}-bi VP', fontsize=10, color='black')
             
             ax.barh(y=y_pos, width=buyside,  height=price_bin_width, color='red',   label='Buyside',  align='center', left=[x_end + 2*x_extend     for _ in buyside],  alpha=0.4)
             ax.barh(y=y_pos, width=sellside, height=price_bin_width, color='green', label='Sellside', align='center', left=[x_end + 2*x_extend + i for i in buyside], alpha=0.4)

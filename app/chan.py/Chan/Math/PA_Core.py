@@ -67,14 +67,23 @@ class PA_Core:
     def add_volume_profile(self, batch_volume_profile:List, type:str):
         price_mapped_volume = self.PA_Volume_Profile.update_volume_profile(batch_volume_profile, type)
         if price_mapped_volume: # update bi volume profile to forming zones
-            
+            A = price_mapped_volume
+            n = len(price_mapped_volume[0])
+            # Use slicing to split upper and lower halves
+            lower_half = [x[:n // 2] for x in A]
+            upper_half = [x[n // 2:] for x in A]
             bi_index = self.PA_Liquidity.bi_index
-            for zones in [self.PA_Liquidity.demand_zones[1], self.PA_Liquidity.supply_zones[1]]:
-                for zone in zones:
-                    if zone.index == bi_index:
-                        zone.enter_bi_VP = copy.deepcopy(price_mapped_volume)
-                    if zone.index == (bi_index-1):
-                        zone.leaving_bi_VP = copy.deepcopy(price_mapped_volume)
+            for zone in self.PA_Liquidity.barrier_zones[1]:
+                if zone.index == bi_index: # enter_bi_VP
+                    if zone.type == 0: # demand
+                        zone.enter_bi_VP = copy.deepcopy(lower_half)
+                    else: # supply
+                        zone.enter_bi_VP = copy.deepcopy(upper_half)
+                if zone.index == (bi_index-1): # leaving_bi_VP
+                    if zone.type == 0: # demand
+                        zone.leaving_bi_VP = copy.deepcopy(lower_half)
+                    else: # supply
+                        zone.leaving_bi_VP = copy.deepcopy(upper_half)
         
     def init_PA_elements(self):
         # init shapes

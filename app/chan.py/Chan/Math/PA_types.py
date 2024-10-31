@@ -9,20 +9,32 @@ class vertex:
 
 @dataclass
 class barrier_zone:
+    # typically supply and demand
+    
     index:int # e.g. bi index
     
     left:int # starting time
-    right:int # ending time
     top:float
     bottom:float
     
-    volume:int
-    types:int
+    right0:int  # 1st ending time
+    right1:int  # 2nd ending time
+    # ... with weaker effects 
+    
+    # barrier types:
     # 0: demand
     # 1: supply
+    # 2: demand (1st break supply)
+    # 3: supply (1st break demand)
+    # 4: ... with weaker effects
+    type:int|None = None
     
-    strength_rating:int # 0~10
+    volume:int = 0
     
+    strength_rating:int = 0 # 0~10
+    
+    # if re-tested and not broken, new VP will be recorded in the newly formed zones
+    # so no need to record here
     enter_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
     leaving_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
     
