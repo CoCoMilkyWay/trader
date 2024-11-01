@@ -941,16 +941,17 @@ class CPlotDriver:
                         for price_mapped_volume in [zone.enter_bi_VP, zone.leaving_bi_VP]:
                             if not price_mapped_volume:
                                 continue
-                            for idx_his, price_his in enumerate(y_pos):
+                            for _idx_his, price_his in enumerate(y_pos):
                                 if price_his == price_mapped_volume[0][0]:
+                                    idx_his = _idx_his
                                     break
                             for idx_ses, volume_ses in enumerate(price_mapped_volume[1]):
                                 total_session[idx_his+idx_ses] += int(volume_ses)
-                            
+                                
             max_session_volume = max(total_session)
             max_mapped = x_extend
             total_session_adjusted = np.array([price_bin/max_session_volume*max_mapped for price_bin in total_session])
-
+            
             # 3.bi ==============================
             # [buyside_bi, sellside_bi, buyside_curve_bi, sellside_curve_bi, volume_weighted_cost_bi, p20_bi, p50_bi, p80_bi] = \
             # meta.volume_profile.get_adjusted_volume_profile(max_mapped=x_extend, type='bi', sigma=0.01)
@@ -969,6 +970,7 @@ class CPlotDriver:
             ax.plot(range(x_end + 0*x_extend, x_end + 1*x_extend), [p80_day] * x_extend, color='gray', linewidth=2)
             ax.text(x_end + 0*x_extend, y_pos[-1] - y_extend, f'{meta.volume_profile.N_day}-day VP', fontsize=10, color='black')
             
+            ax.barh(y=y_pos, width=total_session_adjusted,  height=price_bin_width, color='black',   label='barrier VP',  align='center', left=[x_end + 1*x_extend] * len(total_session_adjusted), alpha=0.4)
             ax.plot(x_end + 1*x_extend + total_session_adjusted, y_pos, color='black', linewidth=2)
             ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'session VP', fontsize=10, color='black')
             

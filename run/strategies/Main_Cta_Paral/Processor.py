@@ -279,6 +279,8 @@ class n_Processor:
         except Exception as e:
             print(f"{type(e).__name__}")
             print(e)
+            import traceback
+            print(traceback.format_exc())
     
     def init_new_chan(self, code):
         self.chan_snapshot[code] = CChan(
