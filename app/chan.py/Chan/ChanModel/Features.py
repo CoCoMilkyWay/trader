@@ -23,6 +23,15 @@ from typing import Optional
 | and Outliers                  | - Capping/Transforming Outliers: Cap or transform (log, square root) outliers to prevent distortion.                                      |
 +-------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------+
 
+# there are many choices for XGBoost-like algorithm to learn [a,b,c], where a,b,c are real number
+# and their sequence matters:
+#   1. weighted/polynomial-encoding
+#   2. embedding (for NN)
+#   3. sinusoidal encoding (from transformer models to capture temporal info)
+#   4. fourier/frequency encoding
+#   5. auto-encoder-based encoding (LSTM/GRU)
+#   6. lagged features
+
 '''
 
 class CFeatures:

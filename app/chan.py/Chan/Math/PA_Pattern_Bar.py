@@ -3,19 +3,35 @@
 # ref: https://www.youtube.com/watch?v=pK6S7CEqMAk
 
 # this is mainly for Daily Bias
+#   1.  Directional Move: How the candle moves (bullish or bearish).
+#   2.  Size: The range between the open and close.
+#   3.  Relative Position: How the candle appears on the chart in relation to adjacent candles.
 
-# there are many choices for XGBoost-like algorithm to learn [a,b,c], where a,b,c are real number
-# and their sequence matters:
-#   1. weighted/polynomial-encoding
-#   2. embedding (for NN)
-#   3. sinusoidal encoding (from transformer models to capture temporal info)
-#   4. fourier/frequency encoding
-#   5. auto-encoder-based encoding (LSTM/GRU)
-#   6. lagged features
+# 3 critical higher time-frame candle levels:
+#   1.  High or Low
+#       If the price moved higher then retraced into a bearish (down) candle, its high serves as the first support level.
+#       If the price moved lower then retraced into a bullish (up) candle, its low acts as the first resistance level.
+#   2.  Open Price:
+#       The open price of the bullish or bearish candle acts as the second support and resistance level respectively.
+#   3.  Median Threshold (M.T.):
+#   T   he M.T. represents the halfway point between the open and close of the candle, not the high and low, it acts as the third and final support or resistance level respectively.
 
+# 3 types of candle zones:
+#   1.  FVG(fair value gap): body of a candle not overlapped with previous/next candles' high/low
+#   2.  VI(Volume Imbalance): gap between previous/next candles' body(open/close), but with wicks in gap
+#   3.  Gap(Price & Volume Imbalance): gap between previous/next candles' high/low (wicks do not close)
 
-
-
+# NOTE:
+#   price has a tendency to revert back to central location
+# > each bullish bar serve as resistance(at 3 critical candle levels)
+#   each bearish bar serve as support(at 3 critical candle levels)
+# > however there are a lot of false signals(break some level but trend continues)
+# > use way to identify key levels with more strength:
+#       1. a clear move away from the support/resistance candle
+#           a. Price must move away twice the distance of the body of the support or resistance candle. ICT uses this approach.
+#           b. A subsequent one or more candles must both open and close above the high or low of the support and resistance level respectively
+#       2. creates a pivot point
+#           a. by support/resist-ing the body or wick of the candle after it, effectively creates a short term low/high pivot point (mini nexus/zs)
 
 
 
