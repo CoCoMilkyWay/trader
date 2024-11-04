@@ -63,7 +63,10 @@ class PA_Core:
         self.bi_lst_is_sure = is_sure
         # if DEBUG:
         #     print(self.bi_lst)
-        
+    
+    def add_seg(self):
+        pass
+    
     def add_volume_profile(self, batch_volume_profile:List, type:str):
         price_mapped_volume = self.PA_Volume_Profile.update_volume_profile(batch_volume_profile, type)
         if price_mapped_volume: # update bi volume profile to forming zones
@@ -84,6 +87,15 @@ class PA_Core:
                         zone.leaving_bi_VP = copy.deepcopy(lower_half)
                     else: # supply
                         zone.leaving_bi_VP = copy.deepcopy(upper_half)
+                    if zone.enter_bi_VP and zone.leaving_bi_VP:
+                        volume = sum(zone.enter_bi_VP[1]) + sum(zone.leaving_bi_VP[1])
+                        self.PA_Liquidity.demand_volume_sum, \
+                        self.PA_Liquidity.demand_sample_num, \
+                        zone.strength_rating = \
+                        self.PA_Liquidity.get_strength_rating(
+                            self.PA_Liquidity.demand_volume_sum, 
+                            self.PA_Liquidity.demand_sample_num, 
+                            volume)
         
     def init_PA_elements(self):
         # init shapes
@@ -109,7 +121,7 @@ class PA_Core:
             self.PA_Shapes = copy.deepcopy(self.shapes_deep_copy)
                             
         self.add_vertex_to_shapes(vertex, is_sure)
-        self.add_vertex_to_liquidity(vertex, is_sure, self.end_open, self.end_close, self.end_volume)
+        self.add_vertex_to_liquidity(vertex, is_sure, self.end_open, self.end_close)
         
     def add_vertex_to_shapes(self, vertex:vertex, is_sure:bool):
         for shape_name in self.shape_keys:
@@ -132,12 +144,12 @@ class PA_Core:
                     if is_sure:
                         self.PA_Shapes[shape_name].append(nexus_type(vertex))
                         
-    def add_vertex_to_liquidity(self, vertex:vertex, is_sure:bool, end_open:float, end_close:float, end_volume:int):
+    def add_vertex_to_liquidity(self, vertex:vertex, is_sure:bool, end_open:float, end_close:float):
         # liquidity zone should be formed at breakthrough, but for ease of computation
         # only update at FX formation
         
         if is_sure: # it is fine to update later
-            self.PA_Liquidity.add_vertex(vertex, end_open, end_close, end_volume)
+            self.PA_Liquidity.add_vertex(vertex, end_open, end_close)
             
     def get_chart_pattern_shapes(self, complete:bool=False, potential:bool=False, with_idx:bool=False):
         shapes:List[

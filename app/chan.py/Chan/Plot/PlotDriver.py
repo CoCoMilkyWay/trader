@@ -812,14 +812,14 @@ class CPlotDriver:
         if self.print: print('trend_lines..')
         for seg_idx, seg_meta in enumerate(meta.seg_list):
             # only plot the last 'plot_trendline_num' trendline (seg)
-            if seg_idx >= (len(meta.seg_list) - (plot_trendline_num+1)): # virtual segs have the same index
-                if seg_meta.tl.get('primary'):
-                    tl_meta_p = seg_meta.format_tl(seg_meta.tl['primary']) # suppS
-                    ax.plot([tl_meta_p[0], tl_meta_p[2]], [tl_meta_p[1], tl_meta_p[3]], color="orange", linewidth=trendline_width, alpha = 0.5)
-                if seg_meta.tl.get('secondary'):
-                    tl_meta_s = seg_meta.format_tl(seg_meta.tl['secondary'])
-                    ax.plot([tl_meta_s[0], tl_meta_s[2]], [tl_meta_s[1], tl_meta_s[3]], color="blue", linewidth=trendline_width, alpha = 0.5)
-                ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="orange", alpha=0.3)
+            # if seg_idx >= (len(meta.seg_list) - (plot_trendline_num+1)): # virtual segs have the same index
+            if seg_meta.tl.get('primary'):
+                tl_meta_p = seg_meta.format_tl(seg_meta.tl['primary'])
+                ax.plot([tl_meta_p[0], tl_meta_p[2]], [tl_meta_p[1], tl_meta_p[3]], color="black", linewidth=trendline_width, alpha = 0.5)
+            if seg_meta.tl.get('secondary'):
+                tl_meta_s = seg_meta.format_tl(seg_meta.tl['secondary'])
+                ax.plot([tl_meta_s[0], tl_meta_s[2]], [tl_meta_s[1], tl_meta_s[3]], color="gray", linewidth=trendline_width, alpha = 0.5)
+            ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="blue", alpha=0.1)
                 
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
         from Chan.Math.PA_types import barrier_zone
@@ -972,7 +972,7 @@ class CPlotDriver:
             
             ax.barh(y=y_pos, width=total_session_adjusted,  height=price_bin_width, color='black',   label='barrier VP',  align='center', left=[x_end + 1*x_extend] * len(total_session_adjusted), alpha=0.4)
             ax.plot(x_end + 1*x_extend + total_session_adjusted, y_pos, color='black', linewidth=2)
-            ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'session VP', fontsize=10, color='black')
+            ax.text(x_end + 1*x_extend, y_pos[-1] - y_extend, f'liquidity VP', fontsize=10, color='black')
             
             # ax.barh(y=y_pos, width=buyside_bi,  height=price_bin_width, color='orange',   label='Buyside',  align='center', left=[x_end + 0*x_extend     for _ in buyside_bi], alpha=0.4)
             # ax.barh(y=y_pos, width=sellside_bi, height=price_bin_width, color='purple',   label='Sellside', align='center', left=[x_end + 0*x_extend + i for i in buyside_bi], alpha=0.4)

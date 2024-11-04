@@ -24,6 +24,10 @@ class Line:
             return abs(self.slope*p.x - p.y + self.p.y - self.slope*self.p.x) / sqrt(self.slope**2 + 1)
 
 class PA_TrendLine:
+    # updated with bi_list: (see Seg.py)
+    # primary trendline along trend(segment)
+    # secondary trendline against trend(segment)
+    
     # a trendline, if not refreshed(touched but not broke), will lost effect after
     #   1. breakthrough from one side, role of support/resistance could swap(after touch from the otherside)
     #   2. followed by breakthrough from the other side

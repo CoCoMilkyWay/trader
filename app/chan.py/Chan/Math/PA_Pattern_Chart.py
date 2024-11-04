@@ -49,6 +49,8 @@ import numpy as np
 from typing import List, Dict
 from Chan.Math.PA_types import vertex
 
+MAX_RESIDUE = 0.1
+
 def util_distance(p1, p2):
     return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
 
@@ -145,7 +147,7 @@ class nexus_type: # continuation or breakout or reversal
         top_m, top_x, top_y, top_residue = fit_linear(top_vertices)
         bot_m, bot_x, bot_y, bot_residue = fit_linear(bottom_vertices)
         
-        if max(top_residue, bot_residue) > 0.4:
+        if max(top_residue, bot_residue) > MAX_RESIDUE:
             return False
         
         self.top_m, self.top_x, self.top_y, self.top_residue = top_m, top_x, top_y, top_residue

@@ -35,6 +35,7 @@ def get_seglist_instance(seg_config: CSegConfig, lv) -> CSegListComm:
 
 
 class CKLine_List:
+    DEBUG_SEG = False
     def __init__(self, kl_type, conf: CChanConfig):
         self.kl_type = kl_type
         self.config = conf
@@ -62,6 +63,9 @@ class CKLine_List:
         self.metric_model_lst = conf.GetMetricModel()
         
         self.step_calculation = self.need_cal_step_by_step()
+        
+        # DEBUG
+        self.seg_history = []
         
     def __deepcopy__(self, memo):
         new_obj = CKLine_List(self.kl_type, self.config)
@@ -147,14 +151,18 @@ class CKLine_List:
         if self.num_bi != len(self.bi_list):
             self.new_bi_start = True
             self.num_bi = len(self.bi_list)
+            
+            if self.DEBUG_SEG:
+                # update trendlines
+                for seg in self.seg_list:
+                    self.seg_history.append(seg)
         else:
             self.new_bi_start = False
             
     def klu_iter(self, klc_begin_idx=0):
         for klc in self.lst[klc_begin_idx:]:
             yield from klc.lst
-
-
+            
 def cal_seg(bi_list, seg_list):
     seg_list.update(bi_list)
     # 计算每一笔属于哪个线段

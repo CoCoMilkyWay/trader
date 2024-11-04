@@ -150,7 +150,11 @@ class CChanPlotMeta:
         
         self.seg_list: List[CSeg_meta] = []
         self.eigenfx_lst: List[CEigenFX_meta] = []
-        for seg in kl_list.seg_list:
+        if kl_list.DEBUG_SEG:
+            seg_list = kl_list.seg_history
+        else:
+            seg_list = kl_list.seg_list
+        for seg in seg_list:
             self.seg_list.append(CSeg_meta(seg))
             if seg.eigen_fx:
                 self.eigenfx_lst.append(CEigenFX_meta(seg.eigen_fx))

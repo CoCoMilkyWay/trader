@@ -68,6 +68,16 @@ class PA_Liquidity:
     # thus when price come back to this region, it would act as zone of reversed polarity
     # note that the effect of 2nd/3rd/... rejection is probably weaker than 1st rejection
     
+    # TODO: need more accurate description
+    # NOTE: liquidity are off different quality at different time, for organization to gather liquidity,
+    #       the most effective location to gather equity is:
+    #       1. at breakthrough, we are sure that retail-trader comes in
+    #       2. pull up, but not far, they would not sell
+    #       3. pull down, consolidation around or below (not far) previous 
+    #          breakthrough position (with large retail volume)
+    #       4. liquidity hunt on single equity (need volume, purpose is to wash-people-out, need to be unexpected)
+    #       5. pull up (sell-out) again
+    # NOTE: on single equity, lots of retail-holding-volume = no potential future pull up
     def __init__(self):
         self.bi_index: int = 0
         self.vertices:List[vertex] = []
@@ -87,7 +97,7 @@ class PA_Liquidity:
         
         self.snapshot:List = [] # snapshot of all liquidity zones
         
-    def add_vertex(self, new_vertex:vertex, end_open:float, end_close:float, end_volume:int):
+    def add_vertex(self, new_vertex:vertex, end_open:float, end_close:float):
         TOP = 1
         BOT = -1
         default_end = 1<<31
@@ -153,13 +163,11 @@ class PA_Liquidity:
             if FX_type==BOT:
                 zone_bot = new_vertex.value
                 zone_top = min(end_open, zone_bot + 0.1 * abs(delta_y)) # avoid zone to be too thick (from rapid price change)
-                self.demand_volume_sum, self.demand_sample_num, strength_rating = self.get_strength_rating(self.demand_volume_sum, self.demand_sample_num, end_volume)
-                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 0, end_volume, strength_rating, None, None))
+                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 0, 0, 0, None, None))
             else:
                 zone_top = new_vertex.value
                 zone_bot = max(end_open, zone_top - 0.1 * abs(delta_y)) # avoid zone to be too thick (from rapid price change)
-                self.supply_volume_sum, self.supply_sample_num, strength_rating = self.get_strength_rating(self.supply_volume_sum, self.supply_sample_num, end_volume)
-                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 1, end_volume, strength_rating, None, None))
+                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 1, 0, 0, None, None))
         self.vertices.append(new_vertex)
         
         #　s = self.supply_zones[1]
