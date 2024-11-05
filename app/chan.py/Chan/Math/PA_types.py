@@ -73,7 +73,8 @@ class barrier_zone: # supply and demand and their derivatives
     enter_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
     leaving_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
     
-    tolerance:float = 0
+    tolerance:float = 0.0
+    num_touch:int = 0
     
     # BoS/ChoCh
     BoS:Optional[List[int|float]] = None

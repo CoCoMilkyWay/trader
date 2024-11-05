@@ -1,6 +1,7 @@
 # PA: Price Action
 # ref: https://tmipartner.com/lessons/institution/
 # ref: https://www.youtube.com/watch?v=i0hPu7eNty0
+# ref: https://www.youtube.com/watch?v=sWTnFS10tdQ
 
 # continuation pattern:
 #   up:

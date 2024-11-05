@@ -162,15 +162,19 @@ class PA_Liquidity:
                 ]:
                 zones_forming_buffer = []
                 for zone_forming in zones[1]:
-                    top = zone_forming.top + tolerance
-                    bot = zone_forming.bottom - tolerance
+                    top = zone_forming.top + zone_forming.tolerance
+                    bot = zone_forming.bottom - zone_forming.tolerance
                     zone_broken = (bi_top > top) and (bi_bottom < bot)
                     if FX_type==TOP:
                         zone_touched = bot < bi_top < top
                     else:
                         zone_touched = bot < bi_bottom < top
                     
-                    zone_forming.MB = zone_touched
+                    if zone_touched:
+                        zone_forming.num_touch += 1
+                        
+                    if not zone_forming.MB and zone_touched:
+                        zone_forming.MB = True
                     
                     if zone_broken:
                         zone_type = zone_forming.type

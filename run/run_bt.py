@@ -37,7 +37,7 @@ def run_bt():
     # Restart the Python interpreter, effectively killing all threads
     # os.execv(sys.executable, [sys.executable] + sys.argv)
     
-    NUM= None # N/None
+    NUM= 10 # N/None
     print('Pulling stock pool ...')
     if NUM:
         assets_list, assets_valid = get_bao_stocks(pool='zz500')

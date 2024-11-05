@@ -818,10 +818,16 @@ class CPlotDriver:
                 ax.plot([tl_meta_p[0], tl_meta_p[2]], [tl_meta_p[1], tl_meta_p[3]], color="black", linewidth=trendline_width, alpha = 0.5)
             if seg_meta.tl.get('secondary'):
                 tl_meta_s = seg_meta.format_tl(seg_meta.tl['secondary'])
-                ax.plot([tl_meta_s[0], tl_meta_s[2]], [tl_meta_s[1], tl_meta_s[3]], color="gray", linewidth=trendline_width, alpha = 0.5)
+                ax.plot([tl_meta_s[0], tl_meta_s[2]], [tl_meta_s[1], tl_meta_s[3]], color="gray", linewidth=trendline_width, alpha = 0.2)
             ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="blue", alpha=0.05)
                 
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
+        def c(color:str, is_balck:bool) -> str:# get_color
+            if is_balck:
+                return 'black'
+            else:
+                return color
+            
         from Chan.Math.PA_types import barrier_zone
         if self.print: print('liquidity_zones..')
         x_end   = int(ax.get_xlim()[1])
@@ -833,27 +839,29 @@ class CPlotDriver:
             
             end0 = zone.right0
             end1 = zone.right1
+            
+            b = zone.ChoCh
             # if end > x_end:
             #     end = x_end
 
             if type == 0 or type == 3: # demand
                 ax.fill_between([start, end0], zone.top, zone.bottom, facecolor="green", alpha=0.3)
-                ax.text(zone.left, zone.bottom, f"{'*' * zone.strength_rating}", fontsize=8)
+                ax.text(zone.left, zone.bottom, f"{zone.num_touch}{'*' * zone.strength_rating}", fontsize=8)
                 if zone.OB:
-                    ax.plot([start, end0], [zone.bottom] * 2, color="green", linewidth=1, alpha = 1)
+                    ax.plot([start, end0], [zone.bottom] * 2, color=c("green",b), linewidth=1, alpha = 1)
                 if type == 3: # supply (1st break demand)
                     ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="red", alpha=0.3)
                     if zone.BB:
-                        ax.plot([end0+1, end1], [zone.top] * 2, color="red", linewidth=1, alpha = 1)
+                        ax.plot([end0+1, end1], [zone.top] * 2, color=c("orange",b), linewidth=1, alpha = 1)
             elif type == 1 or type == 2: # supply
                 ax.fill_between([start, end0], zone.top, zone.bottom, facecolor="red", alpha=0.3)
-                ax.text(zone.left, zone.top, f"{'*' * zone.strength_rating}", fontsize=8)
+                ax.text(zone.left, zone.top, f"{zone.num_touch}{'*' * zone.strength_rating}", fontsize=8)
                 if zone.OB:
-                    ax.plot([start, end0], [zone.top] * 2, color="red", linewidth=1, alpha = 1)
+                    ax.plot([start, end0], [zone.top] * 2, color=c("red",b), linewidth=1, alpha = 1)
                 if type == 2: # demand (1st break supply)
                     ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="green", alpha=0.3)
                     if zone.BB:
-                        ax.plot([end0+1, end1], [zone.bottom] * 2, color="green", linewidth=1, alpha = 1)
+                        ax.plot([end0+1, end1], [zone.bottom] * 2, color=c("blue",b), linewidth=1, alpha = 1)
                     
             if zone.BoS:
                 if zone.ChoCh:
