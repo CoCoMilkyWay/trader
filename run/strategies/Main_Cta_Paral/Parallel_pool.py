@@ -156,7 +156,7 @@ class n_processor_queue:
             except Exception as e:
                 if isinstance(e, KeyboardInterrupt):
                     return
-                elif worker_id == 0 and WORKER_TRACE_PRINT:
+                elif WORKER_TRACE_PRINT:# and worker_id == 0:
                     with print_lock:
                         print(f'Worker {worker_id} exception: {str(e)}')
                         import traceback

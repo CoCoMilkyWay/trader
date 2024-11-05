@@ -28,8 +28,8 @@ analyze         = False
 snoop           = False
 profile         = False
 period, n       = 'm', 1 # bar period
-start           = 202401010931
-end             = 202404010000
+start           = 202301010931
+end             = 202304010000
 capital         = 10000000
 
 def run_bt():
@@ -37,13 +37,15 @@ def run_bt():
     # Restart the Python interpreter, effectively killing all threads
     # os.execv(sys.executable, [sys.executable] + sys.argv)
     
-    NUM= 10 # N/None
+    NUM= None # N/None
     print('Pulling stock pool ...')
     if NUM:
         assets_list, assets_valid = get_bao_stocks(pool='zz500')
         assets =  [asset for asset in assets_list if asset.startswith('sh')][:NUM]
         assets += [asset for asset in assets_list if asset.startswith('sz')][:NUM]
-    else: assets = ['sh.600004',] # 'sz.000009']
+    else: 
+        assets = ['sh.600004', 'sz.000009']
+        # assets = ['sh.600004', 'sh.600008', 'sh.600021', 'sh.600022', 'sh.600032', 'sh.600038', 'sh.600056', 'sh.600060', 'sh.600062', 'sh.600066', 'sh.600079', 'sh.600095', 'sh.600096', 'sh.600098', 'sh.600109', 'sh.600118', 'sh.600126', 'sh.600129', 'sh.600131', 'sh.600141', 'sz.000009', 'sz.000021', 'sz.000027', 'sz.000031', 'sz.000032', 'sz.000039', 'sz.000050', 'sz.000060', 'sz.000066', 'sz.000155', 'sz.000156', 'sz.000400', 'sz.000401', 'sz.000423', 'sz.000513', 'sz.000519', 'sz.000537', 'sz.000539', 'sz.000559', 'sz.000563']
     
     print('Preparing dsb data (Combining and Resampling) ...')
     asset_dict = {'sh':'SSE', 'sz':'SZSE'} # wt_asset = 'SSE.STK.600000'
@@ -66,8 +68,9 @@ def run_bt():
         store_path_target = f'{cfg.WT_STORAGE_DIR}/his/{period_dict[period]+str(n)}/{exchange}/{code}.dsb'
         try:
             combine_dsb_1m(dtHelper, read_path, store_path_1m, total=True)
-        except:
+        except Exception as e:
             print(f'Err processing: {asset}')
+            print(e)
             continue
         if n!=1:
             resample(dtHelper, store_path_1m, n, store_path_target)

@@ -91,9 +91,9 @@ class PA_Liquidity:
         self.rejection_zones:   List[List[barrier_zone]] = [[],[]] # [formed, forming]
         
         # average & percentile
-        self.supply_volume_sum: float = 0
+        self.supply_volume_sum: float = 1 # avoid division by 0
         self.supply_sample_num: int = 0
-        self.demand_volume_sum: float = 0
+        self.demand_volume_sum: float = 1 # avoid division by 0
         self.demand_sample_num: int = 0
         
         self.snapshot:List = [] # snapshot of all liquidity zones
@@ -131,7 +131,7 @@ class PA_Liquidity:
             else:
                 new_BoS = (new_vertex.value-last_1_vertex.value) > 1.3*(last_2_vertex.value-last_1_vertex.value)
             
-            if new_BoS:
+            if new_BoS and len(self.barrier_zones[1])>0:
                 self.barrier_zones[1][-1].BoS = [last_2_vertex.idx, new_vertex.idx, last_2_vertex.value]
                 self.BoS_type_history.append(FX_type==BOT) # 0: break up 1: break down
                 self.BoS_price_history.append(self.vertices[-2].value) # not BoS level, but the sup/res level

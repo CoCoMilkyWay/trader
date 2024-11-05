@@ -99,8 +99,8 @@ class PA_Volume_Profile():
             new_min_idx = self.volume_idx_min - index_range_low
             
         self.batch_cnt += 1
-        buyside_sum = sum(batch_volume_buyside)
-        sellside_sum = sum(batch_volume_sellside)
+        buyside_sum = sum(batch_volume_buyside) + 1 # avoid 0
+        sellside_sum = sum(batch_volume_sellside) + 1 # avoid 0
         ratio = self.arctan_map(x=buyside_sum/sellside_sum)
         self.inner_outer_order_ratio.append(ratio)
         
@@ -201,7 +201,7 @@ class PA_Volume_Profile():
         total:List[int|float] = [buyside[i] + sellside[i] for i in range(_len)]
         
         # max_volume = max(max(buyside), max(sellside))
-        max_volume = max(total)
+        max_volume = max(total) + 1 # avoid 0
         buyside = [price_bin/max_volume*max_mapped for price_bin in buyside]
         sellside = [price_bin/max_volume*max_mapped for price_bin in sellside]
         
@@ -212,7 +212,7 @@ class PA_Volume_Profile():
         idx_min = self.volume_idx_min
         idx_max = idx_min + _len
         prices = np.array([idx * self.price_bin_width for idx in range(idx_min, idx_max)])
-        volume_weighted_cost = np.dot(prices, total) / sum(total) # similar but not VWAP
+        volume_weighted_cost = np.dot(prices, total) / (sum(total)+1) # avoid 0 (similar but not VWAP)
         # Calculate the 30th, 50th, and 70th percentiles (cumulative)
         cumulative_sum = np.cumsum(total)
         pct_20_value = 0.2 * cumulative_sum[-1]

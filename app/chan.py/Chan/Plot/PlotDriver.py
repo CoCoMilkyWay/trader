@@ -811,6 +811,8 @@ class CPlotDriver:
     ):
         if self.print: print('trend_lines..')
         for seg_idx, seg_meta in enumerate(meta.seg_list):
+            if seg_idx == 0:
+                continue
             # only plot the last 'plot_trendline_num' trendline (seg)
             # if seg_idx >= (len(meta.seg_list) - (plot_trendline_num+1)): # virtual segs have the same index
             if seg_meta.tl.get('primary'):
@@ -928,7 +930,7 @@ class CPlotDriver:
             idx_min = meta.volume_profile.volume_idx_min
             idx_max = meta.volume_profile.volume_idx_max
             price_bin_width = meta.volume_profile.price_bin_width
-            y_pos = np.arange(idx_min, idx_max+1) * price_bin_width
+            y_pos = np.round(np.arange(idx_min, idx_max+1) * price_bin_width, 2) # clear 0.00000001 residue
             
             x_begin = int(ax.get_xlim()[0])
             x_end   = int(ax.get_xlim()[1])
@@ -963,6 +965,8 @@ class CPlotDriver:
                         for price_mapped_volume in [zone.enter_bi_VP, zone.leaving_bi_VP]:
                             if not price_mapped_volume:
                                 continue
+                            if len(price_mapped_volume[0]) == 0:
+                                continue
                             for _idx_his, price_his in enumerate(y_pos):
                                 if price_his == price_mapped_volume[0][0]:
                                     idx_his = _idx_his
@@ -972,8 +976,11 @@ class CPlotDriver:
                                 
             max_session_volume = max(total_session)
             max_mapped = x_extend
-            total_session_adjusted = np.array([price_bin/max_session_volume*max_mapped for price_bin in total_session])
-            
+            if max_session_volume != 0:
+                total_session_adjusted = np.array([price_bin/max_session_volume*max_mapped for price_bin in total_session])
+            else:
+                total_session_adjusted = np.array(total_session)
+                
             # 3.bi ==============================
             # [buyside_bi, sellside_bi, buyside_curve_bi, sellside_curve_bi, volume_weighted_cost_bi, p20_bi, p50_bi, p80_bi] = \
             # meta.volume_profile.get_adjusted_volume_profile(max_mapped=x_extend, type='bi', sigma=0.01)

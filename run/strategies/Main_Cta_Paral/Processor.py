@@ -305,11 +305,11 @@ class n_Processor:
         elif price < 10:
             return 0.01
         elif price < 100:
-            return 0.1
+            return 0.01
         elif price < 1000:
-            return 1
+            return 0.1
         else:
-            return 10
+            return 1
     
     # @jit(nopython=True, parallel=False) # acceleration(static compile before run)
     def process_batch_klu(self, resample_buffer: List[WtNpKline], price_bin_width:float) -> Tuple[CKLine_Unit, List[int|List[int]]]:
