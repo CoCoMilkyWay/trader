@@ -30,7 +30,7 @@ profile         = False
 period, n       = 'm', 1 # bar period
 start           = 202401010931
 end             = 202404010000
-capital         = 1000000000
+capital         = 10000000
 
 def run_bt():
     

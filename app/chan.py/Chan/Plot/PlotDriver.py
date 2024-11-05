@@ -819,7 +819,7 @@ class CPlotDriver:
             if seg_meta.tl.get('secondary'):
                 tl_meta_s = seg_meta.format_tl(seg_meta.tl['secondary'])
                 ax.plot([tl_meta_s[0], tl_meta_s[2]], [tl_meta_s[1], tl_meta_s[3]], color="gray", linewidth=trendline_width, alpha = 0.5)
-            ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="blue", alpha=0.1)
+            ax.fill_between([tl_meta_p[0], tl_meta_p[2] ], [tl_meta_p[1], tl_meta_p[3]], [tl_meta_s[1], tl_meta_s[3]], facecolor="blue", alpha=0.05)
                 
     def draw_liquidity_zones(self, meta:CChanPlotMeta, ax:Axes, arg={}):
         from Chan.Math.PA_types import barrier_zone
@@ -836,17 +836,32 @@ class CPlotDriver:
             # if end > x_end:
             #     end = x_end
 
-            if type == 0 or type == 3:
+            if type == 0 or type == 3: # demand
                 ax.fill_between([start, end0], zone.top, zone.bottom, facecolor="green", alpha=0.3)
                 ax.text(zone.left, zone.bottom, f"{'*' * zone.strength_rating}", fontsize=8)
+                if zone.OB:
+                    ax.plot([start, end0], [zone.bottom] * 2, color="green", linewidth=1, alpha = 1)
                 if type == 3: # supply (1st break demand)
-                    ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="red", alpha=0.1)
-            elif type == 1 or type == 2:
+                    ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="red", alpha=0.3)
+                    if zone.BB:
+                        ax.plot([end0+1, end1], [zone.top] * 2, color="red", linewidth=1, alpha = 1)
+            elif type == 1 or type == 2: # supply
                 ax.fill_between([start, end0], zone.top, zone.bottom, facecolor="red", alpha=0.3)
                 ax.text(zone.left, zone.top, f"{'*' * zone.strength_rating}", fontsize=8)
+                if zone.OB:
+                    ax.plot([start, end0], [zone.top] * 2, color="red", linewidth=1, alpha = 1)
                 if type == 2: # demand (1st break supply)
-                    ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="green", alpha=0.1)
-                
+                    ax.fill_between([end0+1, end1], zone.top, zone.bottom, facecolor="green", alpha=0.3)
+                    if zone.BB:
+                        ax.plot([end0+1, end1], [zone.bottom] * 2, color="green", linewidth=1, alpha = 1)
+                    
+            if zone.BoS:
+                if zone.ChoCh:
+                    ax.plot([zone.BoS[0], zone.BoS[1]], [zone.BoS[2]] * 2, color="red", linewidth=2, linestyle='dotted', alpha = 1)
+                    ax.text(zone.BoS[0], zone.BoS[2], f"ChoCh", color="red", fontsize=5, fontweight='bold', horizontalalignment='left', verticalalignment='top')
+                else:
+                    # ax.plot([zone.BoS[0], zone.BoS[1]], [zone.BoS[2]] * 2, color="gray", linewidth=2, linestyle='dotted', alpha = 1)
+                    ax.text(zone.BoS[0], zone.BoS[2], f"BoS", color="black", fontsize=5, fontweight='bold', horizontalalignment='left', verticalalignment='top')
         # debug = True
         # if debug:
         #     x, y = [], []
@@ -856,7 +871,6 @@ class CPlotDriver:
         #         ax.text(x[-1],y[-1],f"{x[-1]}")
         #     ax.plot(x, y, 'o', markersize=3)
             
-        
     def draw_chart_patterns(
         self,
         meta: CChanPlotMeta,

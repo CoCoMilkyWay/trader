@@ -334,7 +334,7 @@ class n_Processor:
             close:float = klu.closes[-1]
             volume:int = int(klu.volumes[-1])
             total_volume += volume
-            index:int = int(close//price_bin_width)
+            index:int = int(((close+open)/2)//price_bin_width)
             # error correction:
             if not (index_range_low < index < index_range_high):
                 index = index_range_low

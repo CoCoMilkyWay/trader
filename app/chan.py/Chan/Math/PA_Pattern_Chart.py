@@ -219,9 +219,9 @@ class nexus_type: # continuation or breakout or reversal
         if self.rising_cnt > 8 or self.falling_cnt > 8: # abnormal shape
             return False
         
-        last_vertex = self.vertices[-1]
-        delta_y = new_vertex.value - last_vertex.value
-        delta_x = new_vertex.idx - last_vertex.idx
+        last_1_vertex = self.vertices[-1]
+        delta_y = new_vertex.value - last_1_vertex.value
+        delta_x = new_vertex.idx - last_1_vertex.idx
         if self.state == self.START:
             if delta_y < 0:
                 self.entry_dir = DOWN

@@ -3,7 +3,7 @@ import os, sys
 import math
 import numpy as np
 from numpy.polynomial import Polynomial
-from typing import List, Dict
+from typing import List, Dict, Union
 import copy
 
 from Chan.Bi.Bi import CBi
@@ -11,6 +11,13 @@ from Chan.Math.PA_types import vertex
 from Chan.Math.PA_Pattern_Chart import nexus_type
 from Chan.Math.PA_Liquidity import PA_Liquidity
 from Chan.Math.PA_Volume_Profile import PA_Volume_Profile
+
+# things that PA(Price Action) is lacking:
+#   HFT market making, 
+#   statistical arbitrage, 
+#   gamma scalping, 
+#   volatility arbitrage, 
+#   systematic trading
 
 DEBUG = False
 
@@ -68,34 +75,8 @@ class PA_Core:
         pass
     
     def add_volume_profile(self, batch_volume_profile:List, type:str):
-        price_mapped_volume = self.PA_Volume_Profile.update_volume_profile(batch_volume_profile, type)
-        if price_mapped_volume: # update bi volume profile to forming zones
-            A = price_mapped_volume
-            n = len(price_mapped_volume[0])
-            # Use slicing to split upper and lower halves
-            lower_half = [x[:n // 2] for x in A]
-            upper_half = [x[n // 2:] for x in A]
-            bi_index = self.PA_Liquidity.bi_index
-            for zone in self.PA_Liquidity.barrier_zones[1]:
-                if zone.index == bi_index: # enter_bi_VP
-                    if zone.type == 0: # demand
-                        zone.enter_bi_VP = copy.deepcopy(lower_half)
-                    else: # supply
-                        zone.enter_bi_VP = copy.deepcopy(upper_half)
-                if zone.index == (bi_index-1): # leaving_bi_VP
-                    if zone.type == 0: # demand
-                        zone.leaving_bi_VP = copy.deepcopy(lower_half)
-                    else: # supply
-                        zone.leaving_bi_VP = copy.deepcopy(upper_half)
-                    if zone.enter_bi_VP and zone.leaving_bi_VP:
-                        volume = sum(zone.enter_bi_VP[1]) + sum(zone.leaving_bi_VP[1])
-                        self.PA_Liquidity.demand_volume_sum, \
-                        self.PA_Liquidity.demand_sample_num, \
-                        zone.strength_rating = \
-                        self.PA_Liquidity.get_strength_rating(
-                            self.PA_Liquidity.demand_volume_sum, 
-                            self.PA_Liquidity.demand_sample_num, 
-                            volume)
+        price_mapped_volume:None|List[Union[List[float], List[int]]] = self.PA_Volume_Profile.update_volume_profile(batch_volume_profile, type)
+        self.PA_Liquidity.add_volume_profile(price_mapped_volume)
         
     def init_PA_elements(self):
         # init shapes

@@ -56,7 +56,7 @@ def lock_print(lock, msg):
 #       however, it may also fail, be ware
 #   4. if in some systems, mp.value syncing somehow failed, 
 #       you may have to give mp.value some time.sleep()
-SLEEP = 0.00
+SLEEP = 0.001
 WORKER_TRACE_PRINT = True
 TIMEOUT = None
 

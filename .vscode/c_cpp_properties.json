@@ -8,7 +8,7 @@
                 "app/wtcpp/src/API/**"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/gcc-8",
+            //"compilerPath": "/usr/bin/gcc-8",
             "cStandard": "c17",
             "cppStandard": "c++14",
             "intelliSenseMode": "linux-gcc-x64"

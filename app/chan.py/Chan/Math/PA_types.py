@@ -40,6 +40,8 @@ class barrier_zone: # supply and demand and their derivatives
     #   1.  failed to break previous high/low (normal support/resistance)
     #   2.  or order block that is touched (like chattered glass, better wait for it to break
     #       and trade breakthrough)
+    # if MB is touched frequently, wait for it to shatter(breakthrough), however, if it is touched
+    #   less frequently, it may gather enough strength to hold and trade reversal
     
     # Reclaimed Order Block:
     # broken BB/MB that revert back to original order block
@@ -71,6 +73,20 @@ class barrier_zone: # supply and demand and their derivatives
     enter_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
     leaving_bi_VP: Optional[List[Union[List[int], List[float]]]] = None
     
+    tolerance:float = 0
+    
+    # BoS/ChoCh
+    BoS:Optional[List[int|float]] = None
+    ChoCh:bool = False
+    
+    # OB
+    OB:bool = False
+    BB:bool = False
+    MB:bool = False
+    
+    # FVG
+    # contrary to common method, we use VP to determine FVG here:
+    #   1.  consider pnl trading opportunity of 1.5~3
     def __init_(self):
         self.broken:bool = False
         

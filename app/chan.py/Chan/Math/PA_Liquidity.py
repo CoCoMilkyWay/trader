@@ -48,8 +48,9 @@
 
 import os, sys
 import math
+import copy
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Union
 from enum import Enum, auto
 from dataclasses import dataclass
 
@@ -97,6 +98,10 @@ class PA_Liquidity:
         
         self.snapshot:List = [] # snapshot of all liquidity zones
         
+        self.last_BoS:bool = False # last bi also creates a BoS
+        self.BoS_type_history:List[bool] = []
+        self.BoS_price_history:List[float] = []
+        
     def add_vertex(self, new_vertex:vertex, end_open:float, end_close:float):
         TOP = 1
         BOT = -1
@@ -105,34 +110,78 @@ class PA_Liquidity:
         self.bi_index += 1
         
         if len(self.vertices) >= 2:
-            last_vertex = self.vertices[-1]
-            delta_y = new_vertex.value - last_vertex.value
-            delta_x = new_vertex.idx - last_vertex.idx
+            last_1_vertex = self.vertices[-1]
+            last_2_vertex = self.vertices[-2]
+            delta_y = new_vertex.value - last_1_vertex.value
+            delta_x = new_vertex.idx - last_1_vertex.idx
+            delta_y_abs = abs(delta_y)
+            tolerance = 0.1 * delta_y_abs
             FX_type = TOP if delta_y > 0 else BOT
             if FX_type==BOT:
-                bi_top:float = last_vertex.value
+                bi_top:float = last_1_vertex.value
                 bi_bottom:float = new_vertex.value
             else:
                 bi_top:float = new_vertex.value
-                bi_bottom:float = last_vertex.value
+                bi_bottom:float = last_1_vertex.value
+            
+            # check if new BoS is formed
+            # use 1.3 to check significance of break
+            if FX_type==BOT:
+                new_BoS = (last_1_vertex.value-new_vertex.value) > 1.3*(last_1_vertex.value-last_2_vertex.value)
+            else:
+                new_BoS = (new_vertex.value-last_1_vertex.value) > 1.3*(last_2_vertex.value-last_1_vertex.value)
+            
+            if new_BoS:
+                self.barrier_zones[1][-1].BoS = [last_2_vertex.idx, new_vertex.idx, last_2_vertex.value]
+                self.BoS_type_history.append(FX_type==BOT) # 0: break up 1: break down
+                self.BoS_price_history.append(self.vertices[-2].value) # not BoS level, but the sup/res level
+                if len(self.BoS_type_history) > 3:
+                    # check if a potential reversal against a trend happened
+                    if all([self.BoS_type_history[-2] == self.BoS_type_history[-3-i] for i in [0,]]) and self.BoS_type_history[-2] != self.BoS_type_history[-1]:
+                        down = 1 if FX_type==BOT else -1
+                        # check previous trend formation (only need 2 BoS of the same type to form a trend)
+                        if all([(down*self.BoS_price_history[-2-i]) > (down*self.BoS_price_history[-3-i]) for i in [0,]]):
+                            # check if the structure it breaks is significant enough:
+                            if abs(self.vertices[-2].value - self.vertices[-3].value) > 0.5*abs(self.vertices[-4].value - self.vertices[-5].value):
+                                if  self.last_BoS: # check if it is a new BoS formed from the other side
+                                    self.barrier_zones[1][-1].ChoCh = True
+
+                # check if is order block
+                self.barrier_zones[1][-1].OB = True # not check FVG here, check later
                 
-            # close all zones within last bi when conditions are met
+                # update tolerance for touch detection
+                self.barrier_zones[1][-1].tolerance = tolerance
+                
+                # update last BoS
+                self.last_BoS = new_BoS
+            
+            # 1. change state of previous zones
+            # 2. form new zone
             for zones in [
                 self.barrier_zones,
                 ]:
                 zones_forming_buffer = []
                 for zone_forming in zones[1]:
-                    zone_broken = (bi_top > zone_forming.top) and (bi_bottom < zone_forming.bottom)
+                    top = zone_forming.top + tolerance
+                    bot = zone_forming.bottom - tolerance
+                    zone_broken = (bi_top > top) and (bi_bottom < bot)
+                    if FX_type==TOP:
+                        zone_touched = bot < bi_top < top
+                    else:
+                        zone_touched = bot < bi_bottom < top
+                    
+                    zone_forming.MB = zone_touched
+                    
                     if zone_broken:
                         zone_type = zone_forming.type
                         
                         # calculating horizontal span
                         zone_level:float = (zone_forming.top + zone_forming.bottom)/2
-                        zone_ratio_in_bi:float = (zone_level - bi_bottom) / abs(delta_y)
+                        zone_ratio_in_bi:float = (zone_level - bi_bottom) / delta_y_abs
                         if FX_type==TOP:
-                            zone_idx:int = last_vertex.idx + int(zone_ratio_in_bi * delta_x)
+                            zone_idx:int = last_1_vertex.idx + int(zone_ratio_in_bi * delta_x)
                         else:
-                            zone_idx:int = last_vertex.idx + int((1-zone_ratio_in_bi) * delta_x)
+                            zone_idx:int = last_1_vertex.idx + int((1-zone_ratio_in_bi) * delta_x)
                         
                         # delete VP if zone is already formed to save memory
                         # NOTE: after 1st breakthrough, the old volume already means nothing
@@ -144,10 +193,14 @@ class PA_Liquidity:
                         if zone_type == 0: # demand
                             zone_forming.right0 = zone_idx
                             zone_forming.type = 3
+                            if zone_forming.OB:
+                                zone_forming.BB = True
                             zones_forming_buffer.append(zone_forming) # zone_forming
                         elif zone_type == 1: # supply
                             zone_forming.right0 = zone_idx
                             zone_forming.type = 2
+                            if zone_forming.OB:
+                                zone_forming.BB = True
                             zones_forming_buffer.append(zone_forming) # zone_forming
                         elif zone_type == 2: # demand (1st break supply)
                             zone_forming.right1 = zone_idx
@@ -162,12 +215,13 @@ class PA_Liquidity:
             # add new forming zones
             if FX_type==BOT:
                 zone_bot = new_vertex.value
-                zone_top = min(end_open, zone_bot + 0.1 * abs(delta_y)) # avoid zone to be too thick (from rapid price change)
-                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 0, 0, 0, None, None))
+                zone_top = min(end_open, zone_bot + 0.1 * delta_y_abs) # avoid zone to be too thick (from rapid price change)
+                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 0))
             else:
                 zone_top = new_vertex.value
-                zone_bot = max(end_open, zone_top - 0.1 * abs(delta_y)) # avoid zone to be too thick (from rapid price change)
-                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 1, 0, 0, None, None))
+                zone_bot = max(end_open, zone_top - 0.1 * delta_y_abs) # avoid zone to be too thick (from rapid price change)
+                self.barrier_zones[1].append(barrier_zone(self.bi_index, new_vertex.idx, zone_top, zone_bot, default_end, default_end, 1))
+                
         self.vertices.append(new_vertex)
         
         #　s = self.supply_zones[1]
@@ -175,7 +229,36 @@ class PA_Liquidity:
         #　if len(s) > 1 and len(d) > 1:
         #　    print(s[-1].index, s[-1].left, s[-2].index, s[-2].left)
         #　    print(d[-1].index, d[-1].left, d[-2].index, d[-2].left)
-        
+    
+    def add_volume_profile(self, price_mapped_volume:None|List[Union[List[float], List[int]]]):
+        if price_mapped_volume: # update bi volume profile to forming zones
+            A = price_mapped_volume
+            n = len(price_mapped_volume[0])
+            # Use slicing to split upper and lower halves
+            lower_half = [x[:n // 2] for x in A]
+            upper_half = [x[n // 2:] for x in A]
+            bi_index = self.bi_index
+            for zone in self.barrier_zones[1]:
+                if zone.index == bi_index: # enter_bi_VP
+                    if zone.type == 0: # demand
+                        zone.enter_bi_VP = copy.deepcopy(lower_half)
+                    else: # supply
+                        zone.enter_bi_VP = copy.deepcopy(upper_half)
+                if zone.index == (bi_index-1): # leaving_bi_VP
+                    if zone.type == 0: # demand
+                        zone.leaving_bi_VP = copy.deepcopy(lower_half)
+                    else: # supply
+                        zone.leaving_bi_VP = copy.deepcopy(upper_half)
+                    if zone.enter_bi_VP and zone.leaving_bi_VP:
+                        volume = sum(zone.enter_bi_VP[1]) + sum(zone.leaving_bi_VP[1])
+                        self.demand_volume_sum, \
+                        self.demand_sample_num, \
+                        zone.strength_rating = \
+                        self.get_strength_rating(
+                            self.demand_volume_sum, 
+                            self.demand_sample_num, 
+                            volume)
+    
     @staticmethod
     def get_strength_rating(historical_sum:float, historical_sample_num:int, new_sample_value:float):
         new_sum = historical_sum + new_sample_value
