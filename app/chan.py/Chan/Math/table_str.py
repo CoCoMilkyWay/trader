@@ -1,7 +1,7 @@
 # this is strat look-up-table from ML features (better understand ML decision)
 # ref: https://toslc.thinkorswim.com/center/reference/Tech-Indicators/strategies
 
-#　回测优先考虑外汇市场，流动性最高，TA属性最强
+# 回测优先考虑外汇市场，流动性最高，TA属性最强
 
 strategies_dict = {
     "Trend-Following Strategies": {

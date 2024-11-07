@@ -94,7 +94,7 @@ def fit_linear(vertices:List[vertex]):
 pnl = 1.5 # pnl (filter: harder to get in/out of micro-structure)
 
 # NOTE: usually it is better to wait for price to break BOTH chart and certain support
-class nexus_type: # continuation or breakout or reversal
+class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
     START = 0
     ENTRY = 1
     RISING_M = 2 # M: potential multiple entry
@@ -333,7 +333,7 @@ class nexus_type: # continuation or breakout or reversal
 # for head&shoulder, double/triple top/bot, it is better to model them directly as
 # liquidity distributions
 
-def round_type():
+class round_type:
     # cup with handle, round shape
     # less frequent
     # TODO

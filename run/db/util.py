@@ -28,9 +28,9 @@ def log(path_str, str, stdout=1, type='a'):
     with open(path_str,type) as file:
         # Writing data to the file
         file.write(f'{str}\n')
-        #　# Moving the cursor to the beginning of the file to read from the beginning
-        #　file.seek(0)
-        #　data = file.read()
+        # # Moving the cursor to the beginning of the file to read from the beginning
+        # file.seek(0)
+        # data = file.read()
     if stdout:
         print(str)
     return str

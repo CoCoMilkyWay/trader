@@ -6,6 +6,7 @@ from collections import deque
 
 from Chan.BuySellPoint.BS_Point import CBS_Point
 from Chan.ChanConfig import CChanConfig
+from Chan.ChanModel.Features import CFeatures
 from Chan.Common.CEnum import AUTYPE, DATA_SRC, KL_TYPE
 from Chan.Common.ChanException import CChanException, ErrCode
 from Chan.Common.CTime import CTime
@@ -37,10 +38,10 @@ class CChan:
         self.lv_list: List[KL_TYPE] = lv_list
         self.new_bi_start: bool = False # highest level kline bi
         # self.new_seg_start: bool = False # highest level kline seg
-        
+
         # temp_batch
         self.volume_profile_batch:List[int|List[int]]
-        
+
         if config is None:
             config = CChanConfig()
         self.conf = config
@@ -49,6 +50,9 @@ class CChan:
         self.kl_inconsistent_detail = defaultdict(list)
 
         self.g_kl_iter = defaultdict(list)
+
+        # Machine Learning Features
+        self.features = CFeatures(initFeat=None)
 
         self.do_init()
 
@@ -161,7 +165,24 @@ class CChan:
         batch_volume_profile[6] = self.new_bi_start
         # batch_volume_profile[7] = self.new_seg_start
         self.kl_datas[self.lv_list[0]].PA_Core.add_volume_profile(batch_volume_profile, 'batch')
-                
+        
+        # ML algorithm is called after a new bi is established, so update feature(label) accordingly
+        if self.new_bi_start: # bi is sure
+            self.update_features()
+
+    def update_features(self):
+        self.features.refresh_feature_page()
+        f=self.features.__features
+        PA = self.kl_datas[self.lv_list[0]].PA_Core
+        PA_S = PA.PA_Shapes
+        PA_L = PA.PA_Liquidity
+        PA_V = PA.PA_Volume_Profile
+        f['PA_CP_exist_nexus'] = float(PA.PA_Shapes_num['nexus_type'] > 0)
+        if f['PA_CP_exist_nexus']:
+            f['PA_CP_exist_nexus_mult'] = float(PA.PA_Shapes_num['nexus_type'] > 1)
+        # self.features.add_feat(inp1, inp2)
+        pass
+
     def init_lv_klu_iter(self, stockapi_cls):
         # 为了跳过一些获取数据失败的级别
         lv_klu_iter = []

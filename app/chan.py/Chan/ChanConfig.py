@@ -32,7 +32,7 @@ class CChanConfig:
             "plot_mean": False,
             "plot_channel": False,
             "plot_bsp": True,
-            #　"plot_extrainfo": False,
+            # "plot_extrainfo": False,
             "plot_demark": False,
             "plot_marker": False,
             "plot_rsi": False,

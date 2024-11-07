@@ -169,7 +169,7 @@ class n_Processor:
                                 )
                             break
                         
-                        # 5:　generate trading signals
+                        # 5: generate trading signals
                         Ctime = batch_combined_klu.time
                         if bottom:
                             bt_config.plot_para["marker"]["markers"][Ctime] = (f'b{T_sum}', 'down', 'red')
@@ -212,7 +212,7 @@ class n_Processor:
                             #     )
                             break
                         
-                        # 4:　generate trading signals
+                        # 4: generate trading signals
                         # sure = '!' if bi_list[-2].is_sure else ''
                         Ctime = batch_combined_klu.time
                         if bottom:

@@ -122,7 +122,7 @@ class Main_Cta(BaseCtaStrategy):
                 self.np_bars_batch[code].append(np_bars)
                 if batch_feed:
                     # calc global indicator and prepare CPU tasks
-                    #　global_indicators = Glob_Ind(combined_klu)
+                    # global_indicators = Glob_Ind(combined_klu)
                     MetaIn = MetadataIn(
                         idx=idx,
                         code=code,

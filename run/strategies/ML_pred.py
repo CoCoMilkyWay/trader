@@ -32,8 +32,8 @@ class ML_pred(BaseCtaStrategy):
             code = code + "-"   # 如果是股票代码，后面加上一个+/-，+表示后复权，-表示前复权
 
         #这里演示了品种信息获取的接口
-        #　pInfo = context.stra_get_comminfo(code)
-        #　print(pInfo)
+        # pInfo = context.stra_get_comminfo(code)
+        # print(pInfo)
 
         context.stra_prepare_bars(code, self.__period__, self.__bar_cnt__, isMain = True)
         context.stra_sub_ticks(code)

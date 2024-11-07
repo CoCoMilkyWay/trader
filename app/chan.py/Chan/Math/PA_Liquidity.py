@@ -228,11 +228,11 @@ class PA_Liquidity:
                 
         self.vertices.append(new_vertex)
         
-        #　s = self.supply_zones[1]
-        #　d = self.demand_zones[1]
-        #　if len(s) > 1 and len(d) > 1:
-        #　    print(s[-1].index, s[-1].left, s[-2].index, s[-2].left)
-        #　    print(d[-1].index, d[-1].left, d[-2].index, d[-2].left)
+        # s = self.supply_zones[1]
+        # d = self.demand_zones[1]
+        # if len(s) > 1 and len(d) > 1:
+        #     print(s[-1].index, s[-1].left, s[-2].index, s[-2].left)
+        #     print(d[-1].index, d[-1].left, d[-2].index, d[-2].left)
     
     def add_volume_profile(self, price_mapped_volume:None|List[Union[List[float], List[int]]]):
         if price_mapped_volume: # update bi volume profile to forming zones

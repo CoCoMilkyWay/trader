@@ -83,6 +83,7 @@ class PA_Core:
         self.PA_Shapes: Dict[str, List[
             nexus_type
             ]] = {}
+        self.PA_Shapes_num: Dict[str, int] = {}
         for key in self.shape_keys:
             self.PA_Shapes[key] = []
 
@@ -107,6 +108,7 @@ class PA_Core:
     def add_vertex_to_shapes(self, vertex:vertex, is_sure:bool):
         for shape_name in self.shape_keys:
             num_of_shape = len(self.PA_Shapes[shape_name])
+            self.PA_Shapes_num[shape_name] = num_of_shape
             if num_of_shape > 0:
                 # Update existing shapes
                 for shape in self.PA_Shapes[shape_name][:]: # Use a slice to make a copy of the list so can remove item on-fly

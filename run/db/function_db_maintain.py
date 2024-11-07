@@ -304,8 +304,8 @@ class database_helper:
         print(f'num of assets to be processed: {num_assets}')
         asset_jobs = []
         for asset in asset_list:
-            #　if asset != 'sz.000001':
-            #　    continue
+            # if asset != 'sz.000001':
+            #     continue
             exch_prefix = asset.split('.')[0]
             code = asset.split('.')[-1]
             for idx, exchange in enumerate(exchanges):
@@ -526,7 +526,7 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                 # days_passed.append(date)
                 file_path = f"{cfg.BAR_DIR}/m1/{asset}/{year}.{month}.{day}.dsb"
                 store_bars(group_date, file_path) # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
-                #　print(dtHelper.read_dsb_bars(file_path).to_df())
+                # print(dtHelper.read_dsb_bars(file_path).to_df())
             if rules_violated_tomonth == 0: # merge day file to month file
                 # log(log_path, f'merging month data: {asset}, {year}.{month}')
                 folder = f"{cfg.BAR_DIR}/m1/{asset}/"
