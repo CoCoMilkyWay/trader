@@ -1,8 +1,8 @@
 import copy
 import datetime
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Dict, Iterable, List, Optional, Union
-from collections import deque
+from pprint import pprint
 
 from Chan.BuySellPoint.BS_Point import CBS_Point
 from Chan.ChanConfig import CChanConfig
@@ -172,14 +172,29 @@ class CChan:
 
     def update_features(self):
         self.features.refresh_feature_page()
-        f=self.features.__features
+        f = self.features._features
         PA = self.kl_datas[self.lv_list[0]].PA_Core
         PA_S = PA.PA_Shapes
         PA_L = PA.PA_Liquidity
         PA_V = PA.PA_Volume_Profile
-        f['PA_CP_exist_nexus'] = float(PA.PA_Shapes_num['nexus_type'] > 0)
+        f['PA_CP_exist_nexus'] = float(len(PA.PA_Shapes_active['nexus_type']) > 0)
         if f['PA_CP_exist_nexus']:
-            f['PA_CP_exist_nexus_mult'] = float(PA.PA_Shapes_num['nexus_type'] > 1)
+            f['PA_CP_exist_nexus_mult'] = float(len(PA.PA_Shapes_active['nexus_type']))
+            shape = PA.PA_Shapes_active['nexus_type'][0] # oldest and strongest shape
+            f['PA_CP_first_entry'   ] = float(shape.name == 'entry'      ) # just finished a v or ^ with a strong 1st bi
+            f['PA_CP_is_channel'    ] = float('channel'     in shape.name)
+            f['PA_CP_is_rect'       ] = float('rect'        in shape.name)
+            f['PA_CP_is_meg_sym'    ] = float('meg_sym'     in shape.name)
+            f['PA_CP_is_meg_brk_far'] = float('meg_brk_far' in shape.name)
+            f['PA_CP_is_meg_rev_bak'] = float('meg_rev_bak' in shape.name)
+            f['PA_CP_is_tri_sym'    ] = float('tri_sym'     in shape.name)
+            f['PA_CP_is_tri_brk_far'] = float('tri_brk_far' in shape.name)
+            f['PA_CP_is_tri_rev_bak'] = float('tri_rev_bak' in shape.name)
+            f['PA_CP_is_flag'       ] = float('flag'        in shape.name)
+            
+            pprint(shape.name)
+            pprint(f)
+            pprint('================================================================')
         # self.features.add_feat(inp1, inp2)
         pass
 

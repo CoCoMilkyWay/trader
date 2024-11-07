@@ -28,7 +28,8 @@ import copy
 |                               | - Sinusoidal Encoding: Borrowed from transformer models, captures temporal information within sequences.                                 |
 |                               | - Fourier/Frequency Encoding: Encode sequences based on frequency, capturing cyclic patterns.                                            |
 |                               | - Auto-Encoder-Based Encoding (LSTM/GRU): Use recurrent networks to capture dependencies and compress sequence patterns.                |
-|                               | - Lagged Features: Treat lagged values as additional features, capturing shifts over time in sequence.                                   |
+|                               | - Lagged Features: Treat lagged values as additional features, capturing shifts over time in sequence.
+one-hot(unique category value), ordinal(with meaningful order), frequency(probability), hash encoding(high-cardinality: ID/names)|
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
 
 '''
@@ -73,25 +74,21 @@ m = {#  name:str:   default_value:? data_consumed:int
 # PA: price_action
     # CP: chart_pattern
         # if a con/diverging nexus/jiatou exist
-        'PA_CP_exist_nexus':        [   0,  0,],
+        'PA_CP_exist_nexus'        :[   0,  0,],
         # multiple chart patterns exist at the same time
-        'PA_CP_exist_nexus_mult':   [   0,  0,],
-        # nexus type
-        'PA_CP_is_flag':            [   0,  0,],
-        'PA_CP_is_channel':         [   0,  0,],
-        'PA_CP_is_rect':            [   0,  0,],
-        'PA_CP_is_meg_sym':         [   0,  0,],
-        'PA_CP_is_meg_brk_far':   [   0,  0,],
-        'PA_CP_is_meg_rev_bak':   [   0,  0,],
-        'PA_CP_is_tri_sym':   [   0,  0,],
-        'PA_CP_is_tri_brk_far':   [   0,  0,],
-        'PA_CP_is_tri_rev_bak':   [   0,  0,],
+        'PA_CP_exist_nexus_mult'   :[   0,  0,],
+        # nexus type (not using on-hot since it is important)
+        'PA_CP_first_entry'        :[   0,  0,],
+        'PA_CP_is_channel'         :[   0,  0,],
+        'PA_CP_is_rect'            :[   0,  0,],
+        'PA_CP_is_meg_sym'         :[   0,  0,],
+        'PA_CP_is_meg_brk_far'     :[   0,  0,],
+        'PA_CP_is_meg_rev_bak'     :[   0,  0,],
+        'PA_CP_is_tri_sym'         :[   0,  0,],
+        'PA_CP_is_tri_brk_far'     :[   0,  0,],
+        'PA_CP_is_tri_rev_bak'     :[   0,  0,],
+        'PA_CP_is_flag'            :[   0,  0,],
         
-        
-        
-        
-        'PA_CP_num_cp_in_seg':      [   0,  0,],
-        'PA_CP_':                   [   0,  0,],
 }
 # key_index = list(m.keys()).index('b')  # Output: 1
 # value_index = list(m.values()).index(2)  # Output: 1
@@ -107,19 +104,19 @@ class CFeatures: # Features Snapshot for a potential buy/sell point
         if initFeat is None:
             self.refresh_feature_page()
             # from pprint import pprint
-            # pprint(self.__features)
+            # pprint(self._features)
         else:
-            self.__features = dict(initFeat)
+            self._features = dict(initFeat)
 
     def items(self):
-        yield from self.__features.items()
+        yield from self._features.items()
 
     def __getitem__(self, k):
-        return self.__features[k]
+        return self._features[k]
 
     def refresh_feature_page(self):
-        self.__features = copy.deepcopy(self.empty_feature_page)
+        self._features = copy.deepcopy(self.empty_feature_page)
 
     def add_feat(self, inp1:str, inp2:float):
         # self.__features.update({inp1: inp2})
-        self.__features[inp1] = inp2
+        self._features[inp1] = inp2

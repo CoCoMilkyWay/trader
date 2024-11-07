@@ -47,7 +47,7 @@
 import os, sys
 import math
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Literal
 from Chan.Math.PA_types import vertex
 
 MAX_RESIDUE = 0.1
@@ -127,10 +127,11 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
         
         self.potential_trade:bool = False
         self.name:str = ''
+        # self.name_onehot:List[bool] = [True, True, True, True]
         self.color:str = 'purple'
         
     def is_potential(self): # the trading opportunity is ongoing
-        return self.state == self.potential_trade
+        return self.potential_trade
     
     def is_complete(self): # the trading opportunity is over
         return self.state == self.COMPLETED
@@ -178,28 +179,38 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
         near_cons = not (near_away or near_revs)                        # consolidate
         
         self.name = f'undefined'
+        # self.name_onehot = [True, True, True, True]
         # bellow 0.5% change on High_High / Low_Low per bar 
         # on average is considered "sideways consolidation"
-        self.potential_trade = False
+        # self.potential_trade = False
         if near_revs and far_revs:
             self.name = f'flag'             # continuation
+            # self.name_onehot = [True, False, False, False]
         elif near_away and far_away:
             self.name = f'channel'          # continuation
+            # self.name_onehot = [False, False, False, False]
         elif near_cons and far_cons:
             self.name = f'rect'             # continuation or breakout
-
+            # self.name_onehot = [False, False, False, True]
+        
         elif near_revs and far_away:
             self.name = f'meg_sym'          # breakout, low pnl :(
+            # self.name_onehot = [False, False, True, False]
         elif near_revs and far_cons:
             self.name = f'meg_brk_far'      # continuation
+            # self.name_onehot = [False, False, True, True]
         elif near_cons and far_away:
             self.name = f'meg_rev_bak'      # reversal
+            # self.name_onehot = [False, True, False, False]
         elif near_away and far_revs:
             self.name = f'tri_sym'          # breakout
+            # self.name_onehot = [False, True, False, True]
         elif near_away and far_cons:
             self.name = f'tri_brk_far'      # continuation or reversal(wedge)
+            # self.name_onehot = [False, True, True, False]
         elif near_cons and far_revs:
             self.name = f'tri_rev_bak'      # reversal
+            # self.name_onehot = [False, True, True, True]
         
         if self.entry_dir == 1:
             self.name += f'.UP'
@@ -248,6 +259,8 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
                         self.down_support = new_vertex.value - self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.RISING_M
+                        self.potential_trade = True
+                        self.name = 'entry'
                         self.rising_cnt += 1
                         return True
                 return False
@@ -257,6 +270,8 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
                         self.up_resistance = new_vertex.value + self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.FALLING_M
+                        self.potential_trade = True
+                        self.name = 'entry'
                         self.falling_cnt += 1
                         return True
                 return False

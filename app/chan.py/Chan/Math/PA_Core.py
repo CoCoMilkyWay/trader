@@ -83,7 +83,9 @@ class PA_Core:
         self.PA_Shapes: Dict[str, List[
             nexus_type
             ]] = {}
-        self.PA_Shapes_num: Dict[str, int] = {}
+        self.PA_Shapes_active: Dict[str, List[
+            nexus_type
+            ]] = {}
         for key in self.shape_keys:
             self.PA_Shapes[key] = []
 
@@ -108,7 +110,7 @@ class PA_Core:
     def add_vertex_to_shapes(self, vertex:vertex, is_sure:bool):
         for shape_name in self.shape_keys:
             num_of_shape = len(self.PA_Shapes[shape_name])
-            self.PA_Shapes_num[shape_name] = num_of_shape
+            self.PA_Shapes_active[shape_name] = []
             if num_of_shape > 0:
                 # Update existing shapes
                 for shape in self.PA_Shapes[shape_name][:]: # Use a slice to make a copy of the list so can remove item on-fly
@@ -119,6 +121,8 @@ class PA_Core:
                         print(shape.name, shape.vertices, shape.state, success)
                     if not success: # try add vertex and failed shape FSM check
                         self.PA_Shapes[shape_name].remove(shape)
+                    elif shape.is_potential():
+                        self.PA_Shapes_active[shape_name].append(shape)
             if is_sure:
                 if DEBUG:
                     print('=================================================: ', vertex)
