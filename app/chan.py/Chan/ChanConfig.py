@@ -21,6 +21,10 @@ class CChanConfig:
             conf = {}
         conf = ConfigWithCheck(conf)
         
+        # Machine Learning config
+        self.LEARN:bool = True
+        self.LABEL_METHOD:str = 'naive_next_bi'
+        
         self.plot_config = {
             "plot_kline": False,
             "plot_kline_combine": True,

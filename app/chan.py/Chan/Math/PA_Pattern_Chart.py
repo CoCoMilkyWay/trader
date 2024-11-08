@@ -108,6 +108,9 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
         self.entry_dir:int = 0
         self.abs_d1:float = 0 # entry absolute delta-y
         
+        self.far_cons:bool = False
+        self.near_cons:bool = False
+        
         self.max_drawdown:float = 0
         self.up_support:float = 0
         self.down_support:float = 0
@@ -116,14 +119,14 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
         self.high:float = 0
         self.low:float = start_vertex.value
         
-        self.top_m = 0, 0
+        self.top_m = 0.0
         self.top_x = [0, 0]
         self.top_y = [0.0, 0.0]
-        self.top_residue = 0
-        self.bot_m = 0, 0
+        self.top_residue = 0.0
+        self.bot_m = 0.0
         self.bot_x = [0, 0]
         self.bot_y = [0.0, 0.0]
-        self.bot_residue = 0
+        self.bot_residue = 0.0
         
         self.potential_trade:bool = False
         self.name:str = ''
@@ -175,8 +178,8 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
             near_away = m_near < DOWN
             near_revs = m_near > UP
             
-        far_cons = not (far_away or far_revs)                           # consolidate
-        near_cons = not (near_away or near_revs)                        # consolidate
+        self.far_cons = not (far_away or far_revs)                           # consolidate
+        self.near_cons = not (near_away or near_revs)                        # consolidate
         
         self.name = f'undefined'
         # self.name_onehot = [True, True, True, True]
@@ -189,26 +192,26 @@ class nexus_type: # continuation or breakout or reversal or jiatou/zhongshu
         elif near_away and far_away:
             self.name = f'channel'          # continuation
             # self.name_onehot = [False, False, False, False]
-        elif near_cons and far_cons:
+        elif self.near_cons and self.far_cons:
             self.name = f'rect'             # continuation or breakout
             # self.name_onehot = [False, False, False, True]
         
         elif near_revs and far_away:
             self.name = f'meg_sym'          # breakout, low pnl :(
             # self.name_onehot = [False, False, True, False]
-        elif near_revs and far_cons:
+        elif near_revs and self.far_cons:
             self.name = f'meg_brk_far'      # continuation
             # self.name_onehot = [False, False, True, True]
-        elif near_cons and far_away:
+        elif self.near_cons and far_away:
             self.name = f'meg_rev_bak'      # reversal
             # self.name_onehot = [False, True, False, False]
         elif near_away and far_revs:
             self.name = f'tri_sym'          # breakout
             # self.name_onehot = [False, True, False, True]
-        elif near_away and far_cons:
+        elif near_away and self.far_cons:
             self.name = f'tri_brk_far'      # continuation or reversal(wedge)
             # self.name_onehot = [False, True, True, False]
-        elif near_cons and far_revs:
+        elif self.near_cons and far_revs:
             self.name = f'tri_rev_bak'      # reversal
             # self.name_onehot = [False, True, True, True]
         

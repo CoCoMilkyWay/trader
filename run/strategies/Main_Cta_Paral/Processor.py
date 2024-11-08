@@ -3,8 +3,9 @@ import multiprocessing.synchronize
 import os, sys
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Tuple
 
+from pprint import pprint
+from typing import List, Dict, Tuple
 from numba import jit, prange
 
 from Chan.Chan import CChan
@@ -81,6 +82,8 @@ class n_Processor:
         orders:List[MetadataOut] = []
         for task in tasks:
             trade = False
+            buy = False
+            sell = False
             code = task.code
             date = task.date
             curTime = task.curTime
@@ -101,7 +104,8 @@ class n_Processor:
             self.num_klu[code] += 1
             self.resample_buffer[code].extend(kline_batch)
             rebalance = False
-            if curTime in self.REBALANCE_TIME:
+            # if curTime in self.REBALANCE_TIME:
+            if (curTime % 5) == 0:
                 rebalance = True
                 batch_combined_klu, batch_volume_profile = self.process_batch_klu(self.resample_buffer[code], self.price_bin_width[code])
                 self.resample_buffer[code] = []
@@ -179,48 +183,52 @@ class n_Processor:
                             trade = True
                             
                     elif CHECK_FX:
-                        bi_list = cur_lv_kline_list.bi_list
+                        # bi_list = cur_lv_kline_list.bi_list
                         
                         # 1: initial condition
-                        if len(bi_list)==0:
-                            break
+                        # if len(bi_list)==0:
+                        #     break
                         
                         # 2: check if new bi is formed
                         # combined kline = kline/klc
                         # original kline = kline/klu
                         # this is kline unit(not combined kline) index
-                        last_bi = bi_list[-1]
-                        kline_unit_idx_last_bi_begin = last_bi.get_begin_klu().idx
-                        kline_unit_idx_cur = cur_lv_kline_list[-1][-1].idx
-                        idx = kline_unit_idx_cur
-                        if self.num_bi[code] == len(bi_list):
-                            break
-                        self.num_bi[code] = len(bi_list)
+                        # last_bi = bi_list[-1]
+                        # kline_unit_idx_last_bi_begin = last_bi.get_begin_klu().idx
+                        # kline_unit_idx_cur = cur_lv_kline_list[-1][-1].idx
+                        # idx = kline_unit_idx_cur
+                        # if self.num_bi[code] == len(bi_list):
+                        #     break
+                        # self.num_bi[code] = len(bi_list)
                         
                         # 3: check FX type
-                        top = False; bottom = False
-                        if bi_list[-2].is_down():
-                            bottom = True
-                        elif bi_list[-2].is_up():
-                            top = True
-                        else:
-                            # print(
-                            #     'Err: ',
-                            #     cur_lv_kline_list[-1][-1].close, # price
-                            #     cur_lv_kline_list[-2].fx, # fx_type
-                            #     last_bi.is_sure, # if FX is sure
-                            #     )
-                            break
+                        # top = False; bottom = False
+                        # if bi_list[-2].is_down():
+                        #     bottom = True
+                        # elif bi_list[-2].is_up():
+                        #     top = True
+                        # else:
+                        #     # print(
+                        #     #     'Err: ',
+                        #     #     cur_lv_kline_list[-1][-1].close, # price
+                        #     #     cur_lv_kline_list[-2].fx, # fx_type
+                        #     #     last_bi.is_sure, # if FX is sure
+                        #     #     )
+                        #     break
                         
                         # 4: generate trading signals
                         # sure = '!' if bi_list[-2].is_sure else ''
+                        if not chan_snapshot.new_bi_start:
+                            break
                         Ctime = batch_combined_klu.time
-                        if bottom:
-                            bt_config.plot_para["marker"]["markers"][Ctime] = (f'v', 'down', 'red')
+                        if chan_snapshot.is_buy:
+                            bt_config.plot_para["marker"]["markers"][Ctime] = (f'BUY', 'down', 'green')
                             trade = True
-                        elif top:
-                            bt_config.plot_para["marker"]["markers"][Ctime] = (f'^', 'up', 'green')
+                            buy = True
+                        elif chan_snapshot.is_sell:
+                            bt_config.plot_para["marker"]["markers"][Ctime] = (f'SELL', 'up', 'red')
                             trade = True
+                            sell = True
                         
                     # 1: prepare Machine Learning features from Chan.metrics
                     #    Labels, however, need future information (cannot be done here)
@@ -241,12 +249,19 @@ class n_Processor:
                         code=task.code,
                         date=task.date,
                         curTime=task.curTime,
-                        buy=bottom,
-                        sell=top,
+                        buy=buy,
+                        sell=sell,
                         ))
         return orders
     
     def on_backtest_end(self):
+        def print_features_and_label(code:str):
+            feature_class = self.chan_snapshot[code].features
+            print(f'Features for {code} ({len(feature_class.feature_history.keys())} features, {feature_class.num_features_updates} times):')
+            pprint(feature_class.feature_history.keys(), width=200, compact=True)
+            print(f'Labels for {code} (pending: {feature_class.get_pending_label_updates()}):')
+            pprint(feature_class.label_history, width=200, compact=True)
+            
         def print_results():
             SAMPLES = self.num_klu[self.code_list[0]]
             T1 = self.num_bsp_T1[self.code_list[0]]; T1_ratio = T1 / SAMPLES *100
@@ -267,9 +282,15 @@ class n_Processor:
             
             if self.lock:
                 with self.lock:
+                    if self.id == 0:
+                        print('===============================================================')
+                        print_features_and_label(code)
+                        self.chan_snapshot[code].train()
+                        print('===============================================================')
                     print_results()
             else:
-                if self.id == 0: print_results()
+                if self.id == 0: 
+                    print_results()
                 
             if self.id == 0:
                 self.chan_snapshot[code].plot(save=True, print=True, animation=False, update_conf=True, conf=bt_config)

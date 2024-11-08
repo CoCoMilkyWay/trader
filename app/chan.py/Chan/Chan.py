@@ -1,5 +1,8 @@
 import copy
+import json
 import datetime
+import numpy as np
+import pandas as pd
 from collections import defaultdict, deque
 from typing import Dict, Iterable, List, Optional, Union
 from pprint import pprint
@@ -15,6 +18,10 @@ from Chan.DataAPI.CommonStockAPI import CCommonStockApi
 from Chan.KLine.KLine_List import CKLine_List
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
+import xgboost as xgb
+from xgboost import plot_tree
+import matplotlib.pyplot as plt
+model_path = 'xgboost_model.json' # json or ubj(binary)
 
 class CChan:
     def __init__(
@@ -52,8 +59,30 @@ class CChan:
         self.g_kl_iter = defaultdict(list)
 
         # Machine Learning Features
+        self.LEARN = self.conf.LEARN
+        self.LABEL_METHOD = self.conf.LABEL_METHOD # 'naive_next_bi'
+        
         self.features = CFeatures(initFeat=None)
+        if not self.LEARN:
+            try:
+                self.model = xgb.Booster()
+                self.model.load_model(model_path)
+                
+                with open(model_path, 'r') as f:
+                    model_json = json.load(f)
+                    pprint(model_json, width=300, depth=5, compact=True)
+                
+                print('Saving Deep Learning Model as tree plot ...')
+                plot_tree(self.model)
+                plt.savefig('model_tree', bbox_inches='tight')
+                print('Model saved as ./model_tree.png ...')
+            except:
+                print('Error getting trained model ...')
 
+        # trade signals:
+        self.is_buy:bool = False
+        self.is_sell:bool = False
+        
         self.do_init()
 
         if not config.trigger_step:
@@ -168,35 +197,97 @@ class CChan:
         
         # ML algorithm is called after a new bi is established, so update feature(label) accordingly
         if self.new_bi_start: # bi is sure
-            self.update_features()
+            # self.is_sell = False
+            self.is_sell = self.is_buy
+            self.is_buy = False
+            self.learn_and_predict()
 
-    def update_features(self):
+    def get_features(self):
         self.features.refresh_feature_page()
         f = self.features._features
         PA = self.kl_datas[self.lv_list[0]].PA_Core
         PA_S = PA.PA_Shapes
         PA_L = PA.PA_Liquidity
         PA_V = PA.PA_Volume_Profile
-        f['PA_CP_exist_nexus'] = float(len(PA.PA_Shapes_active['nexus_type']) > 0)
-        if f['PA_CP_exist_nexus']:
-            f['PA_CP_exist_nexus_mult'] = float(len(PA.PA_Shapes_active['nexus_type']))
+        
+        new_feature = len(PA.PA_Shapes_active['nexus_type']) > 0
+        if new_feature:
+            f['PA_CP_exist_nexus'       ]   = float(len(PA.PA_Shapes_active['nexus_type']) > 0)
+            f['PA_CP_exist_nexus_mult'  ]   = float(len(PA.PA_Shapes_active['nexus_type']))
             shape = PA.PA_Shapes_active['nexus_type'][0] # oldest and strongest shape
-            f['PA_CP_first_entry'   ] = float(shape.name == 'entry'      ) # just finished a v or ^ with a strong 1st bi
-            f['PA_CP_is_channel'    ] = float('channel'     in shape.name)
-            f['PA_CP_is_rect'       ] = float('rect'        in shape.name)
-            f['PA_CP_is_meg_sym'    ] = float('meg_sym'     in shape.name)
-            f['PA_CP_is_meg_brk_far'] = float('meg_brk_far' in shape.name)
-            f['PA_CP_is_meg_rev_bak'] = float('meg_rev_bak' in shape.name)
-            f['PA_CP_is_tri_sym'    ] = float('tri_sym'     in shape.name)
-            f['PA_CP_is_tri_brk_far'] = float('tri_brk_far' in shape.name)
-            f['PA_CP_is_tri_rev_bak'] = float('tri_rev_bak' in shape.name)
-            f['PA_CP_is_flag'       ] = float('flag'        in shape.name)
+            f['PA_CP_first_entry'       ]   = float(shape.name == 'entry'      ) # just finished a v or ^ with a strong 1st bi
+            f['PA_CP_is_channel'        ]   = float('channel'     in shape.name)
+            f['PA_CP_is_rect'           ]   = float('rect'        in shape.name)
+            f['PA_CP_is_meg_sym'        ]   = float('meg_sym'     in shape.name)
+            f['PA_CP_is_meg_brk_far'    ]   = float('meg_brk_far' in shape.name)
+            f['PA_CP_is_meg_rev_bak'    ]   = float('meg_rev_bak' in shape.name)
+            f['PA_CP_is_tri_sym'        ]   = float('tri_sym'     in shape.name)
+            f['PA_CP_is_tri_brk_far'    ]   = float('tri_brk_far' in shape.name)
+            f['PA_CP_is_tri_rev_bak'    ]   = float('tri_rev_bak' in shape.name)
+            f['PA_CP_is_flag'           ]   = float('flag'        in shape.name)
             
-            pprint(shape.name)
-            pprint(f)
-            pprint('================================================================')
-        # self.features.add_feat(inp1, inp2)
-        pass
+            f['PA_CP_entry_dir'         ]   = float(shape.entry_dir) # which direction the nexus is entered
+            f['PA_CP_abs_d1'            ]   = float(shape.abs_d1) # the abs strength of first bi entering nexus
+            f['PA_CP_num_vertices'      ]   = float(shape.rising_cnt)
+            f['PA_CP_far_cons'          ]   = float(shape.far_cons) # far side of entering bi is consolidating
+            f['PA_CP_near_cons'         ]   = float(shape.near_cons) # near side of entering bi is consolidating
+            f['PA_CP_top_slope'         ]   = float(shape.top_m)
+            f['PA_CP_bot_slope'         ]   = float(shape.bot_m)
+            f['PA_CP_top_residue'       ]   = float(shape.top_residue)
+            f['PA_CP_bot_residue'       ]   = float(shape.bot_residue)
+        return new_feature
+
+    def learn_and_predict(self):
+        
+        new_feature = self.get_features()
+        # instance a label class for this new feature
+        
+        if self.LEARN: # labels calculation even when new features are not available
+            pending_labels = self.features.get_pending_label_updates()
+            if pending_labels > 0:
+                if self.LABEL_METHOD == 'naive_next_bi':
+                    PA = self.kl_datas[self.lv_list[0]].PA_Core
+                    label = PA.bi_lst[-1].value - self.kl_datas[self.lv_list[0]][-1][-1].close # PA.bi_lst[-2].value
+                    print(label)
+                self.features.update_label_list(label) # update label (contain future information)
+            
+            if new_feature:
+                self.features.update_features_array() # update features
+                
+            # pprint(shape.name)
+            # pprint(f)
+            # pprint(self.features.feature_history)
+            # pprint('================================================================')
+        else: # predict
+            if new_feature: # only predict when new feature comes in
+                new_X = xgb.DMatrix(pd.DataFrame([self.features._features]))
+                new_Y = self.model.predict(new_X)[0]
+                self.is_buy = new_Y > 0.1
+                print(new_Y)
+
+    def train(self):
+        if not self.LEARN:
+            return
+        
+        # TODO
+        pending_labels = self.features.get_pending_label_updates()
+        self.features.label_history.extend([0.0] * pending_labels)
+        
+        features = pd.DataFrame(self.features.feature_history)
+        label = pd.Series(self.features.label_history)
+        
+        # Create XGBoost DMatrix
+        dtrain = xgb.DMatrix(features, label=label)
+        
+        # Train XGBoost model
+        print('Training ......................')
+        # model = xgb.XGBClassifier()
+        # model = xgb.XGBRegressor()
+        model = xgb.train({}, dtrain)
+        print('Training Ended ................')
+        
+        model.save_model(model_path)
+        print(f'Model Persisted to {model_path} ................')
 
     def init_lv_klu_iter(self, stockapi_cls):
         # 为了跳过一些获取数据失败的级别
@@ -381,6 +472,7 @@ class CChan:
                 plot_para=config.plot_para,
             )
 import os
+
 def mkdir(path_str):
     path = os.path.dirname(path_str)
     if not os.path.exists(path):

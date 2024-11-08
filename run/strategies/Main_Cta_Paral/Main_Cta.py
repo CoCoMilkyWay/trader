@@ -28,7 +28,7 @@ green   = "\033[32m"
 yellow  = "\033[33m"
 default = "\033[0m"
 
-CHECK_SYNC = False
+CHECK_SYNC = True
 
 def stdio(str):
     print(str)

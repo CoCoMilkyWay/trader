@@ -42,10 +42,15 @@ bt_config = CChanConfig({
     "bi_fx_check"       : "loss",   # when use with chart patterns, use "loss"
                                     # if not use "loss", can not capture convergence pattern of volatility
 })
+
+# ML config
+bt_config.LEARN = False
+bt_config.LABEL_METHOD = 'naive_next_bi'
+
 bt_config.plot_para["trend_lines"]["plot_trendline_num"] = 1
 bt_config.plot_config["plot_kline"] = False
 bt_config.plot_config["plot_bsp"] = False
-bt_config.plot_config["plot_marker"] = False
+bt_config.plot_config["plot_marker"] = True
 bt_config.plot_config["plot_zs"] = False
 bt_config.plot_config["plot_channel"] = False
 bt_config.plot_config["plot_mean"] = False

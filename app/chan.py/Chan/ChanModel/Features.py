@@ -1,37 +1,36 @@
-from typing import Optional
+from typing import Optional, Dict, List
 import copy
 
 '''
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
 | Technique                     | Description                                                                                                                               |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-| Combining or Encoding         | - Lag Features: Use previous values in sequences for trend analysis.                                                                     |
+| Combining or Encoding         | - Lag Features: Use previous values in sequences for trend analysis.                                                                      |
 |                               | - Aggregated Sequence Statistics: Calculate rolling window statistics (mean, max, min) to analyze sequence patterns.                      |
 |                               | - Embedding/Encoding Sequences: Create embeddings or use aggregations to capture trends, capturing amplitude and sequence.                |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-| Feature Interactions          | - Polynomial/Pairs: Multiply or square features to capture non-linear relationships.                                                     |
-|                               | - Binning & Cross Features: Bin continuous values, then cross bins to identify unique subgroups.                                         |
+| Feature Interactions          | - Polynomial/Pairs: Multiply or square features to capture non-linear relationships.                                                      |
+|                               | - Binning & Cross Features: Bin continuous values, then cross bins to identify unique subgroups.                                          |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-| Target Encoding               | - Encode categorical variables based on target means, capturing the relationship between categories and targets.                         |
+| Target Encoding               | - Encode categorical variables based on target means, capturing the relationship between categories and targets.                          |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-| Domain-Specific Features      | - Construct Indicators: Use domain-specific indicators (e.g., price volatility) to gain insights.                                        |
+| Domain-Specific Features      | - Construct Indicators: Use domain-specific indicators (e.g., price volatility) to gain insights.                                         |
 |                               | - Aggregate & Count Features: Summarize counts or frequency of elements for predictive strength.                                          |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-| Clustering & Dimensionality   | - Clustering: Group observations, creating a new feature for the cluster each observation belongs to.                                    |
-| Reduction                     | - Principal Component Analysis (PCA): Reduce dimensionality while preserving essential information through top components.               |
+| Clustering & Dimensionality   | - Clustering: Group observations, creating a new feature for the cluster each observation belongs to.                                     |
+| Reduction                     | - Principal Component Analysis (PCA): Reduce dimensionality while preserving essential information through top components.                |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-| Handling Missing Values       | - Indicator for Missing Values: Add binary flags to represent missing data for better interpretability.                                  |
-| and Outliers                  | - Capping/Transforming Outliers: Cap or transform outliers using log or square root to prevent data distortion.                          |
+| Handling Missing Values       | - Indicator for Missing Values: Add binary flags to represent missing data for better interpretability.                                   |
+| and Outliers                  | - Capping/Transforming Outliers: Cap or transform outliers using log or square root to prevent data distortion.                           |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-| Sequence Encoding Techniques  | - Weighted/Polynomial Encoding: Weight or apply polynomial functions to encode sequences with meaningful order.                          |
-|                               | - Embedding (for NN): Use embeddings in neural networks to represent sequences in lower dimensions.                                      |
-|                               | - Sinusoidal Encoding: Borrowed from transformer models, captures temporal information within sequences.                                 |
-|                               | - Fourier/Frequency Encoding: Encode sequences based on frequency, capturing cyclic patterns.                                            |
-|                               | - Auto-Encoder-Based Encoding (LSTM/GRU): Use recurrent networks to capture dependencies and compress sequence patterns.                |
-|                               | - Lagged Features: Treat lagged values as additional features, capturing shifts over time in sequence.
-one-hot(unique category value), ordinal(with meaningful order), frequency(probability), hash encoding(high-cardinality: ID/names)|
+| Sequence Encoding Techniques  | - Weighted/Polynomial Encoding: Weight or apply polynomial functions to encode sequences with meaningful order.                           |
+|                               | - Embedding (for NN): Use embeddings in neural networks to represent sequences in lower dimensions.                                       |
+|                               | - Sinusoidal Encoding: Borrowed from transformer models, captures temporal information within sequences.                                  |
+|                               | - Fourier/Frequency Encoding: Encode sequences based on frequency, capturing cyclic patterns.                                             |
+|                               | - Auto-Encoder-Based Encoding (LSTM/GRU): Use recurrent networks to capture dependencies and compress sequence patterns.                  |
+|                               | - Lagged Features: Treat lagged values as additional features, capturing shifts over time in sequence.                                    |
+one-hot(unique category value), ordinal(with meaningful order), frequency(probability), hash encoding(high-cardinality: ID/names)                                           |
 +-------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
-
 '''
 
 '''
@@ -69,25 +68,41 @@ simple raw factors:
 |                    | CNTP, CNTN, CNTD, SUMP, SUMN, SUMD, VMA, VSTD, WVMA, VSUMP, VSUMN, VSUMD                        |
 '''
 
+def pause():
+    import time
+    time.sleep(1000)
+    return
+
 # feature map
-m = {#  name:str:   default_value:? data_consumed:int
+DEFAULT = -10.0
+m:Dict[str, List[float]] = {
+#       name:str:                    [default_value:? data_consumed:int]
 # PA: price_action
     # CP: chart_pattern
         # if a con/diverging nexus/jiatou exist
-        'PA_CP_exist_nexus'        :[   0,  0,],
+        'PA_CP_exist_nexus'         :[DEFAULT,  0,],
         # multiple chart patterns exist at the same time
-        'PA_CP_exist_nexus_mult'   :[   0,  0,],
+        'PA_CP_exist_nexus_mult'    :[DEFAULT,  0,],
         # nexus type (not using on-hot since it is important)
-        'PA_CP_first_entry'        :[   0,  0,],
-        'PA_CP_is_channel'         :[   0,  0,],
-        'PA_CP_is_rect'            :[   0,  0,],
-        'PA_CP_is_meg_sym'         :[   0,  0,],
-        'PA_CP_is_meg_brk_far'     :[   0,  0,],
-        'PA_CP_is_meg_rev_bak'     :[   0,  0,],
-        'PA_CP_is_tri_sym'         :[   0,  0,],
-        'PA_CP_is_tri_brk_far'     :[   0,  0,],
-        'PA_CP_is_tri_rev_bak'     :[   0,  0,],
-        'PA_CP_is_flag'            :[   0,  0,],
+        'PA_CP_first_entry'         :[DEFAULT,  0,],
+        'PA_CP_is_channel'          :[DEFAULT,  0,],
+        'PA_CP_is_rect'             :[DEFAULT,  0,],
+        'PA_CP_is_meg_sym'          :[DEFAULT,  0,],
+        'PA_CP_is_meg_brk_far'      :[DEFAULT,  0,],
+        'PA_CP_is_meg_rev_bak'      :[DEFAULT,  0,],
+        'PA_CP_is_tri_sym'          :[DEFAULT,  0,],
+        'PA_CP_is_tri_brk_far'      :[DEFAULT,  0,],
+        'PA_CP_is_tri_rev_bak'      :[DEFAULT,  0,],
+        'PA_CP_is_flag'             :[DEFAULT,  0,],
+        
+        'PA_CP_entry_dir'           :[DEFAULT,  0,],
+        'PA_CP_num_vertices'        :[DEFAULT,  0,],
+        'PA_CP_far_cons'            :[DEFAULT,  0,],
+        'PA_CP_near_cons'           :[DEFAULT,  0,],
+        'PA_CP_top_slope'           :[DEFAULT,  0,],
+        'PA_CP_bot_slope'           :[DEFAULT,  0,],
+        'PA_CP_top_residue'         :[DEFAULT,  0,],
+        'PA_CP_bot_residue'         :[DEFAULT,  0,],
         
 }
 # key_index = list(m.keys()).index('b')  # Output: 1
@@ -100,7 +115,11 @@ m = {#  name:str:   default_value:? data_consumed:int
 
 class CFeatures: # Features Snapshot for a potential buy/sell point
     def __init__(self, initFeat=None):
-        self.empty_feature_page = dict(zip(m.keys(), map(lambda l: float(l[0]), m.values())))
+        self.empty_feature_page:Dict[str, float] = dict(zip(m.keys(), map(lambda l: float(l[0]), m.values())))
+        self.feature_history:Dict[str, List[float]] = dict(zip(m.keys(), []))
+        self.label_history:List[float] = []
+        self.num_features_updates:int = 0
+        self.num_label_updates:int = 0
         if initFeat is None:
             self.refresh_feature_page()
             # from pprint import pprint
@@ -120,3 +139,27 @@ class CFeatures: # Features Snapshot for a potential buy/sell point
     def add_feat(self, inp1:str, inp2:float):
         # self.__features.update({inp1: inp2})
         self._features[inp1] = inp2
+
+    def update_features_array(self): # for training deep learning algorithm
+        # if self.label_updated:
+        for key, value in self._features.items():
+            self.feature_history.setdefault(key, []).append(round(value, 2)) # TODO
+        self.num_features_updates += 1
+        #     self.label_updated = False
+        # else:
+        #     print('Err: failed to update features array')
+        #     pause()
+
+    def update_label_list(self, new_label:float): # labels contain future information
+        # if self.label_updated:
+        #     print('Err: failed to update label list')
+        #     pause()
+        # else:
+        self.label_history.append(round(new_label,2))
+        self.num_label_updates += 1
+        # self.label_updated = True
+        # return True
+    
+    def get_pending_label_updates(self) -> int:
+        return self.num_features_updates - self.num_label_updates
+    
