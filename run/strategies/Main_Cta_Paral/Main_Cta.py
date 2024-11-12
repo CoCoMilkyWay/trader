@@ -98,7 +98,8 @@ class Main_Cta(BaseCtaStrategy):
         curTime = context.stra_get_time()
         
         batch_feed   = False
-        if curTime in n_Processor.REBALANCE_TIME:
+        # if curTime in n_Processor.REBALANCE_TIME:
+        if (curTime % 5) == 0:
             date = context.get_date()
             batch_feed = True
             Meta_queue: List[MetadataIn] = []

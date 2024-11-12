@@ -126,7 +126,11 @@ class n_processor_queue:
         with HotkeyManager(handler_thread=sigint_handler_worker):
             try:
                 while True:
-                    worker_ready.wait()  # Blocks until the event is set
+                    
+                    try:
+                        worker_ready.wait()  # Blocks until the event is set
+                    except:
+                        pass
                     
                     if end.value:
                         break

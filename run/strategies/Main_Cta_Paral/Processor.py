@@ -105,7 +105,8 @@ class n_Processor:
             self.resample_buffer[code].extend(kline_batch)
             rebalance = False
             # if curTime in self.REBALANCE_TIME:
-            if (curTime % 5) == 0:
+            # if (curTime % 5) == 0:
+            if True:
                 rebalance = True
                 batch_combined_klu, batch_volume_profile = self.process_batch_klu(self.resample_buffer[code], self.price_bin_width[code])
                 self.resample_buffer[code] = []

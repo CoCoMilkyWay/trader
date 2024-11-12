@@ -44,7 +44,7 @@ bt_config = CChanConfig({
 })
 
 # ML config
-bt_config.LEARN = False
+bt_config.LEARN = True
 bt_config.LABEL_METHOD = 'naive_next_bi'
 
 bt_config.plot_para["trend_lines"]["plot_trendline_num"] = 1
