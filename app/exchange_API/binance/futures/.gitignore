@@ -1,8 +1,0 @@
-build
-dist
-binance.egg-info/
-__pycache__
-*.pyc
-.tox
-.python-version
-.DS_Store
