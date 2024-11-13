@@ -8,14 +8,14 @@ class cfg: # Constants Configs
     tolerance = 10 # tolerance among different data sources, larger for ETF
     # local config files
     script_dir          = os.path.dirname(os.path.abspath(__file__))
-    HOLIDAYS_FILE       = script_dir + '/../cfg/misc/holidays.json'
-    TRADEDAYS_FILE      = script_dir + '/../cfg/misc/tradedays.json'
-    STOCKS_FILE         = script_dir + '/../cfg/assets_list/stocks.json'
-    ADJFACTORS_FILE     = script_dir + '/../cfg/misc/adjfactors.json'
+    HOLIDAYS_FILE       = script_dir + './../cfg/misc/holidays.json'
+    TRADEDAYS_FILE      = script_dir + './../cfg/misc/tradedays.json'
+    STOCKS_FILE         = script_dir + './../cfg/assets_list/stocks.json'
+    ADJFACTORS_FILE     = script_dir + './../cfg/misc/adjfactors.json'
 
     # local/remote database
     USE_REMOTE          = 1 # local storage limited
-    LOCAL_DATABASE_DIR  = script_dir + '/../../database'
+    LOCAL_DATABASE_DIR  = script_dir + './../database'
     REMOTE_DATABASE_DIR = 'E:/DB'
     DATABASE_DIR        = REMOTE_DATABASE_DIR if USE_REMOTE else LOCAL_DATABASE_DIR
     # db1_0

@@ -1,0 +1,19 @@
+basefiles:
+    commodity: ../common/commodities.json
+    contract: ../common/contracts.json
+    holiday: ../common/holidays.json
+    hot: ../common/hots.json
+    session: ../common/sessions.json
+data:
+    store:
+        path: ../storage/
+env:
+    fees: ../common/fees.json
+    filters: filters.yaml
+    mode: product
+    name: hft
+    product:
+        session: TRADING
+parsers: tdparsers.yaml
+traders: tdtraders.yaml
+bspolicy: actpolicy.yaml

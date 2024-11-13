@@ -12,9 +12,16 @@ setup(
         # 'Chan': ['*.*', '**/*.*'],
         '': ["*"],
     },
-    python_requires='>=3.11',
+    python_requires='>=3.12',
     install_requires=[
         "pandas",
-        "numpy"
+        "numpy",
+        "matplotlib",
+        "xgboost",
+        "itsdangerous",
+        "numba",
+        "keyboard",
+        "IPython",
+        "baostock",
     ],
 )
