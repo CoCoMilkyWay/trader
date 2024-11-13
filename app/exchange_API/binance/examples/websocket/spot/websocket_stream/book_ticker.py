@@ -11,10 +11,10 @@ config_logging(logging, logging.DEBUG)
 def message_handler(_, message):
     print(message)
 
-proxies = { 'https': 'http://127.0.0.1:9090' }
+# proxies = { 'https': 'http://127.0.0.1:7890' }
 my_client = SpotWebsocketStreamClient(
     on_message=message_handler,
-    proxies=proxies
+    # proxies=proxies,
     )
 
 my_client.book_ticker(symbol="btcusdt")

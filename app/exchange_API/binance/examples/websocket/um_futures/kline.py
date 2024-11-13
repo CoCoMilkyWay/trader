@@ -11,8 +11,11 @@ config_logging(logging, logging.DEBUG)
 def message_handler(_, message):
     print(message)
 
-proxies = { 'https': 'http://127.0.0.1:9090' }
-my_client = UMFuturesWebsocketClient(on_message=message_handler, proxies=proxies)
+# proxies = { 'https': 'http://127.0.0.1:9090' }
+my_client = UMFuturesWebsocketClient(
+    on_message=message_handler, 
+    # proxies=proxies
+    )
 
 my_client.kline(
     symbol="btcusdt",
