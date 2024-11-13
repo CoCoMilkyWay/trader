@@ -7,8 +7,8 @@ from binance.error import ClientError
 config_logging(logging, logging.DEBUG)
 
 # HMAC authentication with API key and secret
-key = ""
-secret = ""
+from binance.utils.prepare_env import get_api_key
+api_key, api_secret = get_api_key()
 
 hmac_client = Client(key=key, secret=secret)
 logging.info(hmac_client.account(recvWindow=6000))

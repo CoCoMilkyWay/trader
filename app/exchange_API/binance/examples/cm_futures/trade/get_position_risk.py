@@ -6,8 +6,8 @@ from binance.error import ClientError
 
 config_logging(logging, logging.DEBUG)
 
-key = ""
-secret = ""
+from binance.utils.prepare_env import get_api_key
+api_key, api_secret = get_api_key()
 
 client = Client(key, secret, base_url="https://dapi.binance.com")
 try:

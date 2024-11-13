@@ -6,10 +6,11 @@ from binance.error import ClientError
 
 config_logging(logging, logging.DEBUG)
 
-key = ""
-secret = ""
-
-um_futures_client = UMFutures(key=key, secret=secret)
+from binance.utils.prepare_env import get_api_key
+api_key, api_secret = get_api_key()
+print(api_key)
+print(api_secret)
+um_futures_client = UMFutures(key=api_key, secret=api_secret)
 
 try:
     response = um_futures_client.get_all_orders(symbol="BTCUSDT", recvWindow=2000)

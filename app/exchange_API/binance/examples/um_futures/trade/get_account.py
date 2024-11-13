@@ -7,10 +7,10 @@ from binance.error import ClientError
 config_logging(logging, logging.DEBUG)
 
 # HMAC authentication with API key and secret
-key = ""
-secret = ""
+from binance.utils.prepare_env import get_api_key
+api_key, api_secret = get_api_key()
 
-hmac_client = UMFutures(key=key, secret=secret)
+hmac_client = UMFutures(key=api_key, secret=api_secret)
 logging.info(hmac_client.account(recvWindow=6000))
 
 # RSA authentication with RSA key
