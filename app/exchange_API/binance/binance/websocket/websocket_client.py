@@ -21,7 +21,7 @@ class BinanceWebsocketClient:
         on_pong=None,
         logger=None,
         timeout=None,
-        proxies: Optional[dict] = None,
+        proxies: Optional[dict] = { 'https': 'http://127.0.0.1:7890' },
     ):
         if not logger:
             logger = logging.getLogger(__name__)

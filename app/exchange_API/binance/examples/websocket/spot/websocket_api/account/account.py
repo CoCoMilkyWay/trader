@@ -18,11 +18,12 @@ def on_close(_):
 def message_handler(_, message):
     logging.info(message)
 
-
+proxies = { 'https': 'http://127.0.0.1:7890' }
 my_client = SpotWebsocketAPIClient(
     stream_url="wss://ws-api.testnet.binance.vision/ws-api/v3",
     api_key=api_key,
     api_secret=api_secret,
+    proxies=proxies,
     on_message=message_handler,
     on_close=on_close,
 )

@@ -17,7 +17,7 @@ class SpotWebsocketAPIClient(BinanceWebsocketClient):
         on_pong=None,
         timeout=None,
         logger=None,
-        proxies: Optional[dict] = None,
+        proxies: Optional[dict] = { 'https': 'http://127.0.0.1:7890' },
     ):
         self.api_key = api_key
         self.api_secret = api_secret

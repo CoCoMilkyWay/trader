@@ -15,8 +15,8 @@ def on_close(_):
 def message_handler(_, message):
     logging.info(message)
 
-
-my_client = SpotWebsocketAPIClient(on_message=message_handler, on_close=on_close)
+proxies = { 'https': 'http://127.0.0.1:7890' }
+my_client = SpotWebsocketAPIClient(on_message=message_handler, on_close=on_close, proxies=proxies)
 
 
 my_client.order_book(symbol="BNBBUSD")

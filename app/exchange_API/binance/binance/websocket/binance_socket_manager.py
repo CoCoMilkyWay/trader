@@ -24,7 +24,7 @@ class BinanceSocketManager(threading.Thread):
         on_pong=None,
         logger=None,
         timeout=None,
-        proxies: Optional[dict] = None,
+        proxies: Optional[dict] = { 'https': 'http://127.0.0.1:7890' },
     ):
         threading.Thread.__init__(self)
         if not logger:
@@ -71,6 +71,22 @@ class BinanceSocketManager(threading.Thread):
         while True:
             try:
                 op_code, frame = self.ws.recv_data_frame(True)
+                #　+-------------------------+----------+----------------------------------------------+
+                #　| Opcode                  | Hex Code | Description                                  |
+                #　+-------------------------+----------+----------------------------------------------+
+                #　| Text Frame              | 0x1      | Sends text data (UTF-8 encoded)              |
+                #　+-------------------------+----------+----------------------------------------------+
+                #　| Binary Frame            | 0x2      | Sends binary data (e.g., files, images)      |
+                #　+-------------------------+----------+----------------------------------------------+
+                #　| Connection Close Frame  | 0x8      | Signals the closing of a WebSocket connection|
+                #　+-------------------------+----------+----------------------------------------------+
+                #　| Ping Frame              | 0x9      | Used to check if the connection is active    |
+                #　+-------------------------+----------+----------------------------------------------+
+                #　| Pong Frame              | 0xA      | Response to a ping, keeping the connection   |
+                #　|                         |          | alive                                        |
+                #　+-------------------------+----------+----------------------------------------------+
+                #　| Continuation Frame      | 0x0      | Continues a fragmented message               |
+                #　+-------------------------+----------+----------------------------------------------+
             except WebSocketException as e:
                 if isinstance(e, WebSocketConnectionClosedException):
                     self.logger.error("Lost websocket connection")

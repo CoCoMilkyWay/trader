@@ -14,7 +14,7 @@ class UMFuturesWebsocketClient(BinanceWebsocketClient):
         on_ping=None,
         on_pong=None,
         is_combined=False,
-        proxies: Optional[dict] = None,
+        proxies: Optional[dict] = { 'https': 'http://127.0.0.1:7890' },
     ):
         if is_combined:
             stream_url = stream_url + "/stream"

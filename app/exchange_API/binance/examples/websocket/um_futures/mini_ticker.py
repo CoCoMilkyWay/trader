@@ -14,7 +14,10 @@ def message_handler(_, message):
 
 my_client = UMFuturesWebsocketClient(on_message=message_handler)
 
-my_client.mini_ticker(id=1, symbol="btcusdt")
+my_client.mini_ticker(
+    # id=1, 
+    # symbol="btcusdt"
+    )
 
 time.sleep(10)
 

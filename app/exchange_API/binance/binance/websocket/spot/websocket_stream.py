@@ -16,7 +16,7 @@ class SpotWebsocketStreamClient(BinanceWebsocketClient):
         is_combined=False,
         timeout=None,
         logger=None,
-        proxies: Optional[dict] = None,
+        proxies: Optional[dict] = { 'https': 'http://127.0.0.1:7890' },
     ):
         if is_combined:
             stream_url = stream_url + "/stream"
