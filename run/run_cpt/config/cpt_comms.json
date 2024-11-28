@@ -1,0 +1,17 @@
+{
+	"Binance": {
+		"UM": {
+			"category": 22,
+			"covermode": 0,
+			"exchg": "Binance",
+			"holiday": "NO_HOLIDAYS",
+			"name": "UM Futures",
+			"precision": 2,
+			"pricemode": 1,
+			"pricetick": 0.01,
+			"session": "ALLDAY",
+			"volscale": 1,
+			"trademode": 0
+		}
+	}
+}

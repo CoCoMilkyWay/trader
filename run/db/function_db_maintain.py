@@ -12,8 +12,8 @@ import pyarrow.parquet as pq
 import baostock as bs
 
 from wtpy.apps.datahelper import DHFactory as DHF
-from run_db_maintain import cfg
-from util import *
+from db_cfg import cfg_stk
+from run.db.util_stk import *
 
 class update_helper:
     def __init__(self):
@@ -58,7 +58,7 @@ class update_helper:
         import shutil
         try:
             self.hlper.dmpHolidayssToFile(filename_holidays='holidays.json', filename_tradedays='tradedays.json')
-            previous_json = load_json(file_path=cfg.HOLIDAYS_FILE)
+            previous_json = load_json(file_path=cfg_stk.HOLIDAYS_FILE)
             current_json = load_json(file_path='holidays.json')
             # Convert JSON list to set for easier comparison
             current_dates = set(current_json['CHINA'])
@@ -69,8 +69,8 @@ class update_helper:
             print("[INFO ][maintain_D_Holidays]: New Adding:", new_dates)
             print("[INFO ][maintain_D_Holidays]: New Missing:", missing_dates)
             print("[INFO ][maintain_D_Holidays]: Overwriting")
-            shutil.move('holidays.json', cfg.HOLIDAYS_FILE)
-            shutil.move('tradedays.json', cfg.TRADEDAYS_FILE)
+            shutil.move('holidays.json', cfg_stk.HOLIDAYS_FILE)
+            shutil.move('tradedays.json', cfg_stk.TRADEDAYS_FILE)
         except:
             print('[ERROR][maintain_D_Holidays]: cannot connect to akshare to update holidays')
 
@@ -78,7 +78,7 @@ class update_helper:
         import shutil
         try:
             self.hlper.dmpCodeListToFile(filename='stocks.json')
-            previous_json = load_json(file_path=cfg.STOCKS_FILE)
+            previous_json = load_json(file_path=cfg_stk.STOCKS_FILE)
             current_json = load_json(file_path='stocks.json')
 
             # Load and normalize data
@@ -88,14 +88,14 @@ class update_helper:
                 print(previous_normalized_data)
                 self.compare_dataframes(previous_normalized_data, current_normalized_data, exchange, 1, '[INFO ][maintain_D_Assetlists]: ')
             print("[INFO ][maintain_D_Assetlists]: Overwriting")
-            shutil.move('stocks.json', cfg.STOCKS_FILE)
+            shutil.move('stocks.json', cfg_stk.STOCKS_FILE)
         except:
             print('[ERROR][maintain_D_Assetlists]: cannot update asset lists')
 
     def update_adjfactors(self):
         import shutil
         try:
-            asset_list_json =  load_json(cfg.STOCKS_FILE)
+            asset_list_json =  load_json(cfg_stk.STOCKS_FILE)
 
             def extract_stock_codes(json_data, exchange):
                 """ Extract stock codes from JSON data based on the specified exchange """
@@ -110,7 +110,7 @@ class update_helper:
                 stock_codes = stock_codes + extract_stock_codes(asset_list_json, exchange)
             self.hlper.dmpAdjFactorsToFile(codes=stock_codes, filename='adjfactors.json')
             print('[INFO ][maintain_D_Adjfactors]: Update Finished, Comparing')
-            previous_json = load_json(file_path=cfg.ADJFACTORS_FILE)
+            previous_json = load_json(file_path=cfg_stk.ADJFACTORS_FILE)
             current_json = load_json(file_path='adjfactors.json')
 
             # Load and normalize data
@@ -119,7 +119,7 @@ class update_helper:
                 current_normalized_data = self.normalize_data(current_json, exchange)
                 self.compare_dataframes(previous_normalized_data, current_normalized_data, exchange, 0, '[INFO ][maintain_D_Adjfactors]: ')
             print("[INFO ][maintain_D_Adjfactors]: Overwriting")
-            shutil.move('adjfactors.json', cfg.ADJFACTORS_FILE)
+            shutil.move('adjfactors.json', cfg_stk.ADJFACTORS_FILE)
         except:
             print('[ERROR][maintain_D_Adjfactors]: cannot update adj-factors')
             
@@ -130,10 +130,10 @@ class database_helper:
     def __init__(self):
         print('[INFO ][maintain: Reading DataBase Meta info]')
         # parse meta data
-        self.holidays = load_json(cfg.HOLIDAYS_FILE)
-        self.tradedays = load_json(cfg.TRADEDAYS_FILE)
-        self.stocks = load_json(cfg.STOCKS_FILE)
-        self.adjfactors = load_json(cfg.ADJFACTORS_FILE)
+        self.holidays = load_json(cfg_stk.HOLIDAYS_FILE)
+        self.tradedays = load_json(cfg_stk.TRADEDAYS_FILE)
+        self.stocks = load_json(cfg_stk.STOCKS_FILE)
+        self.adjfactors = load_json(cfg_stk.ADJFACTORS_FILE)
         def get_bao_stocks(pool: str = 'hs300'):
             import baostock as bs
             import pandas as pd
@@ -156,8 +156,8 @@ class database_helper:
             bao_df = pd.DataFrame(bao_stocks, columns=rs.fields)
             bao_ls = list(bao_df['code'])
             return bao_ls, bao_valid
-        if cfg.SHRINK_STOCK_POOL:
-            bao_stocks, bao_valid = get_bao_stocks(cfg.STOCK_POOL)
+        if cfg_stk.SHRINK_STOCK_POOL:
+            bao_stocks, bao_valid = get_bao_stocks(cfg_stk.STOCK_POOL)
             exchange_dict = {'SSE': 'sh', 'SZSE': 'sz'}
             for e in ['SSE', 'SZSE']:
                 limited_dict = {}
@@ -173,7 +173,7 @@ class database_helper:
                                 #     self.stocks[e] = limited_dict
                                 #     break  # Stop after adding N items
                                 limited_dict[key] = value
-                        if cfg.STOCK_POOL == 'index':
+                        if cfg_stk.STOCK_POOL == 'index':
                             if value['product'] == 'IDX':
                                 limited_dict[key] = value
                 self.stocks[e] = limited_dict
@@ -190,7 +190,7 @@ class database_helper:
         date_list = [datetime.strptime(date, "%Y%m%d").date() for date in self.tradedays['CHINA']]
         try:
             print('[INFO ][maintain: Reading Meta-Data]')
-            self.metadata = pq.read_table(mkdir(cfg.METADATA_FILE)).to_pandas()
+            self.metadata = pq.read_table(mkdir(cfg_stk.METADATA_FILE)).to_pandas()
             print('[INFO ][maintain: Finished Reading Meta-Data]')
         except FileNotFoundError:
             print('[ERROR][maintain: Creating Meta-Data Table]')
@@ -213,18 +213,18 @@ class database_helper:
                     self.update_metadata_by_code(asset)
                     # print(self.metadata.loc[code])
                     pbar.set_description(f'Processing {asset}: ')
-            pq.write_table(pa.Table.from_pandas(self.metadata), cfg.METADATA_FILE)
+            pq.write_table(pa.Table.from_pandas(self.metadata), cfg_stk.METADATA_FILE)
         # view only: meta table
-        print(f'[INFO ][maintain: Writing Meta to Json for reference: {cfg.METADATA_JSON_FILE}]')
-        dump_json(mkdir(cfg.METADATA_JSON_FILE), self.metadata)
+        print(f'[INFO ][maintain: Writing Meta to Json for reference: {cfg_stk.METADATA_JSON_FILE}]')
+        dump_json(mkdir(cfg_stk.METADATA_JSON_FILE), self.metadata)
         
         print('[INFO ][maintain: Syncing Integrity Table]')
         integrity_percentage = {}
         asset = ''
         for asset in tqdm(asset_list, desc=f'Syncing: {asset}'):
-            folder = f"{cfg.BAR_DIR}/m1/{asset}"
+            folder = f"{cfg_stk.BAR_DIR}/m1/{asset}"
             integrity_file = f'{folder}/integrity.json'
-            if cfg.FORCE_INTEGRITY_SYNC and os.path.exists(integrity_file):
+            if cfg_stk.FORCE_INTEGRITY_SYNC and os.path.exists(integrity_file):
                 os.remove(integrity_file)
             if os.path.exists(folder) and not os.path.exists(integrity_file):
                 if 1:
@@ -257,10 +257,10 @@ class database_helper:
                 integrity.to_json(mkdir(integrity_file), date_format='iso', orient='table')
                 # integrity = pd.read_json(integrity_file, orient='table', convert_dates=['trade_days'])
                 # integrity.set_index('trade_days', inplace=True)
-        with open(mkdir(cfg.INTEGRITY_JSON_FILE), 'w') as file:
+        with open(mkdir(cfg_stk.INTEGRITY_JSON_FILE), 'w') as file:
             import json
             json.dump(integrity_percentage, file, indent=4)  # 'indent=4' for pretty-printing
-        # with open(cfg.INTEGRITY_JSON_FILE, 'r') as file:
+        # with open(cfg_stk.INTEGRITY_JSON_FILE, 'r') as file:
         #     integrity = json.load(file)
         print('[INFO ][maintain: Created Integrity Tables]')
         
@@ -289,7 +289,7 @@ class database_helper:
         exchanges = ['SSE', 'SZSE']
         exchanges_prefix = ['sh', 'sz']
         asset_list = []
-        processed_asset_list = os.listdir(mkdir(f"{cfg.BAR_DIR}/m1/"))
+        processed_asset_list = os.listdir(mkdir(f"{cfg_stk.BAR_DIR}/m1/"))
         for idx, exchange in enumerate(exchanges):
             try:
                 for asset in assets[exchange].keys():
@@ -320,8 +320,8 @@ class database_helper:
                     pass
         processor = n_slave_1_master_queue(
             tqdm_total=num_assets,
-            max_workers=cfg.max_workers,
-            concurrency_mode=cfg.concurrency_mode)
+            max_workers=cfg_stk.max_workers,
+            concurrency_mode=cfg_stk.concurrency_mode)
         processor.add_slave_task(asset_jobs) # submit jobs
         processor.execute()
         
@@ -341,7 +341,7 @@ signal.signal(signal.SIGINT, signal_handler)
 # # integrity logger
 # log_int = logging.getLogger('integrity')
 # log_int.setLevel(logging.WARN)
-# handler_int_file = logging.FileHandler(mkdir(f'{cfg.DB0}/integrity.log'))
+# handler_int_file = logging.FileHandler(mkdir(f'{cfg_stk.DB0}/integrity.log'))
 # handler_int_file.setFormatter(formatter)
 # handler_int_cons = logging.StreamHandler()
 # log_int.addHandler(handler_int_file)
@@ -349,7 +349,7 @@ signal.signal(signal.SIGINT, signal_handler)
 # # summary logger
 # log_sum = logging.getLogger('summary')
 # log_sum.setLevel(logging.INFO)
-# handler_sum_file = logging.FileHandler(mkdir(f'{cfg.DB0}/summary.log'))
+# handler_sum_file = logging.FileHandler(mkdir(f'{cfg_stk.DB0}/summary.log'))
 # handler_sum_file.setFormatter(formatter)
 # handler_sum_cons = logging.StreamHandler()
 # log_sum.addHandler(handler_sum_file)
@@ -379,11 +379,11 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
     ipo_date = list(asset_dict.values())[0][1]
     # TODO
     asset = list(asset_dict.keys())[0]
-    log_path = f"{cfg.BAR_DIR}/m1/{asset}/log.txt"
+    log_path = f"{cfg_stk.BAR_DIR}/m1/{asset}/log.txt"
     if not os.path.exists(log_path): # logging
         log(mkdir(log_path), asset_adjfactors, stdout=0, type='w')
         log(log_path, ipo_date, stdout=0)
-    if cfg.CHECK_4:
+    if cfg_stk.CHECK_4:
         adj_days = [day_dict['date'] for day_dict in asset_adjfactors]
         adj_factors = [day_dict['factor'] for day_dict in asset_adjfactors]
     days_passed = []
@@ -393,7 +393,7 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
     for year, group_year in df.groupby('year'):
         for month, group_month in group_year.groupby('month'):
             group_month = group_month[group_month['year'] == year]
-            file_path = f"{cfg.BAR_DIR}/m1/{asset}/{year}.{month}.dsb"
+            file_path = f"{cfg_stk.BAR_DIR}/m1/{asset}/{year}.{month}.dsb"
             if os.path.exists(file_path):
                 continue
             rules_violated_tomonth = 0
@@ -403,17 +403,17 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                 date_str = f'{year}{month:02}{day:02}'
                 date = pd.to_datetime(date_str, format='%Y%m%d')
                 prev_close = [group_date['close'].iloc[-1], prev_close[0]]
-                file_path = f"{cfg.BAR_DIR}/m1/{asset}/{year}.{month}.{day}.dsb"
+                file_path = f"{cfg_stk.BAR_DIR}/m1/{asset}/{year}.{month}.{day}.dsb"
                 if os.path.exists(file_path):
                     continue
                 
-                if cfg.CHECK_5:
+                if cfg_stk.CHECK_5:
                     valid = 1
                     skip = 0
                     num_min_bars = group_date.shape[0]
                     # Rule 5: Verify day-open/close/mid-break price from other sources
                     if (num_min_bars<200):
-                        if cfg.DISCARD_5:
+                        if cfg_stk.DISCARD_5:
                             rules_violated_tomonth |= 1<<5
                         log(log_path, f'[integrity][5]: not enough monthly data: {asset}: {year}.{month}')
                         continue
@@ -432,26 +432,26 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                         if  actual_open    != expected_open or \
                             actual_close   != expected_close:
                                 # tolerate a bit diff
-                                if abs(actual_open - expected_open) > cfg.tolerance:
+                                if abs(actual_open - expected_open) > cfg_stk.tolerance:
                                     valid =0
-                                if abs(actual_close - expected_close) > cfg.tolerance:
+                                if abs(actual_close - expected_close) > cfg_stk.tolerance:
                                     valid =0
                     if valid == 0:
-                        if cfg.DISCARD_5:
+                        if cfg_stk.DISCARD_5:
                             rules_violated_tomonth |= 1<<5
                         log(log_path, f'[integrity][5]: not matching data source: {asset}: {year}.{month}.{day}: {expected_open}, {actual_open}, {expected_close}, {actual_close}')
                         continue
                     
-                if cfg.CHECK_0:
+                if cfg_stk.CHECK_0:
                     # Rule 0: Non-zero/NaN/NaT OHLC
                     if (group_date[['open', 'high', 'low', 'close']].isnull().any().any() or
                         (group_date[['open', 'high', 'low', 'close']] == 0).any().any()):
-                        if cfg.DISCARD_0:
+                        if cfg_stk.DISCARD_0:
                             rules_violated_tomonth |= 1<<0
                         log(log_path, f'[integrity][0]: bad data:{elem}')
                         continue
 
-                if cfg.CHECK_1:
+                if cfg_stk.CHECK_1:
                     # Rule 1: Timestamp continuity/order/completeness
                     # Augest 2018: modify rules of after-hour-call-auction： 14:55 to 14:57
                     morning_times = pd.date_range(start=f"09:30", end=f"11:31", freq='min')
@@ -462,31 +462,31 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                     unexpected_time = False
                     for elem in actual_times:
                         if elem not in expected_times:
-                            if cfg.DISCARD_1:
+                            if cfg_stk.DISCARD_1:
                                 rules_violated_tomonth |= 1<<1
                             unexpected_time = True
                             log(log_path, f'[integrity][1]: unexpected trading time:{asset}: {year}.{month}.{day}: {elem}')
                             continue
                     if not unexpected_time:
                         if len(actual_times) < len(expected_times) - 5:
-                            if cfg.DISCARD_1:
+                            if cfg_stk.DISCARD_1:
                                 rules_violated_tomonth |= 1<<1
                             log(log_path, f'[integrity][1]: not enough data: {asset}: {year}.{month}.{day}: {len(expected_times)}, {len(actual_times)}')
                             continue
                         
-                if cfg.CHECK_2:
+                if cfg_stk.CHECK_2:
                     # Rule 2: Intra-day price relation (may not be continuous)
                     if ((group_date['high']     < group_date['low']).any() or 
                         (group_date['open']     > group_date['high']).any() or 
                         (group_date['open']     < group_date['low']).any() or 
                         (group_date['close']    > group_date['high']).any() or 
                         (group_date['close']    < group_date['low']).any()):
-                        if cfg.DISCARD_2:
+                        if cfg_stk.DISCARD_2:
                             rules_violated_tomonth |= 1<<2
                         log(log_path, f"[integrity][2]: wrong intra-day OHCL:{asset}: {year}.{month}.{day}: {group_date['open'].iloc[0]},{group_date['close'].iloc[0]},{group_date['high'].iloc[0]},{group_date['low'].iloc[0]}")
                         continue
 
-                if cfg.CHECK_3:
+                if cfg_stk.CHECK_3:
                     # Rule 3: Inter-day price jump limit
                     adjusted_prev_close = prev_close[1]
                     adjusted = 0
@@ -508,35 +508,35 @@ def check_integrity_per_asset(df, asset_dict, daily_k_bar):
                         else:
                             log(log_path, f'[integrity][3]: {year}.{month}.{day} day bar price jump: {prev_close[1]}, {adjusted_prev_close}, {current_open}')
                             
-                        if cfg.DISCARD_3:
+                        if cfg_stk.DISCARD_3:
                             rules_violated_tomonth |= 1<<3
                         continue
 
-                if cfg.CHECK_4:
+                if cfg_stk.CHECK_4:
                     # Rule 4: OHLC equal if volume is zero
                     if ((group_date['vol'] == 0) & 
                         (group_date['open'] != group_date['high']) & 
                         (group_date['high'] != group_date['low']) & 
                         (group_date['low'] != group_date['close'])).any():
-                        if cfg.DISCARD_4:
+                        if cfg_stk.DISCARD_4:
                             rules_violated_tomonth |= 1<<4
                         log(log_path, f'[integrity][4]: OHLC non-equal for 0 volume')
                         continue
                 # TODO
                 # days_passed.append(date)
-                file_path = f"{cfg.BAR_DIR}/m1/{asset}/{year}.{month}.{day}.dsb"
+                file_path = f"{cfg_stk.BAR_DIR}/m1/{asset}/{year}.{month}.{day}.dsb"
                 store_bars(group_date, file_path) # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
                 # print(dtHelper.read_dsb_bars(file_path).to_df())
             if rules_violated_tomonth == 0: # merge day file to month file
                 # log(log_path, f'merging month data: {asset}, {year}.{month}')
-                folder = f"{cfg.BAR_DIR}/m1/{asset}/"
+                folder = f"{cfg_stk.BAR_DIR}/m1/{asset}/"
                 files_to_remove = [os.path.join(folder, file) for file in os.listdir(folder) if file.endswith('.dsb') and f'{year}.{month}' in file]
                 for file in files_to_remove:
                     try:
                         os.remove(file)
                     except:
                         pass
-                file_path = f"{cfg.BAR_DIR}/m1/{asset}/{year}.{month}.dsb"
+                file_path = f"{cfg_stk.BAR_DIR}/m1/{asset}/{year}.{month}.dsb"
                 store_bars(group_month, file_path) # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
     return [days_passed, asset]
 
@@ -586,9 +586,9 @@ def process_single_asset(asset_dict, meta):
     asset_code = asset_parts[1]
     data_valid = 1
     result = [[], asset] # [days_passed, asset]
-    if cfg.CHECK_5:
+    if cfg_stk.CHECK_5:
         data_valid = 0
-        file_path = f"{cfg.CROSS_VERIFY_DIR}/{asset_prefix + asset_code}.txt"
+        file_path = f"{cfg_stk.CROSS_VERIFY_DIR}/{asset_prefix + asset_code}.txt"
         if os.path.exists(file_path):
             daily_k_bar = pd.read_csv(file_path, header=None, skiprows=2, encoding='gbk')
             if daily_k_bar.shape[0] > 100:
@@ -603,16 +603,16 @@ def process_single_asset(asset_dict, meta):
     if data_valid:
         def load_flatten_files():
             file_name = tdx_dict[asset_parts[0]] + asset_parts[1] + '.txt'
-            file = os.path.join(cfg.RAW_CSV_DIR, file_name)
+            file = os.path.join(cfg_stk.RAW_CSV_DIR, file_name)
             if os.path.exists(file):
                 return process_dataframe(file, asset_dict, daily_k_bar)
             else:
                 return [[], asset]
         def load_files_by_year():
-            if cfg.BY_YEAR:
-                folders = [os.path.join(cfg.RAW_CSV_DIR, folder) for folder in os.listdir(cfg.RAW_CSV_DIR)] # if folder.endswith('年')]
+            if cfg_stk.BY_YEAR:
+                folders = [os.path.join(cfg_stk.RAW_CSV_DIR, folder) for folder in os.listdir(cfg_stk.RAW_CSV_DIR)] # if folder.endswith('年')]
             else:
-                folders = [os.path.join(cfg.RAW_CSV_DIR, '')]
+                folders = [os.path.join(cfg_stk.RAW_CSV_DIR, '')]
             days_passed = []
             for folder in folders:
                 file = [os.path.join(folder, file) for file in os.listdir(folder) if file == f'{asset_code}.{asset_prefix[:2]}.csv']
@@ -631,13 +631,13 @@ def process_single_asset(asset_dict, meta):
 
 def update_integrity_table(integrity_day_list, meta):
     [days_passed, asset] = integrity_day_list
-    # self.integrity = pq.read_table(mkdir(cfg.INTEGRITY_FILE)).to_pandas()
+    # self.integrity = pq.read_table(mkdir(cfg_stk.INTEGRITY_FILE)).to_pandas()
     # index = pd.MultiIndex.from_tuples(itertools.product(code_list, date_list), names=['asset_code', 'date'])
     # self.integrity = pd.DataFrame({
     #     'integrity': pd.Series([False]*len(index), index=index, dtype=bool)
     #     })
-    # pq.write_table(pa.Table.from_pandas(self.integrity), cfg.INTEGRITY_FILE)
-    # integrity_table = f"{cfg.BAR_DIR}/m1/{asset}/integrity.parquet"
+    # pq.write_table(pa.Table.from_pandas(self.integrity), cfg_stk.INTEGRITY_FILE)
+    # integrity_table = f"{cfg_stk.BAR_DIR}/m1/{asset}/integrity.parquet"
     # with open(path_str,type) as file:
     #     file.write(str + '\n')
     # #TODO
@@ -803,6 +803,6 @@ class n_slave_1_master_queue:
             print("Execution completed or terminated.")
             
 if __name__ == "__main__":
-    import run_db_maintain
-    run_db_maintain.database_maintenance()
+    import db_cfg
+    db_cfg.stk_database_maintenance()
     pass

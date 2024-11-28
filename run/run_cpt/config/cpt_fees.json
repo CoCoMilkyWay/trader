@@ -1,0 +1,9 @@
+{
+    "Binance.UM":
+    {
+        "open":0.005,
+        "close":0.005,
+        "closetoday":0.0,
+        "byvolume":false
+    }
+}

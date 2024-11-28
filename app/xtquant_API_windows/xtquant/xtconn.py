@@ -70,7 +70,7 @@ def scan_available_server():
                 continue
 
             try:
-                config = json.load(open(os.path.join(full_path, 'xtdata.cfg'), 'r', encoding = 'utf-8'))
+                config = json.load(open(os.path.join(full_path, 'xtdata.cfg_stk'), 'r', encoding = 'utf-8'))
 
                 ip = config.get('ip', localhost)
                 port = config.get('port', None)

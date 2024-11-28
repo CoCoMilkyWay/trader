@@ -1,0 +1,20 @@
+basefiles:
+    contract: ./common/okex_tickers.json
+    session: ./common/btc_sessions.json
+broadcaster:
+    active: true
+    bport: 3997
+    broadcast:
+    -   host: 255.255.255.255
+        port: 9001
+        type: 2
+shmcaster:                      # 共享内存转发，适合本机转发
+    active: true
+    path: ./exchange.membin     # memmap文件路径
+allday: true
+writer:
+    async: false
+    module: WtDataStorageAD
+    groupsize: 20
+    path: ../AD_Data
+    savelog: false

@@ -53,8 +53,8 @@ class WT_API(CCommonStockApi):
 
     def get_kl_data(self):
         sys.path.append("../../..")
-        from run.db.run_db_maintain import cfg
-        from run.db.util import combine_dsb_1m, resample, mkdir
+        from run.db.db_cfg import cfg_stk
+        from run.db.util_stk import combine_dsb_1m, resample, mkdir
         
         dtHelper = self.dtHelper
         print('Preparing dsb data ...')
@@ -63,16 +63,16 @@ class WT_API(CCommonStockApi):
         parts = asset.split(sep='.')
         exchange = asset_dict[parts[0]]
         code = parts[1]
-        # with open(cfg.STOCKS_FILE, 'r', encoding='gbk', errors='ignore') as file:
+        # with open(cfg_stk.STOCKS_FILE, 'r', encoding='gbk', errors='ignore') as file:
         #     stocks = json.load(file)
         # try:
         #     type = stocks[exchange][code]['product']
         # except:
         #     type = 'STK'
         # wt_asset = f'{asset_dict[parts[0]]}.{type}.{parts[1]}'
-        read_path = f"{cfg.BAR_DIR}/m1/{asset}"
-        imcomplete_1m_store_path = mkdir(f"{cfg.WT_STORAGE_DIR}/his/temp_1m.dsb") # temp path
-        imcomplete_resample_store_path = mkdir(f"{cfg.WT_STORAGE_DIR}/his/temp_resample.dsb") # temp path
+        read_path = f"{cfg_stk.BAR_DIR}/m1/{asset}"
+        imcomplete_1m_store_path = mkdir(f"{cfg_stk.WT_STORAGE_DIR}/his/temp_1m.dsb") # temp path
+        imcomplete_resample_store_path = mkdir(f"{cfg_stk.WT_STORAGE_DIR}/his/temp_resample.dsb") # temp path
         
         print('Resampling ...')
         from datetime import datetime

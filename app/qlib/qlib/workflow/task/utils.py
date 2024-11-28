@@ -48,13 +48,13 @@ def get_mongodb() -> Database:
         Database: the Database instance
     """
     try:
-        cfg = C["mongo"]
+        cfg_stk = C["mongo"]
     except KeyError:
         get_module_logger("task").error("Please configure `C['mongo']` before using TaskManager")
         raise
-    get_module_logger("task").info(f"mongo config:{cfg}")
-    client = MongoClient(cfg["task_url"])
-    return client.get_database(name=cfg["task_db_name"])
+    get_module_logger("task").info(f"mongo config:{cfg_stk}")
+    client = MongoClient(cfg_stk["task_url"])
+    return client.get_database(name=cfg_stk["task_db_name"])
 
 
 def list_recorders(experiment, rec_filter_func=None):

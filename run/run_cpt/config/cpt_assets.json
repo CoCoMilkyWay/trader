@@ -1,0 +1,118 @@
+{
+    "Binance": {
+        "BTCUSDT": {
+            "code": "BTCUSDT",
+            "exchg": "Binance",
+            "name": "BTCUSDT",
+            "product": "UM"
+        },
+        "ETHUSDT": {
+            "code": "ETHUSDT",
+            "exchg": "Binance",
+            "name": "ETHUSDT",
+            "product": "UM"
+        },
+        "BNBUSDT": {
+            "code": "BNBUSDT",
+            "exchg": "Binance",
+            "name": "BNBUSDT",
+            "product": "UM"
+        },
+        "DOGEUSDT": {
+            "code": "DOGEUSDT",
+            "exchg": "Binance",
+            "name": "DOGEUSDT",
+            "product": "UM"
+        },
+        "1000SHIBUSDT": {
+            "code": "1000SHIBUSDT",
+            "exchg": "Binance",
+            "name": "1000SHIBUSDT",
+            "product": "UM"
+        },
+        "ADAUSDT": {
+            "code": "ADAUSDT",
+            "exchg": "Binance",
+            "name": "ADAUSDT",
+            "product": "UM"
+        },
+        "XRPUSDT": {
+            "code": "XRPUSDT",
+            "exchg": "Binance",
+            "name": "XRPUSDT",
+            "product": "UM"
+        },
+        "SOLUSDT": {
+            "code": "SOLUSDT",
+            "exchg": "Binance",
+            "name": "SOLUSDT",
+            "product": "UM"
+        },
+        "LTCUSDT": {
+            "code": "LTCUSDT",
+            "exchg": "Binance",
+            "name": "LTCUSDT",
+            "product": "UM"
+        },
+        "BCHUSDT": {
+            "code": "BCHUSDT",
+            "exchg": "Binance",
+            "name": "BCHUSDT",
+            "product": "UM"
+        },
+        "MATICUSDT": {
+            "code": "MATICUSDT",
+            "exchg": "Binance",
+            "name": "MATICUSDT",
+            "product": "UM"
+        },
+        "LINKUSDT": {
+            "code": "LINKUSDT",
+            "exchg": "Binance",
+            "name": "LINKUSDT",
+            "product": "UM"
+        },
+        "AVAXUSDT": {
+            "code": "AVAXUSDT",
+            "exchg": "Binance",
+            "name": "AVAXUSDT",
+            "product": "UM"
+        },
+        "DOTUSDT": {
+            "code": "DOTUSDT",
+            "exchg": "Binance",
+            "name": "DOTUSDT",
+            "product": "UM"
+        },
+        "FTMUSDT": {
+            "code": "FTMUSDT",
+            "exchg": "Binance",
+            "name": "FTMUSDT",
+            "product": "UM"
+        },
+        "UNIUSDT": {
+            "code": "UNIUSDT",
+            "exchg": "Binance",
+            "name": "UNIUSDT",
+            "product": "UM"
+        },
+        "AAVEUSDT": {
+            "code": "AAVEUSDT",
+            "exchg": "Binance",
+            "name": "AAVEUSDT",
+            "product": "UM"
+        },
+        "XLMUSDT": {
+            "code": "XLMUSDT",
+            "exchg": "Binance",
+            "name": "XLMUSDT",
+            "product": "UM"
+        },
+        "TRXUSDT": {
+            "code": "TRXUSDT",
+            "exchg": "Binance",
+            "name": "TRXUSDT",
+            "product": "UM"
+        }
+    }
+}

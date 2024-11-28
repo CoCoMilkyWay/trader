@@ -3,3 +3,5 @@ model_tree.png
 ./data.db
 outputs_bt/
 *.json
+**/*.log
+**/__pycache__

@@ -1,0 +1,3 @@
+outputs_bt/
+**/*.log
+**/__pycache__
