@@ -118,6 +118,7 @@ class Main_Cta(BaseCtaStrategy):
             
             try: # some asset may not have bar at xxx time
                 np_bars = context.stra_get_bars(code, self.__period__, self.__bar_cnt__, isMain=False)
+                # print(code, np_bars.bartimes, np_bars.closes)
                 # healthy_asset += 1
                 close = np_bars.closes[-1]
                 self.np_bars_batch[code].append(np_bars)
@@ -232,3 +233,32 @@ class Main_Cta(BaseCtaStrategy):
         self.processor.stop_workers()
         print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         
+REBALANCE_TIME:List[int] = [ 
+# bars accumulated per batch before send to processes
+    935,
+    # 940,
+    # 950,
+    1000,
+    # 1010,
+    # 1020,
+    1030,
+    # 1040,
+    # 1050,
+    1100,
+    # 1110,
+    # 1120,
+    # 1125,
+    1305,
+    # 1310,
+    # 1320,
+    1330,
+    # 1340,
+    # 1350,
+    1400,
+    # 1410,
+    # 1420,
+    1430,
+    # 1440,
+    1450,
+    # 1455,
+    ]

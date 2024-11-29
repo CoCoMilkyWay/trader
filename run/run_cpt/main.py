@@ -15,7 +15,8 @@ from wtpy.WtCoreDefs import WTSBarStruct
 from wtpy import WtBtEngine, EngineType, WtDtServo
 from util.util_cpt import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
 from config.cfg_cpt import cfg_cpt
-from strategy.CPT_Cta_Paral.Main_Cta import Main_Cta
+from strategy.CPT_Chan_Paral.Main_Cta import Main_Cta
+from strategy.CPT_Chart.Main_Cta import Main_Cta
 
 run = True
 analyze = False
@@ -23,7 +24,7 @@ snoop = False
 profile = False
 period, n = 'm', 1  # bar period
 start   = 202301010000
-end     = 202302010000
+end     = 202301030000
 capital = 10000000
 
 def run_bt():
@@ -52,8 +53,8 @@ def run_bt():
 
     # straInfo = StraDualThrust(name=str_name, code=wt_assets[0], barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
-    straInfo = Main_Cta(name=str_name, codes=wt_assets, barCnt=1,
-                        period=period_str, capital=capital, areForStk=[False]*len(wt_assets))
+    straInfo = Main_Cta(name=str_name, codes=wt_assets,
+                        period=period_str, capital=capital)
 
     engine.set_cta_strategy(straInfo, slippage=0)
     

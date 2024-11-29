@@ -53,7 +53,7 @@ def lock_print(lock, msg):
 #   2. queues(even with block=True), only offers sync to process itself, 
 #       no sync guarantee to the other process (:<)
 #   3. in practice, using mp.value to indicate whether a queue is synced works just fine,
-#       however, it may also fail, be ware
+#       however, it may also fail, be aware
 #   4. if in some systems, mp.value syncing somehow failed, 
 #       you may have to give mp.value some time.sleep()
 SLEEP = 0.001

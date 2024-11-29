@@ -59,11 +59,13 @@ class CChan:
         self.g_kl_iter = defaultdict(list)
 
         # Machine Learning Features
+        self.ML_en = self.conf.ML_en
         self.LEARN = self.conf.LEARN
+        self.PREDICT = self.conf.PREDICT
         self.LABEL_METHOD = self.conf.LABEL_METHOD # 'naive_next_bi'
         
         self.features = CFeatures(initFeat=None)
-        if not self.LEARN:
+        if self.ML_en and self.PREDICT:
             try:
                 self.model = xgb.Booster()
                 self.model.load_model(model_path)
@@ -72,7 +74,7 @@ class CChan:
                     model_json = json.load(f)
                     pprint(model_json, width=300, depth=5, compact=True)
                 
-                print('Saving Deep Learning Model as tree plot ...')
+                print('Plotting Model as tree...')
                 plot_tree(self.model)
                 plt.savefig('model_tree', bbox_inches='tight')
                 print('Model saved as ./model_tree.png ...')
@@ -200,7 +202,8 @@ class CChan:
             # self.is_sell = False
             self.is_sell = self.is_buy
             self.is_buy = False
-            self.learn_and_predict()
+            if self.ML_en:
+                self.learn_or_predict()
 
     def get_features(self):
         self.features.refresh_feature_page()
@@ -237,7 +240,7 @@ class CChan:
             f['PA_CP_bot_residue'       ]   = float(shape.bot_residue)
         return new_feature
 
-    def learn_and_predict(self):
+    def learn_or_predict(self):
         
         new_feature = self.get_features()
         # instance a label class for this new feature
@@ -258,7 +261,7 @@ class CChan:
             # pprint(f)
             # pprint(self.features.feature_history)
             # pprint('================================================================')
-        else: # predict
+        elif self.PREDICT: # predict
             if new_feature: # only predict when new feature comes in
                 new_X = xgb.DMatrix(pd.DataFrame([self.features._features]))
                 new_Y = self.model.predict(new_X)[0]
@@ -266,7 +269,7 @@ class CChan:
                 print(new_Y)
 
     def train(self):
-        if not self.LEARN:
+        if self.PREDICT:
             return
         
         # TODO

@@ -17,7 +17,7 @@ from Chan.KLine.KLine_Unit import CKLine_Unit
 
 from wtpy.WtDataDefs import WtNpTicks, WtNpKline
 
-from db.util_stk import print_class_attributes_and_methods, mkdir
+from util.util_cpt import print_class_attributes_and_methods, mkdir
 from Define import MetadataIn, MetadataOut, column_name, bt_config
 
 import multiprocessing
@@ -30,36 +30,6 @@ def pause():
 # Those Processors are largely insulated, try minimize data throughput
 class n_Processor:
     # trading_session: 9:35~11:30, 13:05~14:55
-    
-    # PA: price action
-    REBALANCE_TIME:List[int] = [ # bars accumulated per batch before send to processes
-        935,
-        # 940,
-        # 950,
-        1000,
-        # 1010,
-        # 1020,
-        1030,
-        # 1040,
-        # 1050,
-        1100,
-        # 1110,
-        # 1120,
-        # 1125,
-        1305,
-        # 1310,
-        # 1320,
-        1330,
-        # 1340,
-        # 1350,
-        1400,
-        # 1410,
-        # 1420,
-        1430,
-        # 1440,
-        1450,
-        # 1455,
-        ]
     def __init__(self, lock:multiprocessing.synchronize.Lock):
         if lock:
             self.lock = lock
@@ -103,17 +73,12 @@ class n_Processor:
             
             self.num_klu[code] += 1
             self.resample_buffer[code].extend(kline_batch)
-            rebalance = False
-            # if curTime in self.REBALANCE_TIME:
-            # if (curTime % 5) == 0:
-            if True:
-                rebalance = True
-                batch_combined_klu, batch_volume_profile = self.process_batch_klu(self.resample_buffer[code], self.price_bin_width[code])
-                self.resample_buffer[code] = []
-                # print(volume_profile)
-            else:
-                pass
             
+            rebalance = True
+            batch_combined_klu, batch_volume_profile = self.process_batch_klu(self.resample_buffer[code], self.price_bin_width[code])
+            if code=='Binance.UM.BTCUSDT':
+                print(batch_combined_klu.time)
+            self.resample_buffer[code] = []
             if rebalance:
                 while True:
                     # 0: feed & calculate Chan elements ========================
@@ -125,65 +90,64 @@ class n_Processor:
                     CHECK_BSP = False
                     CHECK_FX = True
                     
-                    if CHECK_BSP:
-                        bsp_list = chan_snapshot.get_bsp()
-
-                        # 1: initial condition
-                        if not bsp_list:
-                            break
-                        
-                        # 2: check if new bsp is formed (thus new bi is also formed)
-                        last_bsp = bsp_list[-1]
-                        kline_idx_last_bsp = last_bsp.klu.klc.idx
-                        kline_idx_cur = cur_lv_kline_list[-2].idx
-                        idx = kline_idx_cur
-                        if kline_idx_last_bsp != kline_idx_cur: # this is kline(combined kline) index
-                            # NOTE: bsp need 1 future bar to establish
-                            # however, it is possible to extract FX info (BOT/TOP), note that it may not be sure
-                            break
-                        
-                        # 3: check bsp type
-                        last_bsp_type = last_bsp.type
-                        T = [0,0,0]
-                        if BSP_TYPE.T1 in last_bsp_type  or BSP_TYPE.T1P in last_bsp_type:
-                            self.num_bsp_T1[code] += 1; T[0] = 1
-                        if BSP_TYPE.T2 in last_bsp_type  or BSP_TYPE.T2S in last_bsp_type:
-                            self.num_bsp_T2[code] += 1; T[1] = 1
-                        if BSP_TYPE.T3A in last_bsp_type or BSP_TYPE.T3B in last_bsp_type:
-                            self.num_bsp_T3[code] += 1; T[2] = 1
-                        T_sum = 0
-                        for idx, t in enumerate(T):
-                            T_sum += t * (idx+1)
-                        if T_sum == 0:
-                            break # not expected bsp
-                        
-                        # 4: check FX and bsp type
-                        top = False; bottom = False
-                        if cur_lv_kline_list[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy: # check if bi is down
-                            bottom = True
-                        elif cur_lv_kline_list[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy: # check if bi is up
-                            top = True
-                        else:
-                            print(
-                                'Err: ',
-                                last_bsp.klu.klc.idx, # bsp kline idx
-                                last_bsp.is_buy, # bi is down
-                                last_bsp_type, # bsp_type
-                                cur_lv_kline_list[-1][-1].close, # price
-                                cur_lv_kline_list[-2].fx, # fx_type
-                                )
-                            break
-                        
-                        # 5: generate trading signals
-                        Ctime = batch_combined_klu.time
-                        if bottom:
-                            bt_config.plot_para["marker"]["markers"][Ctime] = (f'b{T_sum}', 'down', 'red')
-                            trade = True
-                        elif top:
-                            bt_config.plot_para["marker"]["markers"][Ctime] = (f's{T_sum}', 'up', 'green')
-                            trade = True
+                    # if CHECK_BSP:
+                    #     bsp_list = chan_snapshot.get_bsp()
+                    #     # 1: initial condition
+                    #     if not bsp_list:
+                    #         break
+                    #     
+                    #     # 2: check if new bsp is formed (thus new bi is also formed)
+                    #     last_bsp = bsp_list[-1]
+                    #     kline_idx_last_bsp = last_bsp.klu.klc.idx
+                    #     kline_idx_cur = cur_lv_kline_list[-2].idx
+                    #     idx = kline_idx_cur
+                    #     if kline_idx_last_bsp != kline_idx_cur: # this is kline(combined kline) index
+                    #         # NOTE: bsp need 1 future bar to establish
+                    #         # however, it is possible to extract FX info (BOT/TOP), note that it may not be sure
+                    #         break
+                    #     
+                    #     # 3: check bsp type
+                    #     last_bsp_type = last_bsp.type
+                    #     T = [0,0,0]
+                    #     if BSP_TYPE.T1 in last_bsp_type  or BSP_TYPE.T1P in last_bsp_type:
+                    #         self.num_bsp_T1[code] += 1; T[0] = 1
+                    #     if BSP_TYPE.T2 in last_bsp_type  or BSP_TYPE.T2S in last_bsp_type:
+                    #         self.num_bsp_T2[code] += 1; T[1] = 1
+                    #     if BSP_TYPE.T3A in last_bsp_type or BSP_TYPE.T3B in last_bsp_type:
+                    #         self.num_bsp_T3[code] += 1; T[2] = 1
+                    #     T_sum = 0
+                    #     for idx, t in enumerate(T):
+                    #         T_sum += t * (idx+1)
+                    #     if T_sum == 0:
+                    #         break # not expected bsp
+                    #     
+                    #     # 4: check FX and bsp type
+                    #     top = False; bottom = False
+                    #     if cur_lv_kline_list[-2].fx == FX_TYPE.BOTTOM and last_bsp.is_buy: # check if bi is down
+                    #         bottom = True
+                    #     elif cur_lv_kline_list[-2].fx == FX_TYPE.TOP and not last_bsp.is_buy: # check if bi is up
+                    #         top = True
+                    #     else:
+                    #         print(
+                    #             'Err: ',
+                    #             last_bsp.klu.klc.idx, # bsp kline idx
+                    #             last_bsp.is_buy, # bi is down
+                    #             last_bsp_type, # bsp_type
+                    #             cur_lv_kline_list[-1][-1].close, # price
+                    #             cur_lv_kline_list[-2].fx, # fx_type
+                    #             )
+                    #         break
+                    #     
+                    #     # 5: generate trading signals
+                    #     Ctime = batch_combined_klu.time
+                    #     if bottom:
+                    #         bt_config.plot_para["marker"]["markers"][Ctime] = (f'b{T_sum}', 'down', 'red')
+                    #         trade = True
+                    #     elif top:
+                    #         bt_config.plot_para["marker"]["markers"][Ctime] = (f's{T_sum}', 'up', 'green')
+                    #         trade = True
                             
-                    elif CHECK_FX:
+                    if CHECK_FX:
                         # bi_list = cur_lv_kline_list.bi_list
                         
                         # 1: initial condition
@@ -241,7 +205,8 @@ class n_Processor:
             if trade:
                 DEBUG = False
                 if DEBUG:
-                    dir = '^' if top else 'v' if bottom else '?'
+                    dir = '^' if sell else 'v' if buy else '?'
+                    idx = 0
                     print(f'cpu:{id:2}: {code:>16}-{date}-{curTime:4}: idx:{idx:4}, FX:{dir} price:{cur_lv_kline_list[-1][-1].close}')
                 orders.append(
                     MetadataOut(
@@ -283,7 +248,7 @@ class n_Processor:
             
             if self.lock:
                 with self.lock:
-                    if self.id == 0:
+                    if bt_config.LEARN and self.id == 0:
                         print('===============================================================')
                         print_features_and_label(code)
                         self.chan_snapshot[code].train()
@@ -331,7 +296,7 @@ class n_Processor:
         elif price < 1000:
             return 0.1
         else:
-            return 1
+            return 0.1
     
     # @jit(nopython=True, parallel=False) # acceleration(static compile before run)
     def process_batch_klu(self, resample_buffer: List[WtNpKline], price_bin_width:float) -> Tuple[CKLine_Unit, List[int|List[int]]]:

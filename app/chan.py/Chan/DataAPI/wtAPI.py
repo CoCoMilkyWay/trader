@@ -32,7 +32,7 @@ def parse_time_column(inp):
         minute = int(inp[10:12])
     else:
         raise Exception(f"unknown time column from csv:{inp}")
-    return CTime(year, month, day, hour, minute)
+    return CTime(year, month, day, hour, minute, auto=False)
 
 class WT_API(CCommonStockApi):
     def __init__(self, code, k_type=KL_TYPE.K_1M, begin_date=None, end_date=None, autype=None):

@@ -22,7 +22,10 @@ class CChanConfig:
         conf = ConfigWithCheck(conf)
         
         # Machine Learning config
-        self.LEARN:bool = True
+        self.ML_en:bool = False
+        # LEARN or PREDICT
+        self.LEARN:bool = False
+        self.PREDICT:bool = False
         self.LABEL_METHOD:str = 'naive_next_bi'
         
         self.plot_config = {

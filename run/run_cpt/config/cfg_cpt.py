@@ -6,7 +6,7 @@ class cfg_cpt: # Constants Configs
     mode = '/um'  # spot, um, cm
     market = 'Binance'
     
-    NUM = None  # N/None
+    NUM = 2  # N/None
     symbols = ['BTCUSDT',  'ETHUSDT',  'BNBUSDT',  'DOGEUSDT',  '1000SHIBUSDT',  'ADAUSDT',  'XRPUSDT',  'SOLUSDT',  'LTCUSDT',  'BCHUSDT',  'MATICUSDT',  'LINKUSDT',  'AVAXUSDT',  'DOTUSDT',  'FTMUSDT',  'UNIUSDT',  'AAVEUSDT',  'XLMUSDT',  'TRXUSDT']
     if NUM:
         symbols = [symbol for symbol in symbols if symbol.endswith('USDT')][:NUM]
