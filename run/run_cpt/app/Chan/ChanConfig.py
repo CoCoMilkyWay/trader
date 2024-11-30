@@ -22,8 +22,11 @@ class CChanConfig:
             "plot_volume_profile": False,
         }
         self.plot_para = {
-            "seg": {
-                
+            "klu":{
+                "plot_mode": 'kl', # kl/open/high/low/close
+            },
+            "klc":{
+                "width": 0.4,
             },
             "bi": {
                 "show_num": False,
@@ -38,24 +41,20 @@ class CChanConfig:
                     # '2024/02/01': ('marker here2', 'down')
                 },
             },
-            "animation_pause_time": 0,
-            "trend_lines": {
-                "plot_trendline_num": 2,
-                },
-            "chart_patterns": {},
         }
 
         self.bi_conf = CBiConfig(
-            bi_algo=conf.get("bi_algo", "fx"),  
-                                                    # normal(按缠论笔定义来算), 
+            bi_algo=conf.get("bi_algo", "normal"),  
+                                                    # normal(按缠论笔定义来算)(分形之间相隔>= 3 K-lines & Unit Count >= 3)
                                                     # fx(顶底分形即成笔)
-            is_strict=conf.get("bi_strict", False), #* 是否只用严格笔(bi_algo=normal时有效)，默认为 Ture，其中这里的严格笔只考虑顶底分形之间相隔几个合并K线
-            bi_fx_check=conf.get("bi_fx_check", "loss"),    #* 检查笔顶底分形是否成立的方法 (不建议放宽)
-                                                            # NO.bsp: loss > half > strict > totally
-                                                                # totally: 底分型3元素的最高点必须必顶分型三元素的最低点还低
-                                                                # strict (默认) (突破够强,回撤不大,滤掉绞肉机行情) (底分型的最低点必须比顶分型3元素最低点的最小值还低，顶分型反之。
-                                                                # half: (突破够强,回撤可以大)对于上升笔，底分型的最低点比顶分型前两元素最低点还低，顶分型的最高点比底分型后两元素高点还高。下降笔反之。
-                                                                # loss: (做波段可以考虑打开)底分型的最低点比顶分型中间元素低点还低，顶分型反之。
+            is_strict=conf.get("bi_strict", True), #* 是否只用严格笔(bi_algo=normal时有效)，默认为 Ture，(分形之间相隔>= 4 K-lines & Unit Count >= 3)
+            bi_fx_check=conf.get("bi_fx_check", "half"),    #* 检查笔顶底分形是否成立的方法 (不建议放宽)
+            # example:                                             # NO.bsp: loss > half > strict > totally
+            #               fx      normal  strict                     # totally: 底分型3元素的最高点必须必顶分型三元素的最低点还低
+            #   loss        2915    817     715                        # strict (默认) (突破够强,回撤不大,滤掉绞肉机行情) (底分型的最低点必须比顶分型3元素最低点的最小值还低，顶分型反之。
+            #   half        1239    723     639                        # half: (突破够强,回撤可以大)对于上升笔，底分型的最低点比顶分型前两元素最低点还低，顶分型的最高点比底分型后两元素高点还高。下降笔反之。
+            #   totally     726     608     558                        # loss: (做波段可以考虑打开)底分型的最低点比顶分型中间元素低点还低，顶分型反之。
+            #   strict      771     555     511                        
             gap_as_kl=conf.get("gap_as_kl", True),  # 缺口是否处理成一根K线
             bi_end_is_peak=conf.get("bi_end_is_peak", False), # 笔的尾部是否是整笔中最低/最高 (可以考虑模型学习时放宽)
             bi_allow_sub_peak=conf.get("bi_allow_sub_peak", True),

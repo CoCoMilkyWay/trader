@@ -1,5 +1,5 @@
 *.py[co]
-__pycache__
+**/__pycache__
 Chan.egg-info/
 build/
 *-checkpoint.ipynb

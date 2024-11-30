@@ -1,15 +1,9 @@
 import copy
 from typing import Dict, Optional
 
-from Chan.Common.CEnum import DATA_FIELD, TRADE_INFO_LST, TREND_TYPE
+from Chan.Common.CEnum import DATA_FIELD, TRADE_INFO_LST
 from Chan.Common.ChanException import CChanException, ErrCode
 from Chan.Common.CTime import CTime
-from Chan.Math.BOLL import BOLL_Metric, BollModel
-from Chan.Math.Demark import CDemarkEngine, CDemarkIndex
-from Chan.Math.KDJ import KDJ
-from Chan.Math.MACD import CMACD, CMACD_item
-from Chan.Math.RSI import RSI
-from Chan.Math.TrendModel import CTrendModel
 
 from .TradeInfo import CTradeInfo
 
@@ -23,23 +17,18 @@ class CKLine_Unit:
         self.open = kl_dict[DATA_FIELD.FIELD_OPEN]
         self.high = kl_dict[DATA_FIELD.FIELD_HIGH]
         self.low = kl_dict[DATA_FIELD.FIELD_LOW]
-        self.volume = kl_dict[DATA_FIELD.FIELD_VOLUME] # only to record, no calculation
+        # only to record, no calculation
+        self.volume = kl_dict[DATA_FIELD.FIELD_VOLUME]
 
         self.check(autofix)
 
         self.trade_info = CTradeInfo(kl_dict)
 
-        self.demark: CDemarkIndex = CDemarkIndex()
-
         self.sub_kl_list = []  # 次级别KLU列表
         self.sup_kl: Optional[CKLine_Unit] = None  # 指向更高级别KLU
 
-        from Chan.KLine.KLine import CKLine
+        from KLine.KLine import CKLine
         self.__klc: Optional[CKLine] = None  # 指向KLine
-
-        # self.macd: Optional[CMACD_item] = None
-        # self.boll: Optional[BOLL_Metric] = None
-        self.trend: Dict[TREND_TYPE, Dict[int, float]] = {}  # int -> float
 
         self.limit_flag = 0  # 0:普通 -1:跌停，1:涨停
         self.pre: Optional[CKLine_Unit] = None
@@ -59,15 +48,7 @@ class CKLine_Unit:
             if metric in self.trade_info.metric:
                 _dict[metric] = self.trade_info.metric[metric]
         obj = CKLine_Unit(_dict)
-        obj.demark = copy.deepcopy(self.demark, memo)
-        obj.trend = copy.deepcopy(self.trend, memo)
         obj.limit_flag = self.limit_flag
-        obj.macd = copy.deepcopy(self.macd, memo)
-        obj.boll = copy.deepcopy(self.boll, memo)
-        if hasattr(self, "rsi"):
-            obj.rsi = copy.deepcopy(self.rsi, memo)
-        if hasattr(self, "kdj"):
-            obj.kdj = copy.deepcopy(self.kdj, memo)
         obj.set_idx(self.idx)
         memo[id(self)] = obj
         return obj
@@ -95,12 +76,14 @@ class CKLine_Unit:
             if autofix:
                 self.low = min([self.low, self.open, self.high, self.close])
             else:
-                raise CChanException(f"{self.time} low price={self.low} is not min of [low={self.low}, open={self.open}, high={self.high}, close={self.close}]", ErrCode.KL_DATA_INVALID)
+                raise CChanException(f"{self.time} low price={self.low} is not min of [low={self.low}, open={
+                                     self.open}, high={self.high}, close={self.close}]", ErrCode.KL_DATA_INVALID)
         if self.high < max([self.low, self.open, self.high, self.close]):
             if autofix:
                 self.high = max([self.low, self.open, self.high, self.close])
             else:
-                raise CChanException(f"{self.time} high price={self.high} is not max of [low={self.low}, open={self.open}, high={self.high}, close={self.close}]", ErrCode.KL_DATA_INVALID)
+                raise CChanException(f"{self.time} high price={self.high} is not max of [low={self.low}, open={
+                                     self.open}, high={self.high}, close={self.close}]", ErrCode.KL_DATA_INVALID)
 
     def add_children(self, child):
         self.sub_kl_list.append(child)
@@ -116,23 +99,6 @@ class CKLine_Unit:
 
     def _high(self):
         return self.high
-
-    def set_metric(self, metric_model_lst: list) -> None:
-        for metric_model in metric_model_lst:
-            if isinstance(metric_model, CMACD):
-                self.macd: CMACD_item = metric_model.add(self.close)
-            elif isinstance(metric_model, CTrendModel):
-                if metric_model.type not in self.trend:
-                    self.trend[metric_model.type] = {}
-                self.trend[metric_model.type][metric_model.T] = metric_model.add(self.close)
-            elif isinstance(metric_model, BollModel):
-                self.boll: BOLL_Metric = metric_model.add(self.close)
-            elif isinstance(metric_model, CDemarkEngine):
-                self.demark = metric_model.update(idx=self.idx, close=self.close, high=self.high, low=self.low)
-            elif isinstance(metric_model, RSI):
-                self.rsi = metric_model.add(self.close)
-            elif isinstance(metric_model, KDJ):
-                self.kdj = metric_model.add(self.high, self.low, self.close)
 
     def get_parent_klc(self):
         assert self.sup_kl is not None

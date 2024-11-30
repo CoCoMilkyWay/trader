@@ -4,7 +4,8 @@ import os
 import sys
 
 # the path include need to be earlier than relative library
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "./app"))
 from util.util_cpt import enable_logging
 enable_logging()
 from wtpy.apps import WtBtAnalyst
@@ -13,9 +14,9 @@ from wtpy.wrapper import WtDataHelper
 from wtpy.SessionMgr import SessionMgr
 from wtpy.WtCoreDefs import WTSBarStruct
 from wtpy import WtBtEngine, EngineType, WtDtServo
+
 from util.util_cpt import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
 from config.cfg_cpt import cfg_cpt
-from strategy.CPT_Chan_Paral.Main_Cta import Main_Cta
 from strategy.CPT_Chart.Main_Cta import Main_Cta
 
 run = True

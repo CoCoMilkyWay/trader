@@ -9,7 +9,6 @@ from .Combine_Item import CCombine_Item
 
 T = TypeVar('T')
 
-
 class CKLine_Combiner(Generic[T]):
     def __init__(self, kl_unit: T, _dir):
         item = CCombine_Item(kl_unit)

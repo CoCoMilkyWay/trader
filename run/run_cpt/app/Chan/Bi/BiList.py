@@ -19,13 +19,13 @@ Has existing Bi list?          Add to free_klc_lst
 Check FX Type                Check for possible match
    |                              with existing free K-lines
    |                                    |
-   ├─── UNKNOWN                        |
-   |     |                             |
-   |     v                             v
+   ├─── UNKNOWN                         |
+   |     |                              |
+   |     v                              v
    |  Virtual Check <──── YES ── Can form valid Bi?
-   |     |                             |
-   |     v              NO             |
-   |  Has Virtual? ────────────────────┘
+   |     |                              |
+   |     v              NO              |
+   |  Has Virtual? ─────────────────────┘
    |     |
    |     v
    |  Delete Virtual Bi
@@ -52,10 +52,10 @@ Check FX Type                Check for possible match
    |     v                                      |
    |  Can Make New Bi? ◄──── NO ─────────────────┘
    |     |                                      ^
-   |     ├─── YES                              |
-   |     |                                     |
-   |     v                                     |
-   |  [Bi Creation Rules] ──── Fail ──────────┘
+   |     ├─── YES                               |
+   |     |                                      |
+   |     v                                      |
+   |  [Bi Creation Rules] ──── Fail ────────────┘
    |     |
    |     v
    |   SUCCESS
@@ -250,15 +250,11 @@ class CBiList:
     def add_new_bi(self, pre_klc, cur_klc, is_sure=True):
         bi = CBi(pre_klc, cur_klc, idx=len(self.bi_list), is_sure=is_sure)
         self.bi_list.append(bi)
-        self.callback(bi, is_sure=is_sure) # self.PA_Core.add_bi(bi, is_sure=is_sure)
+        # self.callback(bi, is_sure=is_sure) # self.PA_Core.add_bi(bi, is_sure=is_sure)
         
-        # if is_sure:
-        #     print("bi_list is sure: ", cur_klc.idx, len(self.bi_list))
+        if is_sure:
+            print("bi_list is sure: ", cur_klc.idx, len(self.bi_list))
         self.is_sure = is_sure
-        
-        # print(self.PA_Core.get_chart_pattern_shapes(with_idx=True))
-        # if is_sure:
-        #     print('==============================')
                     
         if len(self.bi_list) >= 2: # specify adjacent bi
             self.bi_list[-2].next = self.bi_list[-1]

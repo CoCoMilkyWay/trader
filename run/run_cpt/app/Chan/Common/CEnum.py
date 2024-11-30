@@ -3,17 +3,17 @@ from typing import Literal
 
 
 class KL_TYPE(Enum):
-    K_1M = auto()
-    K_DAY = auto()
-    K_WEEK = auto()
-    K_MON = auto()
-    K_YEAR = auto()
-    K_5M = auto()
-    K_15M = auto()
-    K_30M = auto()
-    K_60M = auto()
-    K_3M = auto()
-    K_QUARTER = auto()
+    K_1M      = 1
+    K_DAY     = 2
+    K_WEEK    = 3
+    K_MON     = 4
+    K_YEAR    = 5
+    K_5M      = 6
+    K_15M     = 7
+    K_30M     = 8
+    K_60M     = 9
+    K_3M      = 10
+    K_QUARTER = 11
 
 
 class KLINE_DIR(Enum):

@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from Chan.Common.cache import make_cache
-from Chan.Common.CEnum import BI_DIR, BI_TYPE, DATA_FIELD, FX_TYPE, MACD_ALGO
+from Chan.Common.CEnum import BI_DIR, BI_TYPE, DATA_FIELD, FX_TYPE
 from Chan.Common.ChanException import CChanException, ErrCode
 from Chan.KLine.KLine import CKLine
 from Chan.KLine.KLine_Unit import CKLine_Unit
@@ -19,14 +19,6 @@ class CBi:
 
         self.__is_sure = is_sure
         self.__sure_end: List[CKLine] = []
-
-        self.__seg_idx: Optional[int] = None
-
-        from Chan.Seg.Seg import CSeg
-        self.parent_seg: Optional[CSeg[CBi]] = None  # 在哪个线段里面
-
-        from Chan.BuySellPoint.BS_Point import CBS_Point
-        self.bsp: Optional[CBS_Point] = None  # 尾部是不是买卖点
 
         self.next: Optional[CBi] = None
         self.pre: Optional[CBi] = None
@@ -72,12 +64,6 @@ class CBi:
             klc = klc.pre
             if not klc or klc.idx < self.begin_klc.idx:
                 break
-
-    @property
-    def seg_idx(self): return self.__seg_idx
-
-    def set_seg_idx(self, idx):
-        self.__seg_idx = idx
 
     def __str__(self):
         return f"{self.dir}|{self.begin_klc} ~ {self.end_klc}"
@@ -176,146 +162,3 @@ class CBi:
         self.__end_klc = new_klc
         self.check()
         self.clean_cache()
-
-    def cal_macd_metric(self, macd_algo, is_reverse):
-        if macd_algo == MACD_ALGO.AREA:
-            return self.Cal_MACD_half(is_reverse)
-        elif macd_algo == MACD_ALGO.PEAK:
-            return self.Cal_MACD_peak()
-        elif macd_algo == MACD_ALGO.FULL_AREA:
-            return self.Cal_MACD_area()
-        elif macd_algo == MACD_ALGO.DIFF:
-            return self.Cal_MACD_diff()
-        elif macd_algo == MACD_ALGO.SLOPE:
-            return self.Cal_MACD_slope()
-        elif macd_algo == MACD_ALGO.AMP:
-            return self.Cal_MACD_amp()
-        elif macd_algo == MACD_ALGO.AMOUNT:
-            return self.Cal_MACD_trade_metric(DATA_FIELD.FIELD_TURNOVER, cal_avg=False)
-        elif macd_algo == MACD_ALGO.VOLUMN:
-            return self.Cal_MACD_trade_metric(DATA_FIELD.FIELD_VOLUME, cal_avg=False)
-        elif macd_algo == MACD_ALGO.VOLUMN_AVG:
-            return self.Cal_MACD_trade_metric(DATA_FIELD.FIELD_VOLUME, cal_avg=True)
-        elif macd_algo == MACD_ALGO.AMOUNT_AVG:
-            return self.Cal_MACD_trade_metric(DATA_FIELD.FIELD_TURNOVER, cal_avg=True)
-        elif macd_algo == MACD_ALGO.TURNRATE_AVG:
-            return self.Cal_MACD_trade_metric(DATA_FIELD.FIELD_TURNRATE, cal_avg=True)
-        elif macd_algo == MACD_ALGO.RSI:
-            return self.Cal_Rsi()
-        else:
-            raise CChanException(f"unsupport macd_algo={macd_algo}, should be one of area/full_area/peak/diff/slope/amp", ErrCode.PARA_ERROR)
-
-    @make_cache
-    def Cal_Rsi(self):
-        rsi_lst: List[float] = []
-        for klc in self.klc_lst:
-            rsi_lst.extend(klu.rsi for klu in klc.lst)
-        return 10000.0/(min(rsi_lst)+1e-7) if self.is_down() else max(rsi_lst)
-
-    @make_cache
-    def Cal_MACD_area(self):
-        _s = 1e-7
-        for klc in self.klc_lst:
-            for klu in klc.lst:
-                _s += abs(klu.macd.macd)
-        return _s
-
-    @make_cache
-    def Cal_MACD_peak(self):
-        peak = 1e-7
-        for klc in self.klc_lst:
-            for klu in klc.lst:
-                if abs(klu.macd.macd) > peak:
-                    if self.is_down() and klu.macd.macd < 0:
-                        peak = abs(klu.macd.macd)
-                    elif self.is_up() and klu.macd.macd > 0:
-                        peak = abs(klu.macd.macd)
-        return peak
-
-    def Cal_MACD_half(self, is_reverse):
-        if is_reverse:
-            return self.Cal_MACD_half_reverse()
-        else:
-            return self.Cal_MACD_half_obverse()
-
-    @make_cache
-    def Cal_MACD_half_obverse(self):
-        _s = 1e-7
-        begin_klu = self.get_begin_klu()
-        peak_macd = begin_klu.macd.macd
-        for klc in self.klc_lst:
-            for klu in klc.lst:
-                if klu.idx < begin_klu.idx:
-                    continue
-                if klu.macd.macd*peak_macd > 0:
-                    _s += abs(klu.macd.macd)
-                else:
-                    break
-            else:  # 没有被break，继续找写一个KLC
-                continue
-            break
-        return _s
-
-    @make_cache
-    def Cal_MACD_half_reverse(self):
-        _s = 1e-7
-        begin_klu = self.get_end_klu()
-        peak_macd = begin_klu.macd.macd
-        for klc in self.klc_lst_re:
-            for klu in klc[::-1]:
-                if klu.idx > begin_klu.idx:
-                    continue
-                if klu.macd.macd*peak_macd > 0:
-                    _s += abs(klu.macd.macd)
-                else:
-                    break
-            else:  # 没有被break，继续找写一个KLC
-                continue
-            break
-        return _s
-
-    @make_cache
-    def Cal_MACD_diff(self):
-        """
-        macd红绿柱最大值最小值之差
-        """
-        _max, _min = float("-inf"), float("inf")
-        for klc in self.klc_lst:
-            for klu in klc.lst:
-                macd = klu.macd.macd
-                if macd > _max:
-                    _max = macd
-                if macd < _min:
-                    _min = macd
-        return _max-_min
-
-    @make_cache
-    def Cal_MACD_slope(self):
-        begin_klu = self.get_begin_klu()
-        end_klu = self.get_end_klu()
-        if self.is_up():
-            return (end_klu.high - begin_klu.low)/end_klu.high/(end_klu.idx - begin_klu.idx + 1)
-        else:
-            return (begin_klu.high - end_klu.low)/begin_klu.high/(end_klu.idx - begin_klu.idx + 1)
-
-    @make_cache
-    def Cal_MACD_amp(self):
-        begin_klu = self.get_begin_klu()
-        end_klu = self.get_end_klu()
-        if self.is_down():
-            return (begin_klu.high-end_klu.low)/begin_klu.high
-        else:
-            return (end_klu.high-begin_klu.low)/begin_klu.low
-
-    def Cal_MACD_trade_metric(self, metric: str, cal_avg=False) -> float:
-        _s = 0
-        for klc in self.klc_lst:
-            for klu in klc.lst:
-                metric_res = klu.trade_info.metric[metric]
-                if metric_res is None:
-                    return 0.0
-                _s += metric_res
-        return _s / self.get_klu_cnt() if cal_avg else _s
-
-    # def set_klc_lst(self, lst):
-    #     self.__klc_lst = lst

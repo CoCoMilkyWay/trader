@@ -3,5 +3,8 @@
     "python.analysis.typeCheckingMode": "basic",
     "files.associations": {
         "*.ipp": "cpp"
-    }
+    },
+    "python.analysis.extraPaths": [
+        "./run/run_cpt/app"
+    ]
 }
