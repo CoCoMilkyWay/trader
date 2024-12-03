@@ -1,13 +1,16 @@
 class cfg_cpt: # Constants Configs
     import os
-    max_workers = 128
-    concurrency_mode = 'process' # 'thread'/'process'
+    
+    period, n = 'm', 1  # bar period
+    start   = 202408010000
+    end     = 202408100000
+    capital = 10000000
     
     mode = '/um'  # spot, um, cm
     market = 'Binance'
     
     NUM = 1  # N/None
-    symbols = ['BTCUSDT',  'ETHUSDT',  'BNBUSDT',  'DOGEUSDT',  '1000SHIBUSDT',  'ADAUSDT',  'XRPUSDT',  'SOLUSDT',  'LTCUSDT',  'BCHUSDT',  'MATICUSDT',  'LINKUSDT',  'AVAXUSDT',  'DOTUSDT',  'FTMUSDT',  'UNIUSDT',  'AAVEUSDT',  'XLMUSDT',  'TRXUSDT']
+    symbols = ['BTCUSDT',  '1000SHIBUSDT',  'ETHUSDT',  'BNBUSDT',  'DOGEUSDT',  'ADAUSDT',  'XRPUSDT',  'SOLUSDT',  'LTCUSDT',  'BCHUSDT',  'MATICUSDT',  'LINKUSDT',  'AVAXUSDT',  'DOTUSDT',  'FTMUSDT',  'UNIUSDT',  'AAVEUSDT',  'XLMUSDT',  'TRXUSDT']
     if NUM:
         symbols = [symbol for symbol in symbols if symbol.endswith('USDT')][:NUM]
     CRYPTO_CSV_DIR  = 'd:/data/crypto_csv'  + mode  + '/csv'
@@ -19,3 +22,4 @@ class cfg_cpt: # Constants Configs
     script_dir          = os.path.dirname(os.path.abspath(__file__))
     ASSET_FILE          = script_dir + '/cpt_assets.json'
     WT_STORAGE_DIR      = script_dir + '/../../storage'
+    

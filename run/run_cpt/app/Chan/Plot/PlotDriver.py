@@ -4,21 +4,31 @@ from enum import Enum
 from typing import List, Optional, Union, Dict
 
 from Chan.ChanConfig import CChanConfig
-from Chan.Common.CEnum import FX_TYPE, KLINE_DIR
+from Chan.Common.CEnum import KL_TYPE, FX_TYPE, KLINE_DIR
 from Chan.KLine.KLine_List import CKLine_List
-from Chan.KLine.KLine_Unit import CKLine_Unit
 from Chan.Common.ChanException import CChanException, ErrCode
-
 
 class ChanPlotter:
     def __init__(self):
         self.fig = go.Figure()
         self.lv_lst = []  # Levels list if needed
-        self.plot_para = CChanConfig().plot_para
-
+        config = CChanConfig()
+        self.plot_para = config.plot_para
+        
+        self.lv_list = config.lv_list
+        self.lv_type_list = [lv[0] for lv in self.lv_list]
+        self.color_list = [lv[3] for lv in self.lv_list]
+        self.opacity_list = [lv[4] for lv in self.lv_list]
+        
+        self.traces:Dict[KL_TYPE,List[go.Scatter]] = {}
+        self.layout_annotations:Dict[int,List[Dict]] = {}
+        for lv in self.lv_type_list:
+            self.traces[lv] = []
+            self.layout_annotations[lv] = []
+        
     def draw_klu(self):
         """Draw K-line units"""
-        print('Drawing KLU...')
+        print(f'Drawing KLU({self.lv})...')
 
         plot_mode = self.plot_para['klu']['plot_mode']
         rugd = False  # red up green down
@@ -38,7 +48,7 @@ class ChanPlotter:
                 else:
                     data = down_data
 
-                data['x'].append(kl.idx)
+                data['x'].append(kl.time.ts)
                 data['open'].append(kl.open)
                 data['high'].append(kl.high)
                 data['low'].append(kl.low)
@@ -78,7 +88,7 @@ class ChanPlotter:
             y_data = []
 
             for kl in self.klc_list.klu_iter():
-                x_data.append(kl.idx)
+                x_data.append(kl.time.ts)
                 if plot_mode == "close":
                     y_data.append(kl.close)
                 elif plot_mode == "high":
@@ -113,7 +123,7 @@ class ChanPlotter:
 
     def draw_klc(self):
         """Draw K-Line Clusters efficiently by adding all shapes at once"""
-        print('Drawing KLC...')
+        print(f'Drawing KLC({self.lv})...')
         color_type = {
             FX_TYPE.TOP: 'red',
             FX_TYPE.BOTTOM: 'blue',
@@ -127,9 +137,9 @@ class ChanPlotter:
         shapes = [
             {
                 "type": "rect",
-                "x0": klc.lst[0].idx - width,
+                "x0": klc.lst[0].time.ts,
                 "y0": klc.low,
-                "x1": klc.lst[-1].idx + width,
+                "x1": klc.lst[-1].time.ts,
                 "y1": klc.high,
                 "line": {
                     "color": color_type[klc.fx if klc.fx != FX_TYPE.UNKNOWN else klc.dir],
@@ -138,7 +148,7 @@ class ChanPlotter:
                 "fillcolor": "rgba(0,0,0,0)"
             }
             for klc in self.klc_list
-            if not (klc.lst[0].idx == klc.lst[-1].idx and not plot_single_kl)
+            if not (klc.lst[0].time.ts == klc.lst[-1].time.ts and not plot_single_kl)
         ]
 
         # Add all shapes in a single update
@@ -147,8 +157,8 @@ class ChanPlotter:
 
     def draw_bi(self):
         """Draw Bi-Directional Lines"""
-        print('Drawing Bi...')
-        color = 'black'
+        print(f'Drawing Bi({self.lv})...')
+        # color = 'black'
         show_num = self.plot_para['bi']['show_num']
         num_fontsize = 15
         num_color = "red"
@@ -163,8 +173,8 @@ class ChanPlotter:
         # Draw lines and annotations
         for bi_idx, bi in enumerate(bi_list):
 
-            begin_x = bi.get_begin_klu().idx
-            end_x = bi.get_end_klu().idx
+            begin_x = bi.get_begin_klu().time.ts
+            end_x = bi.get_end_klu().time.ts
             begin_y = bi.get_begin_val()
             end_y = bi.get_end_val()
 
@@ -174,7 +184,8 @@ class ChanPlotter:
                     x=[begin_x, end_x],
                     y=[begin_y, end_y],
                     mode='lines',
-                    line=dict(color=color),
+                    opacity=self.opacity,
+                    line=dict(color=self.color),
                     showlegend=False
                 ))
             else:
@@ -182,7 +193,8 @@ class ChanPlotter:
                     x=[begin_x, end_x],
                     y=[begin_y, end_y],
                     mode='lines',
-                    line=dict(color=color, dash='dash'),
+                    opacity=self.opacity,
+                    line=dict(color=self.color, dash='dot'),
                     showlegend=False
                 ))
 
@@ -227,15 +239,68 @@ class ChanPlotter:
 
         return self.fig
 
+    def draw_pa_charts(self):
+        shapes = self.klc_list.PA_Core.get_chart_pattern_shapes(complete=True, potential=False)
+        if not shapes:
+            return self.fig
+        print(f'Drawing {len(shapes)} Charts({self.lv})...')
+        
+        # Get existing annotations (if any)
+        existing_annotations = list(self.fig.layout.annotations) if hasattr(self.fig.layout, 'annotations') else [] # type: ignore
+        
+        for shape in shapes:
+            self.traces[self.lv].extend([
+                go.Scatter(x=[v.ts for v in shape.vertices], y=[v.value for v in shape.vertices],
+                    mode='lines', line=dict(color=self.color, width=10),
+                    opacity=0.4, showlegend=False),
+                go.Scatter(x=shape.top_ts, y=shape.top_y,
+                    mode='lines', line=dict(color='red', width=4),
+                    showlegend=False),
+                go.Scatter(x=shape.bot_ts, y=shape.bot_y,
+                    mode='lines', line=dict(color='blue', width=4),
+                    showlegend=False)
+            ])
+            
+            self.layout_annotations[self.lv].append({
+                'x': shape.vertices[-2].ts,
+                'y': shape.vertices[-2].value,
+                'text': shape.name,
+                'showarrow': True,
+                'arrowsize': 1,
+                'arrowwidth': 1,
+                'arrowcolor': self.color,
+                'arrowhead': 2,
+                'ax': 0,
+                'ay': 30,
+                'font': {'color': self.color},
+                'yanchor': 'bottom',
+                'xanchor': 'center',
+                'opacity': 0.6
+            })
+    
+        # Add new traces
+        self.fig.add_traces(self.traces[self.lv])
+        
+        # Update layout with combined annotations (existing + new)
+        self.fig.update_layout(annotations=existing_annotations + self.layout_annotations[self.lv])
+        
+        return self.fig
+
     def plot(self,
-             klc_list: CKLine_List,
+             kl_datas: Dict[KL_TYPE, CKLine_List],
              **kwargs):
         """Convenience method to draw both KLC and Bi elements"""
-        self.klc_list = klc_list
-
-        self.draw_klu()
-        self.draw_klc()
-        self.draw_bi()
+        # plot from small to big
+        for lv_idx_rev, self.lv in enumerate(reversed(self.lv_type_list)):
+            self.lv_idx = len(self.lv_type_list) - 1 - lv_idx_rev
+            self.klc_list = kl_datas[self.lv]
+            self.color = self.color_list[self.lv_idx]
+            self.opacity = self.opacity_list[self.lv_idx]
+            if lv_idx_rev == 0:
+                self.draw_klu()
+                self.draw_klc()
+            self.draw_pa_charts()
+            self.draw_bi()
 
         # Update layout
         self.fig.update_layout(
@@ -268,19 +333,5 @@ class ChanPlotter:
                 'resetScale'
             ]
         )
-
-        self.config = {
-            'scrollZoom': True,
-            'displayModeBar': True,
-            'modeBarButtonsToAdd': ['drawopenpath', 'eraseshape'],
-            'displaylogo': False,
-            'doubleClick': 'reset+autosize',
-            'editable': True,
-            'showTips': True
-        }
-
-        self.fig.show(config=self.config)
-        print('Saving to HTML...')
-        # self.fig.write_html('chan_plot.html',config=self.config)
-
+        
         return self.fig

@@ -17,7 +17,7 @@ from Chan.KLine.KLine_Unit import CKLine_Unit
 
 from wtpy.WtDataDefs import WtNpTicks, WtNpKline
 
-from util.util_cpt import print_class_attributes_and_methods, mkdir
+from Util.UtilCpt import print_class_attributes_and_methods, mkdir
 from Define import MetadataIn, MetadataOut, column_name, bt_config
 
 import multiprocessing

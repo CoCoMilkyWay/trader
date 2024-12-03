@@ -10,19 +10,29 @@ from Chan.Common.ChanException import CChanException, ErrCode
 
 from Chan.KLine.KLine import CKLine
 from Chan.KLine.KLine_Unit import CKLine_Unit
-
+from app.PA.PA_Core import PA_Core
 
 class CKLine_List:
     DEBUG_SEG = False
     def __init__(self, kl_type, conf: CChanConfig):
         self.kl_type = kl_type
+        
+        for lv_idx, lv in enumerate([lv[0] for lv in conf.lv_list]):
+            if lv == kl_type:
+                self.kl_num:int = conf.lv_list[lv_idx][2]
+                self.bi_num:int = int(self.kl_num/10)
+                self.shape_keys:List[str] = conf.lv_list[lv_idx][5]
+        
         self.config = conf
         self.lst: List[CKLine] = []  # K线列表，可递归  元素KLine类型
         
-        self.new_bi_start:bool = False
-        self.num_bi:int = 0
+        # self.new_bi_start:bool = False
+        # self.num_bi:int = 0
         
-        self.bi_list = CBiList(bi_conf=conf.bi_conf, callback=None)
+        self.bi_list = CBiList(bi_conf=conf.bi_conf)
+        
+        # Chart Patterns is a bi-level concept(metric), updated with bi
+        self.PA_Core:PA_Core = PA_Core(self.bi_list, self.shape_keys)
         
     def __deepcopy__(self, memo):
         new_obj = CKLine_List(self.kl_type, self.config)
@@ -35,7 +45,7 @@ class CKLine_List:
                 if klu.pre is not None:
                     new_klu.set_pre_klu(memo[id(klu.pre)])
                 klus_new.append(new_klu)
-
+                
             new_klc = CKLine(klus_new[0], idx=klc.idx, _dir=klc.dir)
             new_klc.set_fx(klc.fx)
             new_klc.kl_type = klc.kl_type
@@ -63,6 +73,16 @@ class CKLine_List:
     def __len__(self):
         return len(self.lst)
 
+    #                     +-------------------------+
+    #                     |      add virtual bi     |
+    #                     v                         |
+    # [*] ----> [Virtual BI] ----------------> [Sure BI] -----> [Update End] --> [*]
+    #            ^    ^   ^  del virtual bi                       |
+    #            |    |   |  add sure bi                          |
+    #            +----+   |                                       |
+    #     del virtual bi  |            add virtual bi             |
+    #     add virtual bi  +---------------------------------------+
+
     def try_add_virtual_bi(self):
         self.bi_list.try_add_virtual_bi(self.lst[-1])
         
@@ -71,7 +91,14 @@ class CKLine_List:
             self.lst.append(CKLine(klu, idx=0))
         else:
             _dir = self.lst[-1].try_add(klu)
-            if _dir != KLINE_DIR.COMBINE:  # 不需要合并K线
+            if _dir != KLINE_DIR.COMBINE:  # need not combine kline
+                # Remove first element if list exceeds maximum length
+                if len(self.lst) >= self.kl_num:
+                    self.lst.pop(0)
+                    # Update indices of remaining elements
+                    for i in range(len(self.lst)):
+                        self.lst[i].idx = i
+                        
                 self.lst.append(CKLine(klu, idx=len(self.lst), _dir=_dir))
                 if len(self.lst) >= 3:
                     self.lst[-2].update_fx(self.lst[-3], self.lst[-1])
@@ -80,11 +107,11 @@ class CKLine_List:
                 self.bi_list.try_add_virtual_bi(self.lst[-1], need_del_end=True)
                     
         # now klu(klc/combined kline) are added, bi list is also updated, now check if new bi is formed
-        if self.num_bi != len(self.bi_list):
-            self.new_bi_start = True
-            self.num_bi = len(self.bi_list)
-        else:
-            self.new_bi_start = False
+        # if self.num_bi != len(self.bi_list):
+        #     self.new_bi_start = True
+        #     self.num_bi = len(self.bi_list)
+        # else:
+        #     self.new_bi_start = False
             
     def klu_iter(self, klc_begin_idx=0):
         for klc in self.lst[klc_begin_idx:]:

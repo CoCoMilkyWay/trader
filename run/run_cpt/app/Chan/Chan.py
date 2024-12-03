@@ -29,6 +29,7 @@ class CChan:
     def __init__(
         self,
         code: str,
+        kl_datas: Dict[KL_TYPE, CKLine_List],
         begin_time: Optional[Union[str, datetime.date]] = None,
         end_time: Optional[Union[str, datetime.date]] = None,
         lv_list: Optional[List[KL_TYPE]] = None,
@@ -46,7 +47,7 @@ class CChan:
         """
         # Set default levels if none provided (Day and 60-minute)
         if lv_list is None:
-            lv_list = [KL_TYPE.K_DAY, KL_TYPE.K_60M]
+            lv_list = [KL_TYPE.K_1M]
         # Ensure levels are ordered from high to low
         check_kltype_order(lv_list)
 
@@ -57,7 +58,6 @@ class CChan:
         self.end_time = str(end_time) if isinstance(
             end_time, datetime.date) else end_time
         self.lv_list: List[KL_TYPE] = lv_list
-        self.new_bi_start: bool = False  # Flag for new highest level K-line bi
         self.volume_profile_batch: List[Union[int, List[int]]]
 
         # Set configuration
@@ -70,14 +70,16 @@ class CChan:
         self.g_kl_iter = defaultdict(list)  # K-line iterators for each level
 
         # Initialize data structures
-        self.do_init()
+        self.k_bar_inited:bool = False
+        # self.do_init()
+        self.kl_datas = kl_datas
 
-    def do_init(self):
-        """Initialize K-line data structures for each time level."""
-        self.kl_datas: Dict[KL_TYPE, CKLine_List] = {
-            level: CKLine_List(level, conf=self.conf)
-            for level in self.lv_list
-        }
+    # def do_init(self):
+    #     """Initialize K-line data structures for each time level."""
+    #     self.kl_datas: Dict[KL_TYPE, CKLine_List] = {
+    #         level: CKLine_List(level, conf=self.conf)
+    #         for level in self.lv_list
+    #     }
 
     def trigger_load(self, klu_dict: Dict[KL_TYPE, List[CKLine_Unit]]):
         """
@@ -86,6 +88,22 @@ class CChan:
         Args:
             klu_dict: Dictionary mapping time levels to their K-line unit lists
         """
+
+        # for lv_idx, lv in enumerate(self.lv_list):
+        #     if lv not in klu_dict:
+        #         continue
+        #     time = klu_dict[lv][-1].time
+        #     open = klu_dict[lv][-1].open
+        #     close = klu_dict[lv][-1].close
+        #     print(lv, time, open, close)
+        
+        # wait for the 1st top-level k bar to form
+        if not self.k_bar_inited:
+            if len(klu_dict) == len(self.lv_list):
+                self.k_bar_inited = True
+            else:
+                return
+        
         # Initialize caches if not present
         if not hasattr(self, 'klu_cache'):
             self.klu_cache: List[Optional[CKLine_Unit]] = [
@@ -96,10 +114,13 @@ class CChan:
         # Process each level
         for lv_idx, lv in enumerate(self.lv_list):
             if lv not in klu_dict:
-                if lv_idx == 0:
-                    raise CChanException(
-                        f"Highest level {lv} has no data", ErrCode.NO_DATA)
+                # if lv_idx == 0:
+                #     raise CChanException(
+                #         f"Highest level {lv} has no data", ErrCode.NO_DATA)
                 continue
+            
+            # if lv_idx == len(self.lv_list)-1: # TODO
+            #     ts = klu_dict[lv][-1].time.ts
 
             assert isinstance(klu_dict[lv], list)
             self.add_lv_iter(lv, iter(klu_dict[lv]))
@@ -107,8 +128,10 @@ class CChan:
         # Load all data through iterator
         for _ in self.load_iterator(lv_idx=0, parent_klu=None, step=False):
             pass
-        for lv in self.lv_list:
-            self.kl_datas[lv].try_add_virtual_bi()
+        # for lv in self.lv_list:
+        #     # if lv not in klu_dict:
+        #     #     continue
+        #     self.kl_datas[lv].try_add_virtual_bi()
             
     def add_lv_iter(self, lv_idx: Union[int, KL_TYPE], iter_obj: Iterable[CKLine_Unit]):
         """Add a new iterator for a specific level."""
@@ -163,6 +186,7 @@ class CChan:
             self.add_new_kl(cur_lv, kline_unit)
 
             if parent_klu:
+                # print(f'set parent: ', cur_lv, parent_klu.time, kline_unit.time)
                 self.set_klu_parent_relation(
                     parent_klu, kline_unit, cur_lv, lv_idx)
 
@@ -199,10 +223,12 @@ class CChan:
         lv_idx: int
     ):
         """Set parent-child relationships between K-line units and perform consistency checks."""
-        if (self.conf.kl_data_check and
-            kltype_lte_day(cur_lv) and
-                kltype_lte_day(self.lv_list[lv_idx-1])):
-            self.check_kl_consitent(parent_klu, kline_unit)
+        
+        # not available because we are using 7*24 hrs trades
+        # if (self.conf.kl_data_check and
+        #     kltype_lte_day(cur_lv) and
+        #         kltype_lte_day(self.lv_list[lv_idx-1])):
+        #     self.check_kl_consitent(parent_klu, kline_unit)
 
         parent_klu.add_children(kline_unit)
         kline_unit.set_parent(parent_klu)
@@ -237,11 +263,7 @@ class CChan:
         """Add a new K-line unit and check for new bi formation at highest level."""
         try:
             self.kl_datas[cur_lv].add_single_klu(kline_unit)
-
-            # Check for new bi at highest level
-            if cur_lv == self.lv_list[0]:
-                self.new_bi_start = self.kl_datas[cur_lv].new_bi_start
-
+            
         except Exception:
             if self.conf.print_err_time:
                 print(
@@ -267,20 +289,7 @@ class CChan:
         else:
             raise CChanException("Unsupported query type",
                                  ErrCode.COMMON_ERROR)
-
-
-    def plot(self, save: bool = True):
-        from Chan.Plot.PlotDriver import ChanPlotter
-        
-        fig = ChanPlotter().plot(
-            klc_list = self.kl_datas[self.lv_list[0]]
-        )
-                
-        # if save:
-        #     plot_driver.save2img(mkdir(f'./outputs_bt/{self.code}.png'))
-        # else:
-        #     plot_driver.figure.show()
-
+            
 def mkdir(path_str: str) -> str:
     """Create directory if it doesn't exist and return the path."""
     path = os.path.dirname(path_str)

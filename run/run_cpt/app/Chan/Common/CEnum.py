@@ -44,6 +44,10 @@ class BI_TYPE(Enum):
     UNSTRICT = auto()
     TIAOKONG_VALUE = auto()
 
+# class BI_TS_TYPE(Enum):
+#     VIRTUAL = auto()
+#     UPDATE = auto()
+#     SURE = auto()
 
 class FX_CHECK_METHOD(Enum):
     STRICT = auto()

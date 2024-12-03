@@ -5,6 +5,7 @@ from Chan.KLine.KLine import CKLine
 
 from Chan.Bi.Bi import CBi
 from Chan.Bi.BiConfig import CBiConfig
+from Util.Filter import AverageFilter
 
 '''
 New K-bar
@@ -111,15 +112,24 @@ Legend:
 '''
 
 class CBiList:
-    def __init__(self, bi_conf=CBiConfig(), callback=Callable[[CKLine, CKLine, bool], None]):
+    def __init__(self, bi_conf=CBiConfig()):
         self.bi_list:List[CBi] = []
-        self.is_sure:bool = False
-        self.callback = callback
+        # record timestamp for make_virtual_bi(0), update_end(1), make_sure_bi(2)
+        # self.is_sure:bool = False
         
         self.last_end = None  # 最后一笔的尾部
         self.config = bi_conf
-
+        
         self.free_klc_lst = []  # 仅仅用作第一笔未画出来之前的缓存，为了获得更精准的结果而已，不加这块逻辑其实对后续计算没太大影响
+        
+        # shared handshake flag to notify other classes that bi list is updated
+        # set to true after update/delete, add virtual, add sure
+        # self.shared_update_flag = False
+        
+        # stats
+        # average bi delta y pct
+        # self.bi_delta_y_ratio = AverageFilter()
+        # self.bi_num_ratio = AverageFilter()
 
     def __str__(self):
         return "\n".join([str(bi) for bi in self.bi_list])
@@ -250,11 +260,18 @@ class CBiList:
     def add_new_bi(self, pre_klc, cur_klc, is_sure=True):
         bi = CBi(pre_klc, cur_klc, idx=len(self.bi_list), is_sure=is_sure)
         self.bi_list.append(bi)
-        # self.callback(bi, is_sure=is_sure) # self.PA_Core.add_bi(bi, is_sure=is_sure)
         
-        if is_sure:
-            print("bi_list is sure: ", cur_klc.idx, len(self.bi_list))
-        self.is_sure = is_sure
+        # if is_sure:
+            # bi_delta_y_ratio = abs(bi.get_begin_val()-bi.get_end_val())/bi.get_begin_val()
+            # bi_num_ratio = bi.idx/cur_klc.idx
+            # self.bi_delta_y_ratio.update(bi_delta_y_ratio)
+            # self.bi_num_ratio.update(bi_num_ratio)
+            # print(
+            #     f"sure bi: {bi.idx}",
+            #     f"{bi_num_ratio:.3f}({self.bi_num_ratio.get_average():.3f})",
+            #     f"{bi_delta_y_ratio:.3f}({self.bi_delta_y_ratio.get_average():3f})"
+            #     )
+        # self.is_sure = is_sure
                     
         if len(self.bi_list) >= 2: # specify adjacent bi
             self.bi_list[-2].next = self.bi_list[-1]

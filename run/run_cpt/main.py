@@ -6,7 +6,7 @@ import sys
 # the path include need to be earlier than relative library
 sys.path.append(os.path.join(os.path.dirname(__file__), "."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "./app"))
-from util.util_cpt import enable_logging
+from Util.UtilCpt import enable_logging
 enable_logging()
 from wtpy.apps import WtBtAnalyst
 from wtpy.monitor import WtBtSnooper, WtLogger
@@ -15,7 +15,7 @@ from wtpy.SessionMgr import SessionMgr
 from wtpy.WtCoreDefs import WTSBarStruct
 from wtpy import WtBtEngine, EngineType, WtDtServo
 
-from util.util_cpt import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
+from Util.UtilCpt import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
 from config.cfg_cpt import cfg_cpt
 from strategy.CPT_Chart.Main_Cta import Main_Cta
 
@@ -23,22 +23,18 @@ run = True
 analyze = False
 snoop = False
 profile = False
-period, n = 'm', 1  # bar period
-start   = 202301010000
-end     = 202301030000
-capital = 10000000
 
 def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
 
     assets = cfg_cpt.symbols
     CSV_DIR = cfg_cpt.CRYPTO_CSV_DIR
-    period_str = period + str(n)
+    period_str = cfg_cpt.period + str(cfg_cpt.n)
 
     print('Preparing dsb data (Combining and Resampling) ...')
     wt_assets = generate_asset_list()
     generate_database_files()
-    generate_merged_database_files(resample_n=n)
+    generate_merged_database_files(resample_n=cfg_cpt.n)
     
     print('Data ready: ', cfg_cpt.symbols)
 
@@ -46,7 +42,7 @@ def run_bt():
     print('Initializing Backtest ...')
     engine = WtBtEngine(EngineType.ET_CTA)
     engine.init(folder='.', cfgfile='./config/configbt.yaml')
-    engine.configBacktest(start, end)
+    engine.configBacktest(cfg_cpt.start, cfg_cpt.end)
     engine.commitBTConfig()
 
     str_name = f'bt_crypto'
@@ -55,7 +51,7 @@ def run_bt():
     # straInfo = StraDualThrust(name=str_name, code=wt_assets[0], barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
     straInfo = Main_Cta(name=str_name, codes=wt_assets,
-                        period=period_str, capital=capital)
+                        period=period_str, capital=cfg_cpt.capital)
 
     engine.set_cta_strategy(straInfo, slippage=0)
     
@@ -69,7 +65,7 @@ def run_bt():
         print('Analyzing ...')
         analyst = WtBtAnalyst()
         analyst.add_strategy(str_name, folder=bt_folder,
-                             init_capital=capital, rf=0.0, annual_trading_days=240)
+                             init_capital=cfg_cpt.capital, rf=0.0, annual_trading_days=240)
         analyst.run_new()
 
     if snoop:

@@ -11,12 +11,14 @@ from typing import List, Dict
 
 from wtpy import BaseCtaStrategy
 from wtpy import CtaContext
-from wtpy.WtDataDefs import WtNpKline
 
 from Chan.Chan import CChan
-from Chan.Common.CEnum import KL_TYPE, DATA_FIELD
-from Chan.Common.CTime import CTime
-from Chan.KLine.KLine_Unit import CKLine_Unit
+from Chan.ChanConfig import CChanConfig
+from Chan.Common.CEnum import KL_TYPE
+from Chan.Common.kbar_parser import KLineHandler
+from Chan.KLine.KLine_List import CKLine_List
+
+from Util.MemoryAnalyzer import MemoryAnalyzer
 
 red     = "\033[31m"
 green   = "\033[32m"
@@ -41,38 +43,67 @@ class Main_Cta(BaseCtaStrategy):
         self.__codes__                      = codes
         self.__capital__                    = capital
 
+        self.config: CChanConfig            = CChanConfig()
+        self.KLineHandler: Dict[str, KLineHandler] = {}
+        self.kl_datas: Dict[str, Dict[KL_TYPE, CKLine_List]] = {}
+        
         # stats
         self.barnum                         = 0
         self.last_price: Dict[str, float]   = {}
         self.cur_money                      = capital
         self.start_time                     = time()
+        self.date                           = None
         
         # models
         self.chan_snapshot: Dict[str, CChan] = {}
         
         # factors
-        self.np_bars_batch: Dict[str, List[WtNpKline]] = {}  # store temp bar to form larger bar
-        
+                
     def on_init(self, context:CtaContext):
+        print('Initializing Strategy...')
+        self.lv_list = [lv[0] for lv in self.config.lv_list]
+        
         for idx, code in enumerate(self.__codes__):
             context.stra_prepare_bars(code, self.__period__, 1, isMain = idx==0)
             # only 1 series is registered as 'Main', which works as clock, more registrations would result in fault
             # on_calculate is triggered once main bar is closed
             # if hook is installed, on_calculate_done would be triggered(for RL)
+            
+            self.KLineHandler[code] = KLineHandler(self.config.lv_list)
+            self.init_shared_kl_datas(code)
             self.last_price[code] = 0
-            self.np_bars_batch[code] = []
-        
-        self.lv_list = [KL_TYPE.K_1M]
         
         context.stra_log_text(stdio("Strategy Initiated"))
         self.pbar = tqdm(total=len(self.__codes__), desc='Preparing Bars in DDR...')
-    
+
+    def init_shared_kl_datas(self, code:str):
+        """Initialize K-line data structures for each time level."""
+        self.kl_datas[code] = {level: CKLine_List(level, conf=self.config)for level in self.lv_list}
+
+    def init_new_code(self, code:str):
+
+        # initiate new code specific models/structs
+        self.chan_snapshot[code] = CChan(
+            code=code,
+            kl_datas=self.kl_datas[code],
+            # begin_time=begin_time,
+            # end_time=end_time,
+            # data_src=data_src,
+            lv_list=self.lv_list,
+            # config=config,
+            # autype=AUTYPE.QFQ,
+        )
+        
     def on_calculate(self, context:CtaContext):
         self.barnum += 1 # all sub-ed bars closed (main/non-main) at this period
         
         date = context.get_date()
         time = context.stra_get_time()
-        
+        if date!=self.date:
+            print(date)
+            # print(date, time)
+            self.date = date
+            
         for idx, code in enumerate(self.__codes__):
             if self.barnum == 1: 
                 self.pbar.update(1)
@@ -80,15 +111,21 @@ class Main_Cta(BaseCtaStrategy):
             else: self.pbar.close()
             
             np_bars = context.stra_get_bars(code, self.__period__, 1, isMain=idx==0)
-            close = np_bars.closes[-1]
+            # close = np_bars.closes[-1]
             # print(f"{code:010} {date:08}:{time:04}")
             
-            chan_snapshot = self.chan_snapshot[code]
-            chan_snapshot.trigger_load({self.lv_list[0]: [self.parse_klu(np_bars)]}) # feed day bar
-
+            # multi-level k bar generation
+            klu_dict = self.KLineHandler[code].process_bar(np_bars)
+            
+            # process Chan elements
+            self.chan_snapshot[code].trigger_load(klu_dict)
+            
+            # process PA elements
+            for lv in self.lv_list:
+                self.kl_datas[code][lv].PA_Core.parse_dynamic_bi_list()
+            
     def trade_order(self, context:CtaContext, code:str, buy:bool, sell:bool, price:float, date:int, time:int):
         cpu_id  = 0
-        
         curPos = context.stra_get_position(code)
         curPrice = context.stra_get_price(code)
         self.cur_money = self.__capital__ + context.stra_get_fund_data(flag=0)
@@ -118,46 +155,7 @@ class Main_Cta(BaseCtaStrategy):
             self.check_capital()
             return
         return
-
-
-    def init_new_code(self, code):
-            
-        # initiate new code specific models/structs
-        self.chan_snapshot[code] = CChan(
-            code=code,
-            # begin_time=begin_time,
-            # end_time=end_time,
-            # data_src=data_src,
-            lv_list=self.lv_list,
-            # config=config,
-            # autype=AUTYPE.QFQ,
-        )
-
-    @staticmethod
-    def parse_klu(np_bars:WtNpKline) -> CKLine_Unit:
-        def parse_time_column(time_str:str):
-            # 2020_1102_0931
-            if len(time_str) == 12:
-                year = int(time_str[:4])
-                month = int(time_str[4:6])
-                day = int(time_str[6:8])
-                hour = int(time_str[8:10])
-                minute = int(time_str[10:12])
-            else:
-                raise Exception(f"unknown time column from csv:{time_str}")
-            return CTime(year, month, day, hour, minute, auto=False)
-        
-        return CKLine_Unit(
-        {
-            DATA_FIELD.FIELD_TIME:      parse_time_column(str(np_bars.bartimes[-1])),
-            DATA_FIELD.FIELD_OPEN:      np_bars.opens[-1],
-            DATA_FIELD.FIELD_HIGH:      np_bars.highs[-1],
-            DATA_FIELD.FIELD_LOW:       np_bars.lows[-1],
-            DATA_FIELD.FIELD_CLOSE:     np_bars.closes[-1],
-            DATA_FIELD.FIELD_VOLUME:    int(np_bars.volumes[-1]),
-        },
-        autofix=True)
-
+    
     def check_capital(self):
         try:
             assert self.cur_money>0
@@ -187,4 +185,19 @@ class Main_Cta(BaseCtaStrategy):
         self.elapsed_time = time() - self.start_time
         print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         
-        self.chan_snapshot[self.__codes__[0]].plot()
+        # chan=self.chan_snapshot[self.__codes__[0]]
+        # MemoryAnalyzer().analyze_object(chan)
+        # # MemoryAnalyzer().analyze_object(list(chan.kl_datas.items())[-1][1])
+        # for obj in list(chan.kl_datas.items()):
+        #     size = MemoryAnalyzer().get_deep_size(obj)
+        #     print(f'{size/1000/1000:3.2f}MB: {obj}')
+        from Chan.Plot.PlotDriver import ChanPlotter
+        from Util.plot.plot_fee_grid import plot_fee_grid
+        from Util.plot.plot_show import plot_show
+        
+        for code in self.__codes__:
+            fig = ChanPlotter().plot(self.kl_datas[code])
+            fig = plot_fee_grid(fig)
+            plot_show(fig)
+            
+        return fig
