@@ -88,7 +88,6 @@ class CChan:
         Args:
             klu_dict: Dictionary mapping time levels to their K-line unit lists
         """
-
         # for lv_idx, lv in enumerate(self.lv_list):
         #     if lv not in klu_dict:
         #         continue
@@ -97,17 +96,17 @@ class CChan:
         #     close = klu_dict[lv][-1].close
         #     print(lv, time, open, close)
         
-        # wait for the 1st top-level k bar to form
-        if not self.k_bar_inited:
-            if len(klu_dict) == len(self.lv_list):
-                self.k_bar_inited = True
-            else:
-                return
+        # # wait for the 1st top-level k bar to form
+        # if not self.k_bar_inited:
+        #     if len(klu_dict) == len(self.lv_list):
+        #         self.k_bar_inited = True
+        #     else:
+        #         return
         
         # Initialize caches if not present
-        if not hasattr(self, 'klu_cache'):
-            self.klu_cache: List[Optional[CKLine_Unit]] = [
-                None] * len(self.lv_list)
+        # if not hasattr(self, 'klu_cache'):
+        #     self.klu_cache: List[Optional[CKLine_Unit]] = [
+        #         None] * len(self.lv_list)
         if not hasattr(self, 'klu_last_t'):
             self.klu_last_t = [CTime(1980, 1, 1, 0, 0)] * len(self.lv_list)
 
@@ -123,97 +122,116 @@ class CChan:
             #     ts = klu_dict[lv][-1].time.ts
 
             assert isinstance(klu_dict[lv], list)
-            self.add_lv_iter(lv, iter(klu_dict[lv]))
+            # self.add_lv_iter(lv, iter(klu_dict[lv]))
+            self.add_klu(lv_idx, klu_dict[lv][-1])
 
-        # Load all data through iterator
-        for _ in self.load_iterator(lv_idx=0, parent_klu=None, step=False):
-            pass
+        # # Load all data through iterator
+        # for _ in self.load_iterator(lv_idx=0, parent_klu=None, step=False):
+        #     pass
         # for lv in self.lv_list:
         #     # if lv not in klu_dict:
         #     #     continue
         #     self.kl_datas[lv].try_add_virtual_bi()
-            
-    def add_lv_iter(self, lv_idx: Union[int, KL_TYPE], iter_obj: Iterable[CKLine_Unit]):
-        """Add a new iterator for a specific level."""
-        if isinstance(lv_idx, int):
-            self.g_kl_iter[self.lv_list[lv_idx]].append(iter_obj)
-        else:
-            self.g_kl_iter[lv_idx].append(iter_obj)
 
-    def load_iterator(self, lv_idx: int, parent_klu: Optional[CKLine_Unit], step: bool):
-        """
-        Main iterator for loading and processing K-line data.
-        Handles hierarchical relationships between different time levels.
-
-        Args:
-            lv_idx: Index of current level being processed
-            parent_klu: Parent K-line unit (if any)
-            step: Whether to yield after each step
-        """
+    def add_klu(self, lv_idx:int, kline_unit:CKLine_Unit):
         cur_lv = self.lv_list[lv_idx]
         pre_klu = None
+        self.try_set_klu_idx(lv_idx, kline_unit)
+        
+        # Ensure time monotonicity
+        if not kline_unit.time > self.klu_last_t[lv_idx]:
+            raise CChanException(
+                f"K-line time error, current={
+                    kline_unit.time}, last={self.klu_last_t[lv_idx]}",
+                ErrCode.KL_NOT_MONOTONOUS
+            )
+        self.klu_last_t[lv_idx] = kline_unit.time
+            
+        kline_unit.set_pre_klu(pre_klu)
+        pre_klu = kline_unit
+        self.add_new_kl(cur_lv, kline_unit)
 
-        while True:
-            # Get next K-line unit (from cache or iterator)
-            if self.klu_cache[lv_idx]:
-                kline_unit = self.klu_cache[lv_idx]
-                assert kline_unit is not None
-                self.klu_cache[lv_idx] = None
-            else:
-                try:
-                    kline_unit = self.get_next_lv_klu(lv_idx)
-                    self.try_set_klu_idx(lv_idx, kline_unit)
+    # def add_lv_iter(self, lv_idx: Union[int, KL_TYPE], iter_obj: Iterable[CKLine_Unit]):
+    #     """Add a new iterator for a specific level."""
+    #     if isinstance(lv_idx, int):
+    #         self.g_kl_iter[self.lv_list[lv_idx]].append(iter_obj)
+    #     else:
+    #         self.g_kl_iter[lv_idx].append(iter_obj)
 
-                    # Ensure time monotonicity
-                    if not kline_unit.time > self.klu_last_t[lv_idx]:
-                        raise CChanException(
-                            f"K-line time error, current={
-                                kline_unit.time}, last={self.klu_last_t[lv_idx]}",
-                            ErrCode.KL_NOT_MONOTONOUS
-                        )
-                    self.klu_last_t[lv_idx] = kline_unit.time
-                except StopIteration:
-                    break
+    # def load_iterator(self, lv_idx: int, parent_klu: Optional[CKLine_Unit], step: bool):
+    #     """
+    #     Main iterator for loading and processing K-line data.
+    #     Handles hierarchical relationships between different time levels.
+    # 
+    #     Args:
+    #         lv_idx: Index of current level being processed
+    #         parent_klu: Parent K-line unit (if any)
+    #         step: Whether to yield after each step
+    #     """
+    #     cur_lv = self.lv_list[lv_idx]
+    #     pre_klu = None
+    # 
+    #     while True:
+    #         # # Get next K-line unit (from cache or iterator)
+    #         # if self.klu_cache[lv_idx]:
+    #         #     kline_unit = self.klu_cache[lv_idx]
+    #         #     assert kline_unit is not None
+    #         #     self.klu_cache[lv_idx] = None
+    #         # else:
+    #         try:
+    #             kline_unit = self.get_next_lv_klu(lv_idx)
+    #             self.try_set_klu_idx(lv_idx, kline_unit)
+    #             
+    #             # Ensure time monotonicity
+    #             if not kline_unit.time > self.klu_last_t[lv_idx]:
+    #                 raise CChanException(
+    #                     f"K-line time error, current={
+    #                         kline_unit.time}, last={self.klu_last_t[lv_idx]}",
+    #                     ErrCode.KL_NOT_MONOTONOUS
+    #                 )
+    #             self.klu_last_t[lv_idx] = kline_unit.time
+    #         except StopIteration:
+    #             break
+    # 
+    #         # Check if we've exceeded parent time
+    #         # if parent_klu and kline_unit.time > parent_klu.time:
+    #         #     self.klu_cache[lv_idx] = kline_unit
+    #         #     break
+    # 
+    #         # Set relationships and process
+    #         kline_unit.set_pre_klu(pre_klu)
+    #         pre_klu = kline_unit
+    #         self.add_new_kl(cur_lv, kline_unit)
+    # 
+    #         # if parent_klu:
+    #         #     # print(f'set parent: ', cur_lv, parent_klu.time, kline_unit.time)
+    #         #     self.set_klu_parent_relation(
+    #         #         parent_klu, kline_unit, cur_lv, lv_idx)
+    # 
+    #         # Process lower levels recursively
+    #         if lv_idx != len(self.lv_list)-1:
+    #             for _ in self.load_iterator(lv_idx + 1, None, step):
+    #                 pass
+    #             # self.check_kl_align(kline_unit, lv_idx)
+    # 
+    #         if lv_idx == 0 and step:
+    #             yield self
 
-            # Check if we've exceeded parent time
-            if parent_klu and kline_unit.time > parent_klu.time:
-                self.klu_cache[lv_idx] = kline_unit
-                break
-
-            # Set relationships and process
-            kline_unit.set_pre_klu(pre_klu)
-            pre_klu = kline_unit
-            self.add_new_kl(cur_lv, kline_unit)
-
-            if parent_klu:
-                # print(f'set parent: ', cur_lv, parent_klu.time, kline_unit.time)
-                self.set_klu_parent_relation(
-                    parent_klu, kline_unit, cur_lv, lv_idx)
-
-            # Process lower levels recursively
-            if lv_idx != len(self.lv_list) - 1:
-                for _ in self.load_iterator(lv_idx + 1, kline_unit, step):
-                    pass
-                self.check_kl_align(kline_unit, lv_idx)
-
-            if lv_idx == 0 and step:
-                yield self
-
-    def get_next_lv_klu(self, lv_idx: Union[int, KL_TYPE]) -> CKLine_Unit:
-        """Get next K-line unit from the appropriate iterator."""
-        if isinstance(lv_idx, int):
-            lv_idx = self.lv_list[lv_idx]
-
-        if not self.g_kl_iter[lv_idx]:
-            raise StopIteration
-
-        try:
-            return next(self.g_kl_iter[lv_idx][0])
-        except StopIteration:
-            self.g_kl_iter[lv_idx] = self.g_kl_iter[lv_idx][1:]
-            if self.g_kl_iter[lv_idx]:
-                return self.get_next_lv_klu(lv_idx)
-            raise
+    # def get_next_lv_klu(self, lv_idx: Union[int, KL_TYPE]) -> CKLine_Unit:
+    #     """Get next K-line unit from the appropriate iterator."""
+    #     if isinstance(lv_idx, int):
+    #         lv_idx = self.lv_list[lv_idx]
+    # 
+    #     if not self.g_kl_iter[lv_idx]:
+    #         raise StopIteration
+    # 
+    #     try:
+    #         return next(self.g_kl_iter[lv_idx][0])
+    #     except StopIteration:
+    #         self.g_kl_iter[lv_idx] = self.g_kl_iter[lv_idx][1:]
+    #         if self.g_kl_iter[lv_idx]:
+    #             return self.get_next_lv_klu(lv_idx)
+    #         raise
 
     def set_klu_parent_relation(
         self,

@@ -46,6 +46,7 @@ class PA_Core:
         self.bi_len:int = 0
         
         self.ts:float = 0
+        self.cnt:int = 0
         
     #                     +-------------------------+
     #                     |    add virtual bi       |
@@ -75,36 +76,28 @@ class PA_Core:
     # and is guaranteed not to trigger left-shift twice, so the last sure bi will remain static
     
     def parse_dynamic_bi_list(self):
-        update, shift_l, shift_r = self.check_update_and_shift()
-        if update:
-            # first feed new static bi to the static shapes
-            if shift_l: # do nothing
-                pass
-            elif shift_r: # get 1 more static bi
+        self.check_update_and_shift()
+        # first feed new static bi to the static shapes
+        if self.shift_l: # do nothing
+            pass
+        else:
+            if self.shift_r: # get 1 more static bi
                 new_static_bi = self.bi_list[-2]
-                self.save_bi_to_vertex(new_static_bi)
-            else: # recalculate dynamic shapes if need for potential open position
-                pass
-            
+                self.feed_bi_to_all_PA_elements(new_static_bi)
+        # self.get_potential()
+        
     def check_update_and_shift(self):
-        bi_update = True
         bi_len = len(self.bi_list)
-
-        update = False
-        shift_l = False
-        shift_r = False
-        if bi_update: # dynamic list updated
-            if bi_len > self.bi_len and bi_len>1:
-                shift_r = True
-                self.bi_len = bi_len
-            elif bi_len < self.bi_len:
-                shift_l = True
-                self.bi_len = bi_len
-            update = True
-            bi_update = False # clear
-        return update, shift_l, shift_r
+        self.shift_l = False
+        self.shift_r = False
+        if bi_len > self.bi_len and bi_len>1:
+            self.shift_r = True
+        elif bi_len < self.bi_len:
+            self.shift_l = True
+        self.bi_len = bi_len
+        return
     
-    def save_bi_to_vertex(self, bi:CBi):
+    def feed_bi_to_all_PA_elements(self, bi:CBi):
         end_x:int = bi.get_end_klu().idx
         end_y:float = bi.get_end_val()
         end_ts:float = bi.get_end_klu().time.ts
@@ -147,20 +140,17 @@ class PA_Core:
         
     def add_vertex_to_shapes(self, vertex:vertex):
         for shape_name in self.shape_keys:
-            self.PA_Shapes_trading_now[shape_name] = []
             for shape in self.PA_Shapes_developing[shape_name][:]: # Use a slice to make a copy of the list so can remove item on-fly
-            # Update existing shapes
+                # Update existing shapes
+                success = shape.add_vertex(vertex)
                 if shape.is_complete():
                     self.PA_Shapes_developed[shape_name].append(shape)
                     self.PA_Shapes_developing[shape_name].remove(shape)
                     continue
-                success = shape.add_vertex(vertex)
                 if DEBUG:
                     print(shape.name, shape.vertices, shape.state, success)
                 if not success: # try add vertex and failed shape FSM check
                     self.PA_Shapes_developing[shape_name].remove(shape)
-                elif shape.is_potential():
-                    self.PA_Shapes_trading_now[shape_name].append(shape)
             if DEBUG:
                 print('=================================================: ', vertex)
             # Start new potential shapes
@@ -171,6 +161,29 @@ class PA_Core:
         # liquidity zone should be formed at breakthrough, but for ease of computation
         # only update at FX formation
         self.PA_Liquidity.add_vertex(vertex, end_open, end_close)
+        
+    def get_potential(self):
+        if not self.shift_l:
+            # shift_r?: new_dynamic bi : updated_dynamic_bi
+            # recalculate dynamic shapes if need for potential open position
+            if self.bi_len > 0:
+                dynamic_bi:CBi = self.bi_list[-1]
+                self.cnt += 1
+                end_x:int = dynamic_bi.get_end_klu().idx
+                end_y:float = dynamic_bi.get_end_val()
+                end_ts:float = dynamic_bi.get_end_klu().time.ts
+                # end_open:float = dynamic_bi.get_end_klu().open
+                # end_close:float = dynamic_bi.get_end_klu().close
+                # end_volume:int = int(dynamic_bi.get_end_klu().volume)
+                end_bi_vertex = vertex(end_x, end_y, end_ts)
+
+                for shape_name in self.shape_keys:
+                    self.PA_Shapes_trading_now[shape_name] = []
+                    for shape in copy.deepcopy(self.PA_Shapes_developing[shape_name][:-1]):
+                        success = shape.add_vertex(end_bi_vertex)
+                        if success and shape.is_potential():
+                            self.PA_Shapes_trading_now[shape_name].append(shape)
+                return self.PA_Shapes_trading_now
         
     def get_chart_pattern_shapes(self, complete:bool=False, potential:bool=False, with_idx:bool=False):
         shapes:List[

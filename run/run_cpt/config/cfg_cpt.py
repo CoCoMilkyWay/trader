@@ -3,7 +3,7 @@ class cfg_cpt: # Constants Configs
     
     period, n = 'm', 1  # bar period
     start   = 202408010000
-    end     = 202408100000
+    end     = 202408150000
     capital = 10000000
     
     mode = '/um'  # spot, um, cm
@@ -13,8 +13,8 @@ class cfg_cpt: # Constants Configs
     symbols = ['BTCUSDT',  '1000SHIBUSDT',  'ETHUSDT',  'BNBUSDT',  'DOGEUSDT',  'ADAUSDT',  'XRPUSDT',  'SOLUSDT',  'LTCUSDT',  'BCHUSDT',  'MATICUSDT',  'LINKUSDT',  'AVAXUSDT',  'DOTUSDT',  'FTMUSDT',  'UNIUSDT',  'AAVEUSDT',  'XLMUSDT',  'TRXUSDT']
     if NUM:
         symbols = [symbol for symbol in symbols if symbol.endswith('USDT')][:NUM]
-    CRYPTO_CSV_DIR  = 'd:/data/crypto_csv'  + mode  + '/csv'
-    CRYPTO_DB_DIR   = 'd:/data/crypto_db'   + mode  + '/bars'
+    CRYPTO_CSV_DIR  = 'D:/data/crypto_csv'  + mode  + '/csv'
+    CRYPTO_DB_DIR   = 'D:/data/crypto_db'   + mode  + '/bars'
     # SPOT_DIR    = CRYPTO_CSV_DIR    +   '/spot'
     # UM_DIR      = CRYPTO_CSV_DIR    +   '/um'
     # CM_DIR      = CRYPTO_CSV_DIR    +   '/cm'

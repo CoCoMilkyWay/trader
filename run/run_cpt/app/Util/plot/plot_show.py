@@ -13,5 +13,5 @@ def plot_show(fig:go.Figure):
     }
     print('Showing plot...')
     fig.show(config=config)
-    # print('Saving to HTML...')
-    # self.fig.write_html('chan_plot.html',config=self.config)
+    print('Saving to HTML...')
+    fig.write_html('chan_plot.html',config=config)

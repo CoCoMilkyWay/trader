@@ -240,7 +240,7 @@ class conv_type:  # continuation or breakout or reversal or nexus
         elif self.entry_dir == -1:
             self.name += f'.DN'
             
-        print(self.name, THD_SLOPE, self.top_m, self.bot_m)
+        # print(self.name, THD_SLOPE, self.top_m, self.bot_m)
         # self.name += f'.{self.top_residue:.3f}.{self.bot_residue:.3f}'
         # self.name += f'{m_near:.3f}.{m_far:.3f}.{top_vertices[0]}.{top_vertices[-1]}'
         # print('top: ', top_vertices,    self.top_x, self.top_y, self.top_residue)

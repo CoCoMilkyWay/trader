@@ -26,6 +26,7 @@ yellow  = "\033[33m"
 default = "\033[0m"
 
 CHECK_SYNC = True
+MEM_ANALYZE = False
 
 def stdio(str):
     print(str)
@@ -75,13 +76,12 @@ class Main_Cta(BaseCtaStrategy):
         
         context.stra_log_text(stdio("Strategy Initiated"))
         self.pbar = tqdm(total=len(self.__codes__), desc='Preparing Bars in DDR...')
-
+        
     def init_shared_kl_datas(self, code:str):
         """Initialize K-line data structures for each time level."""
         self.kl_datas[code] = {level: CKLine_List(level, conf=self.config)for level in self.lv_list}
-
+        
     def init_new_code(self, code:str):
-
         # initiate new code specific models/structs
         self.chan_snapshot[code] = CChan(
             code=code,
@@ -105,7 +105,7 @@ class Main_Cta(BaseCtaStrategy):
             self.date = date
             
         for idx, code in enumerate(self.__codes__):
-            if self.barnum == 1: 
+            if self.barnum == 1:
                 self.pbar.update(1)
                 self.init_new_code(code)
             else: self.pbar.close()
@@ -185,12 +185,14 @@ class Main_Cta(BaseCtaStrategy):
         self.elapsed_time = time() - self.start_time
         print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         
-        # chan=self.chan_snapshot[self.__codes__[0]]
-        # MemoryAnalyzer().analyze_object(chan)
-        # # MemoryAnalyzer().analyze_object(list(chan.kl_datas.items())[-1][1])
-        # for obj in list(chan.kl_datas.items()):
-        #     size = MemoryAnalyzer().get_deep_size(obj)
-        #     print(f'{size/1000/1000:3.2f}MB: {obj}')
+        if MEM_ANALYZE:
+            chan=self.chan_snapshot[self.__codes__[0]]
+            MemoryAnalyzer().analyze_object(chan)
+            # MemoryAnalyzer().analyze_object(list(chan.kl_datas.items())[-1][1])
+            for obj in list(chan.kl_datas.items()):
+                size = MemoryAnalyzer().get_deep_size(obj)
+                print(f'{size/1000/1000:3.2f}MB: {obj}')
+                
         from Chan.Plot.PlotDriver import ChanPlotter
         from Util.plot.plot_fee_grid import plot_fee_grid
         from Util.plot.plot_show import plot_show

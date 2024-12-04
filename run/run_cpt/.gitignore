@@ -1,3 +1,4 @@
 outputs_bt/
 **/*.log
 **/__pycache__
+*.html

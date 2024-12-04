@@ -17,11 +17,25 @@ class CChanConfig:
             # num_klc_cached,
             # bi color,
             # opacity,
-            # [KL_TYPE.K_60M,  2,     100,    'red',       1.0,   ['conv_type', ]],
-            # [KL_TYPE.K_30M,  2,     100,    'purple',    1.0,   ['conv_type', ]],
-            [KL_TYPE.K_15M,  15,     100,    'blue',      1.0,   ['conv_type', ]],
-            # [KL_TYPE.K_5M ,  5,     100,    'black',     1.0,   ['conv_type', ]],
-            [KL_TYPE.K_1M ,  1,     100,    'gray',      1.0,   ['conv_type', ]],
+            [KL_TYPE.K_60M,  2,     100,
+    'rgba(186, 128, 212, 1)',   # Muted purple
+             1.0,   [ ]],
+            
+            [KL_TYPE.K_30M,  2,     100,
+    'rgba(166, 212, 128, 1)',  # Sage green
+             1.0,   [ ]],
+            
+            [KL_TYPE.K_15M,  3,     100,
+    'rgba(212, 128, 166, 1)',  # Dusty rose
+             1.0,   ['conv_type', ]],
+            
+            [KL_TYPE.K_5M ,  5,     100,
+    'rgba(128, 166, 212, 1)',  # Steel blue
+             1.0,   ['conv_type', ]],
+            
+            [KL_TYPE.K_1M ,  1,     100,
+    'rgba(128, 128, 128, 1)',  # Classic gray
+             1.0,   [ ]],
         ]
         
         self.plot_config = {

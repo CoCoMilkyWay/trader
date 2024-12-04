@@ -116,7 +116,6 @@ class ChanPlotter:
         # Update layout specific to candlestick/line charts
         self.fig.update_layout(
             xaxis_rangeslider_visible=False,  # Disable rangeslider for better performance
-            dragmode='zoom',  # Enable zoom by default
         )
 
         return self.fig
@@ -251,13 +250,13 @@ class ChanPlotter:
         for shape in shapes:
             self.traces[self.lv].extend([
                 go.Scatter(x=[v.ts for v in shape.vertices], y=[v.value for v in shape.vertices],
-                    mode='lines', line=dict(color=self.color, width=10),
-                    opacity=0.4, showlegend=False),
+                    mode='lines', line=dict(color=self.color, width=4),
+                    opacity=0.2, showlegend=False),
                 go.Scatter(x=shape.top_ts, y=shape.top_y,
-                    mode='lines', line=dict(color='red', width=4),
+                    mode='lines', line=dict(color='red', width=2*self.lv_idx_rev),
                     showlegend=False),
                 go.Scatter(x=shape.bot_ts, y=shape.bot_y,
-                    mode='lines', line=dict(color='blue', width=4),
+                    mode='lines', line=dict(color='blue', width=2*self.lv_idx_rev),
                     showlegend=False)
             ])
             
@@ -291,17 +290,21 @@ class ChanPlotter:
              **kwargs):
         """Convenience method to draw both KLC and Bi elements"""
         # plot from small to big
-        for lv_idx_rev, self.lv in enumerate(reversed(self.lv_type_list)):
-            self.lv_idx = len(self.lv_type_list) - 1 - lv_idx_rev
-            self.klc_list = kl_datas[self.lv]
+        for lv_idx_rev, lv in enumerate(reversed(self.lv_type_list)):
+            no_lv = len(self.lv_type_list)
+            self.lv = lv
+            self.lv_idx_rev = lv_idx_rev
+            self.lv_idx = no_lv - 1 - lv_idx_rev
+            self.klc_list = kl_datas[lv]
             self.color = self.color_list[self.lv_idx]
             self.opacity = self.opacity_list[self.lv_idx]
-            if lv_idx_rev == 0:
+            if self.lv_idx == no_lv - 1:
                 self.draw_klu()
                 self.draw_klc()
             self.draw_pa_charts()
-            self.draw_bi()
-
+            if self.lv_idx in range(no_lv-3, no_lv):
+                self.draw_bi()
+                
         # Update layout
         self.fig.update_layout(
             showlegend=False,
@@ -319,10 +322,10 @@ class ChanPlotter:
                 linecolor='black',
                 mirror=True
             ),
-            plot_bgcolor='white',
-            width=1200,  # Set default width
-            height=800,  # Set default height
-            dragmode='pan',     # Enable box zoom by default
+            plot_bgcolor='rgba(128, 128, 128, 0.3)',  # Gray with 10% opacity
+            width=800,  # Set default width
+            height=600,  # Set default height
+            dragmode='zoom',     # Enable box zoom by default
             modebar_add=[       # Add more tools to the mode bar
                 'pan',
                 'select',
