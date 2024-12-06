@@ -146,6 +146,7 @@ class CKLine_Combiner(Generic[T]):
         elif _pre.high > self.high and _next.high > self.high and _pre.low > self.low and _next.low > self.low:
             self.__fx = FX_TYPE.BOTTOM
         self.clean_cache()
+        return self.__fx
 
     def __str__(self):
         return f"{self.time_begin}~{self.time_end} {self.low}->{self.high}"

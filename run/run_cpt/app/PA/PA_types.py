@@ -49,13 +49,9 @@ class barrier_zone: # supply and demand and their derivatives
     
     index:int # e.g. bi index
     
-    left:int # starting time
+    left:float # starting time(timestamp)
     top:float
     bottom:float
-    
-    right0:int  # 1st ending time
-    right1:int  # 2nd ending time
-    # ... with weaker effects
     
     # barrier types:
     # 0: demand
@@ -64,6 +60,10 @@ class barrier_zone: # supply and demand and their derivatives
     # 3: supply (1st break demand)
     # 4: ... with weaker effects
     type:int|None = None
+    
+    right0:float = 1 << 31 # 1st ending time
+    right1:float = 1 << 31 # 2nd ending time
+    # ... with weaker effects
     
     volume:int = 0
     

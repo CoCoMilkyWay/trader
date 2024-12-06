@@ -7,7 +7,7 @@
 			"holiday": "NO_HOLIDAYS",
 			"name": "UM Futures",
 			"precision": 2,
-			"pricemode": 1,
+			"pricemode": 0,
 			"pricetick": 0.01,
 			"session": "ALLDAY",
 			"volscale": 1,

@@ -52,7 +52,7 @@ from typing import List, Dict, Literal
 from app.PA.PA_types import vertex
 from Util.Filter import AverageFilter
 
-CONV_PNL = 1.5  # pnl (filter: harder to get in/out of micro-structure)
+CONV_PNL = 2  # pnl (filter: harder to get in/out of micro-structure)
 
 def util_distance(p1, p2):
     return math.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
@@ -68,7 +68,7 @@ def util_angle(p1, p2, p3):
 def fit_linear(vertices: List[vertex]):
     x_coords = np.array([v.idx for v in vertices])
     y_coords = np.array([v.value for v in vertices])
-    
+
     # Number of points
     n = len(vertices)
 
@@ -125,7 +125,7 @@ class conv_type:  # continuation or breakout or reversal or nexus
         self.down_resistance: float = 0
         # self.high: float = 0
         # self.low: float = start_vertex.value
-        
+
         self.top_m = 0.0
         self.top_x = [0, 0]
         self.top_y = [0.0, 0.0]
@@ -136,7 +136,7 @@ class conv_type:  # continuation or breakout or reversal or nexus
         self.bot_y = [0.0, 0.0]
         self.bot_ts = [0.0, 0.0]
         self.bot_residue = 0.0
-        
+
         self.potential_trade: bool = False
         self.name: str = ''
         self.bi_avg_delta_x = AverageFilter(50)
@@ -169,7 +169,7 @@ class conv_type:  # continuation or breakout or reversal or nexus
             top_vertices)
         self.bot_m, self.bot_x, self.bot_y, self.bot_ts, self.bot_residue = fit_linear(
             bottom_vertices)
-        
+
         bi_avg_delta_x = self.bi_avg_delta_x.get_average()
         bi_avg_delta_y = self.bi_avg_delta_y.get_average()
         THD_RESIDUE = bi_avg_delta_y/vertices[-1].value
@@ -239,7 +239,7 @@ class conv_type:  # continuation or breakout or reversal or nexus
             self.name += f'.UP'
         elif self.entry_dir == -1:
             self.name += f'.DN'
-            
+
         # print(self.name, THD_SLOPE, self.top_m, self.bot_m)
         # self.name += f'.{self.top_residue:.3f}.{self.bot_residue:.3f}'
         # self.name += f'{m_near:.3f}.{m_far:.3f}.{top_vertices[0]}.{top_vertices[-1]}'
@@ -254,14 +254,14 @@ class conv_type:  # continuation or breakout or reversal or nexus
             return True
         # if self.rising_cnt > 8 or self.falling_cnt > 8: # abnormal shape
         #     return False
-        
+
         last_1_vertex = self.vertices[-1]
         delta_y = new_vertex.value - last_1_vertex.value
         delta_x = new_vertex.idx - last_1_vertex.idx
         # update average x/y of be (determine slope/residue)
         self.bi_avg_delta_x.update(delta_x)
         self.bi_avg_delta_y.update(abs(delta_y))
-        
+
         if self.state == self.START:
             if delta_y < 0:
                 self.entry_dir = DOWN
@@ -287,7 +287,6 @@ class conv_type:  # continuation or breakout or reversal or nexus
                         self.down_support = new_vertex.value - self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.RISING_M
-                        self.potential_trade = True
                         self.name = 'entry'
                         self.rising_cnt += 1
                         return True
@@ -298,7 +297,6 @@ class conv_type:  # continuation or breakout or reversal or nexus
                         self.up_resistance = new_vertex.value + self.max_drawdown
                         self.vertices.append(new_vertex)
                         self.state = self.FALLING_M
-                        self.potential_trade = True
                         self.name = 'entry'
                         self.falling_cnt += 1
                         return True

@@ -12,7 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from Chan.ChanConfig import CChanConfig
-from Chan.Common.CEnum import KL_TYPE
+from Chan.Common.CEnum import KL_TYPE, FX_TYPE
 from Chan.Common.ChanException import CChanException, ErrCode
 from Chan.Common.CTime import CTime
 from Chan.Common.func_util import check_kltype_order, kltype_lte_day
@@ -58,7 +58,6 @@ class CChan:
         self.end_time = str(end_time) if isinstance(
             end_time, datetime.date) else end_time
         self.lv_list: List[KL_TYPE] = lv_list
-        self.volume_profile_batch: List[Union[int, List[int]]]
 
         # Set configuration
         self.conf = config if config is not None else CChanConfig()

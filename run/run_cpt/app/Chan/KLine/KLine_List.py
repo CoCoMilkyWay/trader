@@ -5,7 +5,7 @@ from collections import deque
 from Chan.Bi.Bi import CBi
 from Chan.Bi.BiList import CBiList
 from Chan.ChanConfig import CChanConfig
-from Chan.Common.CEnum import KLINE_DIR
+from Chan.Common.CEnum import KLINE_DIR, FX_TYPE
 from Chan.Common.ChanException import CChanException, ErrCode
 
 from Chan.KLine.KLine import CKLine
@@ -22,17 +22,18 @@ class CKLine_List:
                 self.kl_num:int = conf.lv_list[lv_idx][2]
                 self.bi_num:int = int(self.kl_num/10)
                 self.shape_keys:List[str] = conf.lv_list[lv_idx][5]
-        
+                self.liquidity:bool = conf.lv_list[lv_idx][6]
+                
         self.config = conf
         self.lst: List[CKLine] = []  # K线列表，可递归  元素KLine类型
-        
+        self.fx: FX_TYPE = FX_TYPE.UNKNOWN
         # self.new_bi_start:bool = False
         # self.num_bi:int = 0
         
         self.bi_list = CBiList(bi_conf=conf.bi_conf)
         
         # Chart Patterns is a bi-level concept(metric), updated with bi
-        self.PA_Core:PA_Core = PA_Core(self.bi_list, self.shape_keys)
+        self.PA_Core:PA_Core = PA_Core(self.bi_list, self.shape_keys, self.liquidity)
         
     def __deepcopy__(self, memo):
         new_obj = CKLine_List(self.kl_type, self.config)
@@ -101,7 +102,7 @@ class CKLine_List:
                         
                 self.lst.append(CKLine(klu, idx=len(self.lst), _dir=_dir))
                 if len(self.lst) >= 3:
-                    self.lst[-2].update_fx(self.lst[-3], self.lst[-1])
+                    self.fx = self.lst[-2].update_fx(self.lst[-3], self.lst[-1])
                 self.bi_list.update_bi(self.lst[-2], self.lst[-1], False)
             else:
                 self.bi_list.try_add_virtual_bi(self.lst[-1], need_del_end=True)

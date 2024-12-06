@@ -33,7 +33,7 @@ class KLineHandler:
         self.volumes = {level: 0 for level in self.periods}
         self.start_times = {level: CTime(1990,1,1,0,0) for level in self.periods}
     
-    def process_bar(self, np_bars: WtNpKline) -> dict:
+    def process_bar(self, np_bars: WtNpKline) -> dict[KL_TYPE, List[CKLine_Unit]]:
         """Single method to handle all processing"""
         # Extract bar data once
         time_str = str(np_bars.bartimes[-1])

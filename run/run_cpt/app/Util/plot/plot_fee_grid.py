@@ -10,17 +10,15 @@
 # 0.02(avg) * (10x leverage + 1x funding)
 # =0.3%
 import plotly.graph_objects as go
-def plot_fee_grid(fig:go.Figure):
+def plot_fee_grid(fig:go.Figure, price:float, rate:float):
     """Add x% interval grid lines to plotly figure using direct yaxis configuration"""
     
     print(f'Plotting Fee Grid...')
-    
-    last_y = fig.data[-1].y[-1] # type: ignore
     fig.update_layout(
         yaxis=dict(
             showgrid=True,
             gridcolor='rgba(128, 128, 128, 0.2)',
-            dtick=last_y * 0.003,
+            dtick=price * rate,
             gridwidth=0.5,
             showticklabels=False,
             # nticks=10,  # Show approximately 10 tick labels
