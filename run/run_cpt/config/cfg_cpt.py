@@ -2,8 +2,8 @@ class cfg_cpt:  # Constants Configs
     import os
 
     period, n = 'm', 1  # bar period
-    start = 202408010000
-    end   = 202408150000
+    start = 202406010000
+    end   = 202406150000
     capital = 10000000
 
     mode = '/um'  # spot, um, cm

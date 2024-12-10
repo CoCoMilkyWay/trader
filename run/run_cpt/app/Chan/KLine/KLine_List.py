@@ -5,7 +5,7 @@ from collections import deque
 from Chan.Bi.Bi import CBi
 from Chan.Bi.BiList import CBiList
 from Chan.ChanConfig import CChanConfig
-from Chan.Common.CEnum import KLINE_DIR, FX_TYPE
+from Chan.Common.CEnum import KLINE_DIR, KL_TYPE, FX_TYPE
 from Chan.Common.ChanException import CChanException, ErrCode
 
 from Chan.KLine.KLine import CKLine

@@ -40,15 +40,15 @@ class PA_Core:
     # Volume-Profiles:
 
     def __init__(self, bi_list: CBiList, shape_keys: List[str], liquidity: bool):
+        self.bi_len: int = 0
         self.bi_list: CBiList = bi_list
         self.vertex_list: List[vertex] = []
         self.shape_keys = shape_keys
         self.liquidity = liquidity
+        
         self.init_PA_elements()
-        self.bi_len: int = 0
-
-        self.ts: float = 0
-        self.cnt: int = 0
+        self.ts_1st: float = 0
+        self.ts_cur: float = 0
 
     def init_PA_elements(self):
         # init shapes
@@ -58,8 +58,9 @@ class PA_Core:
         for key in self.shape_keys:
             self.PA_Shapes_developed[key] = []
             self.PA_Shapes_developing[key] = []
-        self.PA_Liquidity: PA_Liquidity = PA_Liquidity()
-        self.PA_Volume_Profile: PA_Volume_Profile = PA_Volume_Profile()
+        if self.liquidity:
+            self.PA_Liquidity: PA_Liquidity = PA_Liquidity()
+            self.PA_Volume_Profile: PA_Volume_Profile = PA_Volume_Profile()
 
     #                     +-------------------------+
     #                     |    add virtual bi       |
@@ -120,30 +121,32 @@ class PA_Core:
         self.end_close: float = bi.get_end_klu().close
         self.end_volume: int = int(bi.get_end_klu().volume)
         end_bi_vertex = vertex(end_x, end_y, end_ts)
+        # this is just an ugly fix ([-2] may not be static)
+        if end_bi_vertex.ts == self.ts_cur:
+            return
+        
         if len(self.vertex_list) == 0:
             begin_x: int = bi.get_begin_klu().idx
             begin_y: float = bi.get_begin_val()
             begin_ts: float = bi.get_begin_klu().time.ts
+            self.ts_1st = begin_ts
             start_bi_vertex = vertex(begin_x, begin_y, begin_ts)
             self.vertex_list.append(start_bi_vertex)
             self.feed_vertex_to_all_PA_elements(start_bi_vertex)
         self.vertex_list.append(end_bi_vertex)
         self.feed_vertex_to_all_PA_elements(end_bi_vertex)
-
-    # def add_volume_profile(self, batch_volume_profile:List, type:str):
-    #     price_mapped_volume:None|List[Union[List[float], List[int]]] = self.PA_Volume_Profile.update_volume_profile(batch_volume_profile, type)
-    #     self.PA_Liquidity.add_volume_profile(price_mapped_volume)
+        if self.liquidity:
+            # get bi price_mapped_volume
+            bi_VP = self.PA_Volume_Profile.update_volume_profile(bi)
+            self.PA_Liquidity.update_volume_zone(bi_VP)
+        
+        self.ts_cur = end_bi_vertex.ts
 
     def feed_vertex_to_all_PA_elements(self, vertex: vertex):
-        # this is just an ugly fix ([-2] may not be static)
-        if self.ts == vertex.ts:
-            return
         self.add_vertex_to_shapes(vertex)
         if self.liquidity:
             self.add_vertex_to_liquidity(vertex)
             
-        self.ts = vertex.ts
-
     def add_vertex_to_shapes(self, vertex: vertex):
         for shape_name in self.shape_keys:
             # Use a slice to make a copy of the list so can remove item on-fly
@@ -167,11 +170,64 @@ class PA_Core:
     def add_vertex_to_liquidity(self, vertex: vertex):
         self.PA_Liquidity.add_vertex(vertex, self.end_open, self.end_close)
 
+    # # @jit(nopython=True, parallel=False) # acceleration(static compile before run)
+    # def process_batch_klu(self, resample_buffer: List[WtNpKline], price_bin_width:float) -> Tuple[CKLine_Unit, List[int|List[int]]]:
+    #     # batch -> bi -> session -> history
+    #     
+    #     # only session volume profile is important:
+    #     # how to define session? see PA_TreadLine for details
+    #     
+    #     # current session = earliest Zigzag(Chan.bi) of all active trendlines <-> current bar
+    #     
+    #     total_volume:int = 0
+    #     high:float = max([klu.highs[-1] for klu in resample_buffer])
+    #     low:float = min([klu.lows[-1] for klu in resample_buffer])
+    #     first_open:float = resample_buffer[0].opens[-1]
+    #     last_close:float = resample_buffer[-1].closes[-1]
+    #     index_range_low:int = int(low//price_bin_width) # floor
+    #     index_range_high:int = int(high//price_bin_width) # floor
+    #     batch_volume_buyside:List[int] = [0] * (index_range_high-index_range_low+1)
+    #     batch_volume_sellside:List[int] = [0] * (index_range_high-index_range_low+1)
+    #     for klu in resample_buffer:
+    #         open:float = klu.opens[-1]
+    #         close:float = klu.closes[-1]
+    #         volume:int = int(klu.volumes[-1])
+    #         total_volume += volume
+    #         index:int = int(((close+open)/2)//price_bin_width)
+    #         # error correction:
+    #         if not (index_range_low < index < index_range_high):
+    #             index = index_range_low
+    #         if close > open:
+    #             batch_volume_buyside[index-index_range_low] += volume
+    #         else:
+    #             batch_volume_sellside[index-index_range_low] += volume
+    #     batch_time:CTime = parse_time_column(str(resample_buffer[-1].bartimes[-1]))
+    #     new_bi = False
+    #     batch_combined_klu = CKLine_Unit(
+    #         {
+    #             DATA_FIELD.FIELD_TIME:      batch_time,
+    #             DATA_FIELD.FIELD_OPEN:      first_open,
+    #             DATA_FIELD.FIELD_HIGH:      high,
+    #             DATA_FIELD.FIELD_LOW:       low,
+    #             DATA_FIELD.FIELD_CLOSE:     last_close,
+    #             DATA_FIELD.FIELD_VOLUME:    total_volume,
+    #         },
+    #         autofix=True)
+    #     batch_volume_profile = [
+    #         batch_time,
+    #         index_range_low,
+    #         index_range_high,
+    #         batch_volume_buyside,
+    #         batch_volume_sellside,
+    #         price_bin_width,
+    #         new_bi, # wait for upper function to fill it
+    #     ]
+    #     return batch_combined_klu, batch_volume_profile
+
     def get_dynamic_shapes(self):
         """recalculate dynamic shapes if need for potential open position"""
         if not self.shift_l:
             # dynamic_bi = shift_r?: new_dynamic bi : updated_dynamic_bi
-            self.cnt += 1
             if self.bi_len > 0:
                 dynamic_bi: CBi = self.bi_list[-1]
                 end_x: int = dynamic_bi.get_end_klu().idx
@@ -211,9 +267,3 @@ class PA_Core:
                 # if with_idx:
                 #     shapes.append(shape.state)
         return exist, shapes
-
-    #　def get_liquidity_class(self) -> PA_Liquidity:
-    #　    return self.PA_Liquidity
-    
-    #　def get_volume_profile(self) -> PA_Volume_Profile:
-    #　    return self.PA_Volume_Profile

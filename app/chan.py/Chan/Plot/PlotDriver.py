@@ -1023,27 +1023,27 @@ class CPlotDriver:
             ax.plot(range(x_end + 2*x_extend, x_end + 3*x_extend), [p80] * x_extend, color='gray', linewidth=2)
             ax.text(x_end + 2*x_extend, y_pos[-1] - y_extend, f'history VP', fontsize=10, color='black')
             
-            # inner-outer order ratio
-            ratio = meta.volume_profile.inner_outer_order_ratio
-            x_list = range(len(ratio))
-            y_list = ratio
-            y_height = y_extend / 2
-            
-            x = np.array(x_list)          # Convert to numpy arrays
-            values = np.array(y_list)
-            y_bottom = np.full_like(x, y_begin+0.1)
-            
-            norm = Normalize(vmin=values.min(), vmax=values.max())
-            cmap = plt.get_cmap('RdYlGn')
-            for i in range(len(x) - 1):
-                ax.fill_between(
-                    [x[i], x[i + 1]], 
-                    [y_bottom[i], y_bottom[i]], 
-                    [y_bottom[i] + y_height, y_bottom[i] + y_height],
-                    color=cmap(norm(values[i]))  # Normalize value for color mapping
-                )
-            
-            ax.text(x_end, y_pos[0], f'inner-outer order ratio', fontsize=10, color='black')
+            # # inner-outer order ratio
+            # ratio = meta.volume_profile.inner_outer_order_ratio
+            # x_list = range(len(ratio))
+            # y_list = ratio
+            # y_height = y_extend / 2
+            # 
+            # x = np.array(x_list)          # Convert to numpy arrays
+            # values = np.array(y_list)
+            # y_bottom = np.full_like(x, y_begin+0.1)
+            # 
+            # norm = Normalize(vmin=values.min(), vmax=values.max())
+            # cmap = plt.get_cmap('RdYlGn')
+            # for i in range(len(x) - 1):
+            #     ax.fill_between(
+            #         [x[i], x[i + 1]], 
+            #         [y_bottom[i], y_bottom[i]], 
+            #         [y_bottom[i] + y_height, y_bottom[i] + y_height],
+            #         color=cmap(norm(values[i]))  # Normalize value for color mapping
+            #     )
+            # 
+            # ax.text(x_end, y_pos[0], f'inner-outer order ratio', fontsize=10, color='black')
 
 def getTextBox(ax: Axes, txt_instance):
     return txt_instance.get_window_extent().transformed(ax.transData.inverted())

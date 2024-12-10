@@ -30,7 +30,7 @@ class CChanConfig:
             [KL_TYPE.K_60M, 2,  100,   Muted_purple,   1.0,   [             ], False,],
             [KL_TYPE.K_30M, 2,  100,   Sage_green,     1.0,   [             ], False,],
             [KL_TYPE.K_15M, 3,  100,   Dusty_rose,     1.0,   [             ], True, ],
-            [KL_TYPE.K_5M,  5,  100,   Steel_blue,     1.0,   ['conv_type', ], False,],
+            [KL_TYPE.K_5M,  5,  100000,   Steel_blue,     1.0,   ['conv_type', ], False,],
             [KL_TYPE.K_1M,  1,  100,   Classic_gray,   1.0,   [             ], False,],
         ]
 
@@ -83,8 +83,8 @@ class CChanConfig:
             #   strict      771     555     511
             gap_as_kl=conf.get("gap_as_kl", True),  # 缺口是否处理成一根K线
             # 笔的尾部是否是整笔中最低/最高 (可以考虑模型学习时放宽)
-            bi_end_is_peak=conf.get("bi_end_is_peak", False),
-            bi_allow_sub_peak=conf.get("bi_allow_sub_peak", True),
+            bi_end_is_peak=conf.get("bi_end_is_peak", True),
+            bi_allow_sub_peak=conf.get("bi_allow_sub_peak", True), # This has to be True for PA to work
         )
 
         # 是否需要检验K线数据，检查项包括时间线是否有乱序，大小级别K线是否有缺失；默认为 True

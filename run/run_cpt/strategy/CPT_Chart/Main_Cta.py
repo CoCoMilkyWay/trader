@@ -21,7 +21,6 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../app"))
 
-
 red = "\033[31m"
 green = "\033[32m"
 yellow = "\033[33m"
@@ -71,7 +70,15 @@ class Main_Cta(BaseCtaStrategy):
         # (1: long, -1: short, 0: no hold, position open period)
         self.holds: Dict[str, List[int]] = {}
         self.markers: Dict[str, List[Tuple]] = {}
+
+        # ST(Strategies): align
         self.align = False
+        # ST(Strategies): liquidity
+        self.lstate: Dict[str, int] = {}
+        self.llong_short: Dict[str, int] = {}
+        self.lmprice: Dict[str, float] = {}
+        self.ltol: Dict[str, float] = {}
+        self.ltprice: Dict[str, float] = {}
 
         # indicators
         self.chandelier_stop = ChandelierIndicator(
@@ -93,6 +100,13 @@ class Main_Cta(BaseCtaStrategy):
             self.last_price[code] = 0
             self.holds[code] = [0, 0]
             self.markers[code] = []
+
+            # ST(Strategies): liquidity
+            self.lstate[code] = 0
+            self.llong_short[code] = 0
+            self.lmprice[code] = 0.0
+            self.ltol[code] = 0.0
+            self.ltprice[code] = 0.0
 
         context.stra_log_text(stdio("Strategy Initiated"))
         self.pbar = tqdm(total=len(self.__codes__),
@@ -152,83 +166,48 @@ class Main_Cta(BaseCtaStrategy):
                 self.kl_datas[code][lv].PA_Core.parse_dynamic_bi_list()
 
             # update indicators
-
+            self.stop_dir = self.chandelier_stop.update(self.high, self.low, self.close)
+            
             # update bsp
-            # bsp, buy, sell = self.M_W_bsp123(code)
-            dy_bi = 0
-            bsp = False
-            buy = False
-            sell = False
-            PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
-            if len(PA.bi_list) > 1:
-                dy_bi = abs(PA.bi_list[-2].get_end_val() -
-                            PA.bi_list[-2].get_begin_val()) * 0.01
-            sup, res = PA.PA_Liquidity.check_sup_res(self.close, dy_bi)
-            fx = self.kl_datas[code][self.lv_list[-1]].fx
-            if sup and fx == FX_TYPE.BOTTOM:
-                bsp = True
-                buy = True
-            elif res and fx == FX_TYPE.TOP:
-                bsp = True
-                sell = True
-            # print(sup, res, fx)
+            self.ST_liquidity_zones(context, code)
 
-            # update orders
-            self.stop_loss_take_profit(context, code)
-            if bsp:
-                # print('bsp: ', dir, date, time)
-                self.trade_order(context, code, buy, sell, False)
-
-    def stop_loss_take_profit(self, context: CtaContext, code: str):
-        "Check Stop Loss and Take Profit, then issue liquidation orders"
-        stop_dir = self.chandelier_stop.update(self.high, self.low, self.close)
-
-        if self.holds[code][0] == 1:
-            self.holds[code][1] += 1
-            if stop_dir == -1 and self.holds[code][1] > 5:
-                self.trade_order(context, code, False, False, True)
-                self.holds[code][1] = 0
-        if self.holds[code][0] == -1:
-            self.holds[code][1] += 1
-            if stop_dir == 1 and self.holds[code][1] > 5:
-                self.trade_order(context, code, False, False, True)
-                self.holds[code][1] = 0
-
-    def trade_order(self, context: CtaContext, code: str, buy: bool, sell: bool, clear: bool):
+    def trade_order(self, context: CtaContext, code: str, buy: bool, sell: bool, clear: bool, text: str):
         cpu_id = 0
         curPos = context.stra_get_position(code)
         curPrice = context.stra_get_price(code)
         self.cur_money = self.__capital__ + context.stra_get_fund_data(flag=0)
+        # print(code, curPos, curPrice, self.cur_money)
         amount = math.floor(self.cur_money/curPrice /
-                            len(self.__codes__))  # equal position
-        result = 0
-        FX = '^' if sell else 'v' if buy else '?'
+                            (len(self.__codes__)))  # equal position
+        FX = '^' if sell else 'v' if buy else '-'
         if clear:
             if curPos != 0:
                 self.pnl, self.pnl_color = self.pnl_cal(
-                    self.last_price[code], self.close, False)
-                context.stra_set_position(code, 0, 'exit')
+                    self.last_price[code], self.close, curPos>0)
+                context.stra_set_position(code, 0, text)
                 self.markers[code].append(
-                    (self.ts, self.close, 'clear', 'gray'))
-                print('clear', self.close)
+                    (self.ts, self.close, text, 'gray'))
+                self.holds[code][0] = 0
+                context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{self.date}-{self.time:04}:({code:>15}) {
+                    FX}, {text:>10} :{self.cur_money:>12.2f}, pnl:{self.pnl_color}{self.pnl*100:>+5.2f}%{default}"))
             self.check_capital()
 
         if sell and curPos >= 0:
-            context.stra_set_position(code, -amount, 'entershort')
-            self.markers[code].append((self.ts, self.close, 'sell', 'red'))
+            context.stra_set_position(code, -amount, text)
+            self.markers[code].append((self.ts, self.close, text, 'red'))
             self.holds[code][0] = -1
             context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{self.date}-{self.time:04}:({code:>15}) {
-                                  FX}, enter short:{self.cur_money:>12.2f}, pnl:{self.pnl_color}{self.pnl*100:>+5.2f}%{default}{self.close}"))
+                                  FX}, {text:>10} :{self.cur_money:>12.2f}%{default}"))
             # self.xxx = 1
             # context.user_save_data('xxx', self.xxx)
             self.last_price[code] = self.close
 
         elif buy and curPos <= 0:
-            context.stra_set_position(code, amount, 'enterlong')
-            self.markers[code].append((self.ts, self.close, 'buy', 'green'))
+            context.stra_set_position(code, amount, text)
+            self.markers[code].append((self.ts, self.close, text, 'green'))
             self.holds[code][0] = 1
             context.stra_log_text(stdio(f"cpu:{cpu_id:2}:{self.date}-{self.time:04}:({code:>15}) {
-                                  FX}, enter long :{self.cur_money:>12.2f}, pnl:{self.pnl_color}{self.pnl*100:>+5.2f}%{default}{self.close}"))
+                                  FX}, {text:>10} :{self.cur_money:>12.2f}%{default}"))
             self.last_price[code] = self.close
 
     def check_capital(self):
@@ -243,7 +222,7 @@ class Main_Cta(BaseCtaStrategy):
             dir = 1
         else:
             dir = -1
-        pnl = dir*(last_price - price)/last_price
+        pnl = dir*(price - last_price)/last_price
         if pnl > 0.01:
             color = green
         elif pnl < -0.01:
@@ -287,7 +266,7 @@ class Main_Cta(BaseCtaStrategy):
     # ======================================================================
     # ===============================Strategies=============================
     # ======================================================================
-    def bi_align(self, code):
+    def ST_bi_align(self, code):
         dirs = []
         bsp = False
         dir = None
@@ -307,7 +286,7 @@ class Main_Cta(BaseCtaStrategy):
         self.align = align
         return bsp, dir
 
-    def M_W_bsp123(self, code):
+    def ST_MW_bsp123(self, code):
         """bsp type 1/2/3 on M/W shaped bi"""
         for lv in self.lv_list[-2:]:  # focus on lower levels
             exist, static_shapes = self.kl_datas[code][lv].PA_Core.get_static_shapes(
@@ -321,4 +300,90 @@ class Main_Cta(BaseCtaStrategy):
                     elif self.close < shape.bot_y[-1] < self.close*1.1:
                         # bi down
                         return True, False, True
-        return False, False, False
+
+    def ST_liquidity_zones(self, context: CtaContext, code: str):  # -> buy, sell, clear
+        """bsp type liquidity zones"""
+        # self.lstate:
+        # 0: searching (price flowing in direction of least resistance)
+        # 1: sup/res triggered
+        # 2: pull back away enough distance from res/sup
+        # 3: place order, use 1:1 mini stop-loss and take-profit (wait till direction is clear)
+        # 4: if not stopped, use further algorithmic take-profit, also rise stop-loss to make sure exiting with no loss
+        FEE = 0.002
+        PNL = 5
+        def clear():
+            self.lstate[code] = 0  # FSM
+            self.llong_short[code] = 0  # long or short
+            self.lmprice[code] = 0.0  # mark price when FX is generated
+            self.ltol[code] = 0.0  # mark tolerance when FX is generated
+            self.ltprice[code] = 0.0  # trade price when order is placed
+
+        if self.lstate[code] == 0:
+            unformed_bi_dy = 0
+            PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
+            if len(PA.bi_list) > 1:
+                unformed_bi_dy = abs(self.close - PA.bi_list[-2].get_end_val())
+            tol = unformed_bi_dy * 0.1
+            sup, res, depth = PA.PA_Liquidity.check_sup_res(self.close, tol)
+            kl_list = self.kl_datas[code][self.lv_list[-1]]
+            if sup and kl_list.fx == FX_TYPE.BOTTOM:
+                self.llong_short[code] = 1
+                self.lmprice[code] = kl_list.lst[-2].low
+            elif res and kl_list.fx == FX_TYPE.TOP:
+                self.llong_short[code] = -1
+                self.lmprice[code] = kl_list.lst[-2].high
+            if self.llong_short[code] != 0:
+                self.lstate[code] = 1
+                self.ltol[code] = max(tol, depth)
+        if self.lstate[code] == 1:  # if a single bar is strong enough, order immediately
+            if self.close > self.lmprice[code] + self.ltol[code]:
+                if self.llong_short[code] == 1:
+                    self.trade_order(context, code, True, False,
+                                     False, 'long')  # buy
+                    self.lstate[code] = 2
+                    self.ltprice[code] = self.close
+                else:
+                    clear()
+            elif self.close < self.lmprice[code] - self.ltol[code]:
+                if self.llong_short[code] == -1:
+                    self.trade_order(context, code, False, True,
+                                     False, 'short')  # sell
+                    self.lstate[code] = 2
+                    self.ltprice[code] = self.close
+                else:
+                    clear()
+        elif self.lstate[code] == 2:
+            if self.llong_short[code] == 1:
+                if self.close < self.ltprice[code] - self.ltol[code]:
+                    self.trade_order(context, code, False,
+                                     False, True, 'stop')  # clear
+                    clear()
+                elif self.close > self.ltprice[code] + PNL*self.ltol[code]:
+                    self.lstate[code] = 3
+            elif self.llong_short[code] == -1:
+                if self.close > self.ltprice[code] + self.ltol[code]:
+                    self.trade_order(context, code, False,
+                                     False, True, 'stop')  # clear
+                    clear()
+                elif self.close < self.ltprice[code] - PNL*self.ltol[code]:
+                    self.lstate[code] = 3
+        elif self.lstate[code] == 3:
+            if self.llong_short[code] == 1:
+                if self.close < self.ltprice[code] + PNL*self.ltol[code]:
+                    self.trade_order(context, code, False,
+                                     False, True, 'pnl-tp')  # clear
+                    clear()
+                else:  # algo take-profit
+                    if self.stop_dir == -1:
+                        self.trade_order(context, code, False, False, True, 'algo-tp')
+                        clear()
+            elif self.llong_short[code] == -1:
+                if self.close > self.ltprice[code] - PNL*self.ltol[code]:
+                  # stop loss
+                    self.trade_order(context, code, False,
+                                     False, True, 'pnl-tp')  # clear
+                    clear()
+                else:  # algo take-profit
+                    if self.stop_dir == 1:
+                        self.trade_order(context, code, False, False, True, 'algo-tp')
+                        clear()

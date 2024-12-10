@@ -1,14 +1,13 @@
+import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from dataclasses import dataclass
-from enum import Enum
 from typing import Tuple, List, Dict, Optional, Union
 
 from Chan.ChanConfig import CChanConfig
 from Chan.Common.CEnum import KL_TYPE, FX_TYPE, KLINE_DIR
 from Chan.KLine.KLine_List import CKLine_List
 from Chan.Common.ChanException import CChanException, ErrCode
-
 
 class ChanPlotter:
     def __init__(self):
@@ -150,7 +149,7 @@ class ChanPlotter:
             for klc in self.klc_list
             if not (klc.lst[0].time.ts == klc.lst[-1].time.ts and not plot_single_kl)
         ])
-        
+
         return self.fig
 
     def draw_bi(self):
@@ -282,11 +281,15 @@ class ChanPlotter:
     def draw_liquidity_zones(self):
         """Draw liquidity zones"""
         print(f'Drawing Liquidity Zones({self.lv})...')
-        
+
         # Get barrier zones and prepare collections
-        liquidity_class = self.klc_list.PA_Core.PA_Liquidity
-        barrier_zones = liquidity_class.barrier_zones[0] + liquidity_class.barrier_zones[1]
-        
+        try:
+            liquidity_class = self.klc_list.PA_Core.PA_Liquidity
+        except:
+            return
+        barrier_zones = liquidity_class.barrier_zones[0] + \
+            liquidity_class.barrier_zones[1]
+
         # Helper function for shape and annotation creation
         def add_zone(x0, x1, bottom, top, is_supply):
             color = "rgb(255, 0, 0)" if is_supply else "rgb(0, 255, 0)"
@@ -297,23 +300,28 @@ class ChanPlotter:
             })
 
         for zone in barrier_zones:
-            default_end = 1<<31
+            default_end = 1 << 31
             if zone.right0 == default_end:
                 zone.right0 = self.current_ts
             if zone.right1 == default_end:
                 zone.right1 = self.current_ts
-                    
+
+            # 0: demand
+            # 1: supply
+            # 2: demand (1st break supply)
+            # 3: supply (1st break demand)
             is_supply = zone.type in [1, 2]
 
             # Add main zone
             add_zone(zone.left, zone.right0, zone.bottom, zone.top, is_supply)
-
             # Add strength annotation
             self.annotations.append({
-                "x": zone.left, 
+                "x": zone.left,
                 "y": zone.top if is_supply else zone.bottom,
                 "text": f"{zone.num_touch}{'*' * zone.strength_rating}",
-                "showarrow": False, "font": {"size": 8}
+                "showarrow": False, "font": {"size": 10},
+                "xanchor": "left",
+                "yanchor": "middle",
             })
 
             # Add order block line
@@ -331,7 +339,8 @@ class ChanPlotter:
 
             # Add break zone if applicable
             if zone.type in [2, 3]:
-                add_zone(zone.right0 + 1, zone.right1, zone.bottom, zone.top, zone.type == 3)
+                add_zone(zone.right0 + 1, zone.right1,
+                         zone.bottom, zone.top, zone.type == 3)
                 if zone.BB:
                     line_y = zone.top if zone.type == 3 else zone.bottom
                     self.shapes.append({
@@ -356,25 +365,124 @@ class ChanPlotter:
                     self.annotations.append({
                         "x": zone.BoS[0], "y": zone.BoS[2],
                         "text": "ChoCh", "showarrow": False,
-                        "font": {"size": 5, "color": "red"}, "yanchor": "bottom"
+                        "font": {"size": 8, "color": "red"}, "yanchor": "bottom"
                     })
                 else:
                     self.annotations.append({
                         "x": zone.BoS[0], "y": zone.BoS[2],
                         "text": "BoS", "showarrow": False,
-                        "font": {"size": 5, "color": "black"}, "yanchor": "bottom"
+                        "font": {"size": 8, "color": "black"}, "yanchor": "bottom"
                     })
-                    
+
         return self.fig
-    
+
+    def draw_volume_profile(self):
+        """Draw Volume Profiles"""
+        try:
+            PA = self.klc_list.PA_Core
+            liquidity_class = self.klc_list.PA_Core.PA_Liquidity
+            volume_profile_class = self.klc_list.PA_Core.PA_Volume_Profile
+        except:
+            return
+        print(f'Drawing Volume Profile({self.lv})...')
+
+        # Initialize values
+        idx_min, idx_max = volume_profile_class.volume_idx_min, volume_profile_class.volume_idx_max
+        price_bin_width = volume_profile_class.price_bin_width
+        # y_pos = np.round(np.arange(idx_min, idx_max + 1) * price_bin_width, 2)
+        y_pos = np.arange(idx_min, idx_max + 1) * price_bin_width
+        x_begin = PA.ts_1st
+        x_end = PA.ts_cur
+        x_extend = (x_end - x_begin) * 0.05
+
+        # Get profiles for different timeframes
+        # [0] buyside,
+        # [1] sellside,
+        # [2] total,
+        # [3] buyside_curve,
+        # [4] sellside_curve,
+        # [5] volume_weighted_cost,
+        # [6] percentile_30,
+        # [7] percentile_50,
+        # [8] percentile_70,
+        profiles = {
+            'history': volume_profile_class.get_adjusted_volume_profile(max_mapped=x_extend, type='history', sigma=1.5)
+        }
+
+        # Calculate session volume
+        total_session = [0] * (idx_max + 1 - idx_min)
+        session_length = len(total_session)
+        for zone in liquidity_class.barrier_zones[1]:
+            if zone.type in [0, 1]:
+                # pmv = price_mapped_volume
+                for pmv in [zone.enter_bi_VP, zone.leaving_bi_VP]:
+                    if pmv and len(pmv[0]):
+                        idx_his = next(i for i, p in enumerate(
+                            y_pos) if p == pmv[0][0])
+                        for idx_ses, volume_ses in enumerate(pmv[1]):
+                            total_session[idx_his + idx_ses] += int(volume_ses)
+                # thd = zone.bottom if zone.type == 0 else zone.top
+                # print(zone.index, thd, zone.enter_bi_VP, zone.leaving_bi_VP)
+
+        max_vol = max(total_session) if total_session else 1
+        total_session_adjusted = np.array(
+            [v/max_vol*x_extend for v in total_session])
+
+        # Define profile configurations
+        configs = [
+            # (profile_type, x_offset, buyside_color, sellside_color, label)
+            ('history', 2, 'rgba(255,0,0,0.4)', 'rgba(0,255,0,0.4)', 'history VP')
+        ]
+
+        # Add volume bars and curves for each profile type
+        for ptype, offset, buy_color, sell_color, label in configs:
+            profile = profiles[ptype]
+            base_x = x_end + offset * x_extend
+
+            self.traces.extend([
+                # Add bars
+                go.Bar(x=profile[0], y=y_pos, orientation='h', marker_color=buy_color.replace('0.4', '1'),
+                       base=base_x, width=price_bin_width, showlegend=False),
+                go.Bar(x=profile[1], y=y_pos, orientation='h', marker_color=sell_color.replace('0.4', '1'),
+                       base=[base_x + b for b in profile[0]], width=price_bin_width, showlegend=False),
+                # Add curves
+                go.Scatter(x=[base_x + x for x in profile[2]], y=y_pos,
+                           mode='lines', line=dict(color=buy_color.replace('0.4', '1')), showlegend=False),
+                go.Scatter(x=[base_x + x for x in (profile[2] + profile[3])], y=y_pos,
+                           mode='lines', line=dict(color=sell_color.replace('0.4', '1')), showlegend=False)
+            ])
+
+            # Add lines for volume weighted cost and percentiles
+            for val, (width, color) in zip(profile[4:8], [(4, 'black'), (2, 'gray'), (2, 'gray'), (2, 'gray')]):
+                self.traces.append(go.Scatter(x=[base_x, base_x + x_extend], y=[val, val],
+                                              mode='lines', line=dict(width=width, color=color), showlegend=False))
+
+            # Add label
+            self.annotations.append(dict(x=base_x, y=y_pos[-1] - (y_pos[-1] - y_pos[0])*0.05,
+                                         text=label, showarrow=False, font=dict(size=10, color='black')))
+
+        # Add session volume profile
+        self.traces.extend([
+            go.Bar(x=total_session_adjusted, y=y_pos, width=price_bin_width, orientation='h',
+                   marker_color='rgba(0,0,0,1)', base=x_end + x_extend, showlegend=False),
+            go.Scatter(x=[x_end + x_extend + x for x in total_session_adjusted], y=y_pos,
+                       mode='lines', line=dict(color='black', width=2), showlegend=False)
+        ])
+
+        # Add session label
+        self.annotations.append(dict(x=x_end + x_extend, y=y_pos[-1] - (y_pos[-1] - y_pos[0])*0.05,
+                                     text='liquidity VP', showarrow=False, font=dict(size=10, color='black')))
+
+        return self.fig
+
     def draw_markers(self):
         print(f'Drawing bsp and markers({len(self.markers)})...')
         for mark in self.markers:
-            if mark[2] == 'buy':
-                arrow_dis = 100
-            elif mark[2] == 'sell':
-                arrow_dis = -100
-            elif mark[2] == 'clear':
+            if mark[2] == 'long':
+                arrow_dis = 30
+            elif mark[2] == 'short':
+                arrow_dis = -30
+            else:
                 arrow_dis = 0
             self.annotations.append({
                 'x': mark[0],
@@ -388,7 +496,7 @@ class ChanPlotter:
                 'ax': 0,
                 'ay': arrow_dis,
                 'font': {'color': mark[3]},
-                'yanchor': 'bottom',
+                'yanchor': 'middle',
                 'xanchor': 'center',
                 'opacity': 1
             })
@@ -459,23 +567,24 @@ class ChanPlotter:
             self.klc_list = kl_datas[lv]
             self.color = self.color_list[self.lv_idx]
             self.opacity = self.opacity_list[self.lv_idx]
-            if self.lv_idx == no_lv - 1 - 1:
+            if self.lv_idx == no_lv - 1 - 1: # 5M
                 self.draw_klu()
                 self.draw_klc()
                 self.draw_volume()
             self.draw_charts(text=False)
-            if self.lv_idx in range(no_lv-1-2, no_lv):
+            if self.lv_idx in range(no_lv-1-2, no_lv): # 1M, 5M, 15M
                 self.draw_bi()
             self.draw_liquidity_zones()
+            self.draw_volume_profile()
         self.draw_markers()
 
         # Add traces
         self.fig.add_traces(self.traces, rows=1, cols=1)
         self.fig.add_traces(self.traces2, rows=2, cols=1)
-        
+
         # Add shapes
         self.fig.update_layout(shapes=self.shapes)
-        
+
         # Update annotations
         self.fig.update_layout(annotations=self.annotations)
 
@@ -500,7 +609,9 @@ class ChanPlotter:
 
         # Update both x and y axes for main and volume charts
         self.fig.update_xaxes(title_text="Timestamp",   row=1, col=1, showgrid=True,
-                              showline=True, linewidth=1, linecolor='black', mirror=True)
+                              showline=True, linewidth=1, linecolor='black', mirror=True,
+                              # type='date', tickformat='%Y-%m-%d %H:%M:%S', dtick='auto',
+                              )
         self.fig.update_yaxes(title_text="Price",       row=1, col=1, showgrid=True,
                               showline=True, linewidth=1, linecolor='black', mirror=True)
         return self.fig

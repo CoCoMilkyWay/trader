@@ -128,7 +128,7 @@ class PA_Liquidity:
             delta_y = new_vertex.value - last_1_vertex.value
             delta_x = new_vertex.idx - last_1_vertex.idx
             delta_y_abs = abs(delta_y)
-            tolerance = 0.1 * delta_y_abs
+            tolerance = 0.1 * delta_y_abs # if the entering bi respect the level, it is not broken
             FX_type = TOP if delta_y > 0 else BOT
             if FX_type == BOT:
                 bi_top: float = last_1_vertex.value
@@ -168,11 +168,15 @@ class PA_Liquidity:
                 # not check FVG here, check later
                 self.barrier_zones[1][-1].OB = True
 
-                # update tolerance for touch detection
-                self.barrier_zones[1][-1].tolerance = tolerance
-
                 # update last BoS
                 self.last_BoS = new_BoS
+
+                # update zone top/bot for order block (exit bi is stronger than entering bi)
+                last_zone = self.barrier_zones[1][-1]
+                if FX_type == BOT: # vertex is top
+                    last_zone.bottom = min(last_zone.bottom, last_zone.top - tolerance)
+                else: # vertex is bot
+                    last_zone.top = max(last_zone.top, last_zone.bottom + tolerance)
 
             # 1. change state of previous zones
             # 2. form new zone
@@ -181,8 +185,8 @@ class PA_Liquidity:
             ]:
                 zones_forming_buffer = []
                 for zone_forming in zones[1]:
-                    top = zone_forming.top + zone_forming.tolerance
-                    bot = zone_forming.bottom - zone_forming.tolerance
+                    top = zone_forming.top + tolerance
+                    bot = zone_forming.bottom - tolerance
                     zone_broken = (bi_top > top) and (bi_bottom < bot)
                     if FX_type == TOP:
                         zone_touched = bot < bi_top < top
@@ -190,6 +194,8 @@ class PA_Liquidity:
                         zone_touched = bot < bi_bottom < top
 
                     if zone_touched:
+                        # if there was a large bi respecting this zone, we respect too
+                        zone_forming.tolerance = max(zone_forming.tolerance, tolerance)
                         zone_forming.num_touch += 1
 
                     if not zone_forming.MB and zone_touched:
@@ -233,10 +239,12 @@ class PA_Liquidity:
                                 zone_forming)  # zone_forming
                         elif zone_type == 2:  # demand (1st break supply)
                             zone_forming.right1 = zone_ts
-                            zones[0].append(zone_forming)  # zone_formed
+                            # zone_formed (2nd break)
+                            zones[0].append(zone_forming)
                         elif zone_type == 3:  # supply (1st break demand)
                             zone_forming.right1 = zone_ts
-                            zones[0].append(zone_forming)  # zone_formed
+                            # zone_formed (2nd break)
+                            zones[0].append(zone_forming)
                     else:
                         zones_forming_buffer.append(
                             zone_forming)  # zone_forming
@@ -246,13 +254,13 @@ class PA_Liquidity:
             if FX_type == BOT:
                 zone_bot = new_vertex.value
                 # avoid zone to be too thick (from rapid price change)
-                zone_top = min(end_open, zone_bot + 0.1 * delta_y_abs)
+                zone_top = zone_bot + tolerance # min(end_open, zone_bot + 0.1 * delta_y_abs)
                 self.barrier_zones[1].append(barrier_zone(
                     self.bi_index, new_vertex.ts, zone_top, zone_bot, 0))
             else:
                 zone_top = new_vertex.value
                 # avoid zone to be too thick (from rapid price change)
-                zone_bot = max(end_open, zone_top - 0.1 * delta_y_abs)
+                zone_bot = zone_top - tolerance # max(end_open, zone_top - 0.1 * delta_y_abs)
                 self.barrier_zones[1].append(barrier_zone(
                     self.bi_index, new_vertex.ts, zone_top, zone_bot, 1))
 
@@ -267,47 +275,55 @@ class PA_Liquidity:
     def check_sup_res(self, price: float, tol: float):
         sup = False
         res = False
-        for zone in (self.barrier_zones[0]+self.barrier_zones[1]):
+        depth = 0.0
+        for zone in (self.barrier_zones[1]): # forming zones include all 4 types
             t = zone.type
             if not sup and (t == 0 or t == 2):
-                if (zone.top + tol) > price > (zone.bottom - tol):
+                if (zone.top + tol) > price > (zone.bottom):
                     sup = True
+                    depth = zone.top - zone.bottom
                     continue
             if not res and (t == 1 or t == 3):
-                if (zone.top + tol) > price > (zone.bottom - tol):
+                if (zone.top) > price > (zone.bottom - tol):
                     res = True
+                    depth = zone.top - zone.bottom
                     continue
-        return sup, res
+        
+        return sup, res, depth
 
-    def parse_volume(self, price_mapped_volume: None | List[Union[List[float], List[int]]]):
-        if price_mapped_volume:  # update bi volume profile to forming zones
-            A = price_mapped_volume
-            n = len(price_mapped_volume[0])
-            # Use slicing to split upper and lower halves
-            lower_half = [x[:n // 2] for x in A]
-            upper_half = [x[n // 2:] for x in A]
-            bi_index = self.bi_index
-            for zone in self.barrier_zones[1]:
-                if zone.index == bi_index:  # enter_bi_VP
-                    if zone.type == 0:  # demand
-                        zone.enter_bi_VP = copy.deepcopy(lower_half)
-                    else:  # supply
-                        zone.enter_bi_VP = copy.deepcopy(upper_half)
-                if zone.index == (bi_index-1):  # leaving_bi_VP
-                    if zone.type == 0:  # demand
-                        zone.leaving_bi_VP = copy.deepcopy(lower_half)
-                    else:  # supply
-                        zone.leaving_bi_VP = copy.deepcopy(upper_half)
-                    if zone.enter_bi_VP and zone.leaving_bi_VP:
-                        volume = sum(
-                            zone.enter_bi_VP[1]) + sum(zone.leaving_bi_VP[1])
-                        self.demand_volume_sum, \
-                            self.demand_sample_num, \
-                            zone.strength_rating = \
-                            self.get_strength_rating(
-                                self.demand_volume_sum,
-                                self.demand_sample_num,
-                                volume)
+    def update_volume_zone(self, price_mapped_volume: List[Union[List[float], List[int]]]):
+        A = price_mapped_volume
+        n = len(price_mapped_volume[0])
+        # Use slicing to split upper and lower halves
+        # why 3? because we want pnl close to > 2
+        lower_half = [x[:n // 2] for x in A]
+        upper_half = [x[n // 2:] for x in A]
+        # if len(lower_half) == 0:
+        #     print('lower ==================================')
+        # if len(upper_half) == 0:
+        #     print('upper ==================================')
+        bi_index = self.bi_index
+        for zone in self.barrier_zones[1]:
+            if zone.index == bi_index:  # enter_bi_VP
+                if zone.type == 0:  # demand
+                    zone.enter_bi_VP = lower_half
+                else:  # supply
+                    zone.enter_bi_VP = upper_half
+            elif zone.index == (bi_index-1):  # leaving_bi_VP
+                if zone.type == 0:  # demand
+                    zone.leaving_bi_VP = lower_half
+                else:  # supply
+                    zone.leaving_bi_VP = upper_half
+                if zone.enter_bi_VP and zone.leaving_bi_VP:
+                    volume = sum(
+                        zone.enter_bi_VP[1]) + sum(zone.leaving_bi_VP[1])
+                    self.demand_volume_sum, \
+                        self.demand_sample_num, \
+                        zone.strength_rating = \
+                        self.get_strength_rating(
+                            self.demand_volume_sum,
+                            self.demand_sample_num,
+                            volume)
 
     @staticmethod
     def get_strength_rating(historical_sum: float, historical_sample_num: int, new_sample_value: float):
