@@ -51,11 +51,12 @@ import sys
 import math
 import copy
 import numpy as np
-from typing import List, Dict, Union
+from typing import Tuple, List, Dict, Union
 from enum import Enum, auto
 from dataclasses import dataclass
 
 from app.PA.PA_types import vertex, barrier_zone
+from config.cfg_cpt import cfg_cpt
 
 
 class PA_Liquidity:
@@ -100,11 +101,19 @@ class PA_Liquidity:
         self.rejection_zones:   List[List[barrier_zone]] = [
             [], []]  # [formed, forming]
 
+        # snapshots
+        self.barrier_snapshot: List[float] = []
+        self.premium_snapshot: List[Tuple[float, float]] = []
+        self.snapshot_ready: bool = False
+        self.history_barrier: List[List[float | int]] = []
+        self.anchor_barrier: float = 0.0
+
+        # corner cases
+        self.last_active_zones: List[Tuple[int, bool, int]] = []
+
         # average & percentile
-        self.supply_volume_sum: float = 1  # avoid division by 0
-        self.supply_sample_num: int = 0
-        self.demand_volume_sum: float = 1  # avoid division by 0
-        self.demand_sample_num: int = 0
+        self.volume_sum: float = 1  # avoid division by 0
+        self.sample_num: int = 0
 
         self.snapshot: List = []  # snapshot of all liquidity zones
 
@@ -112,12 +121,16 @@ class PA_Liquidity:
         self.BoS_type_history: List[bool] = []
         self.BoS_price_history: List[float] = []
 
-    def add_vertex(self, new_vertex: vertex, end_open: float, end_close: float):
+    def add_vertex(self, new_vertex: vertex):
         # liquidity zone should be formed at breakthrough, but for ease of computation
         # only update at FX formation
         TOP = 1
         BOT = -1
         self.bi_index += 1
+
+        # NOTE: 2 consecutive bi should either both do or do not break the same zone
+        # because of flexibility in top/bot definition, this cannot be guaranteed
+        active_zones: List[Tuple[int, bool, int]] = []
 
         if len(self.vertices) > 1:
             last_1_vertex = self.vertices[-1]
@@ -128,7 +141,8 @@ class PA_Liquidity:
             delta_y = new_vertex.value - last_1_vertex.value
             delta_x = new_vertex.idx - last_1_vertex.idx
             delta_y_abs = abs(delta_y)
-            tolerance = 0.1 * delta_y_abs # if the entering bi respect the level, it is not broken
+            # if the entering bi respect the level, it is not broken
+            tolerance = 0.1 * delta_y_abs
             FX_type = TOP if delta_y > 0 else BOT
             if FX_type == BOT:
                 bi_top: float = last_1_vertex.value
@@ -173,10 +187,13 @@ class PA_Liquidity:
 
                 # update zone top/bot for order block (exit bi is stronger than entering bi)
                 last_zone = self.barrier_zones[1][-1]
-                if FX_type == BOT: # vertex is top
-                    last_zone.bottom = min(last_zone.bottom, last_zone.top - tolerance)
-                else: # vertex is bot
-                    last_zone.top = max(last_zone.top, last_zone.bottom + tolerance)
+
+                if FX_type == BOT:  # vertex is top
+                    last_zone.bottom = min(
+                        last_zone.bottom, last_zone.top - tolerance)
+                else:  # vertex is bot
+                    last_zone.top = max(
+                        last_zone.top, last_zone.bottom + tolerance)
 
             # 1. change state of previous zones
             # 2. form new zone
@@ -188,6 +205,19 @@ class PA_Liquidity:
                     top = zone_forming.top + tolerance
                     bot = zone_forming.bottom - tolerance
                     zone_broken = (bi_top > top) and (bi_bottom < bot)
+                    active_zones.append(
+                        (zone_forming.index, zone_broken, FX_type))
+                    discrepency = False
+                    for z in self.last_active_zones:
+                        if z[0] == zone_forming.index:
+                            # last bi is up and both "last price begin" and "current price ends" lower than zone
+                            if z[2] == 1 and (new_vertex.value < zone_forming.bottom) and (last_2_vertex.value < zone_forming.bottom):
+                                discrepency = zone_broken != z[1]
+                            if z[2] == -1 and (new_vertex.value > zone_forming.top) and (last_2_vertex.value > zone_forming.top):
+                                discrepency = zone_broken != z[1]
+                            # correct potential discrepency
+                            if discrepency:
+                                zone_broken = z[1]
                     if FX_type == TOP:
                         zone_touched = bot < bi_top < top
                     else:
@@ -195,7 +225,8 @@ class PA_Liquidity:
 
                     if zone_touched:
                         # if there was a large bi respecting this zone, we respect too
-                        zone_forming.tolerance = max(zone_forming.tolerance, tolerance)
+                        zone_forming.tolerance = max(
+                            zone_forming.tolerance, tolerance)
                         zone_forming.num_touch += 1
 
                     if not zone_forming.MB and zone_touched:
@@ -254,42 +285,175 @@ class PA_Liquidity:
             if FX_type == BOT:
                 zone_bot = new_vertex.value
                 # avoid zone to be too thick (from rapid price change)
-                zone_top = zone_bot + tolerance # min(end_open, zone_bot + 0.1 * delta_y_abs)
+                # min(end_open, zone_bot + 0.1 * delta_y_abs)
+                zone_top = zone_bot + tolerance
                 self.barrier_zones[1].append(barrier_zone(
                     self.bi_index, new_vertex.ts, zone_top, zone_bot, 0))
             else:
                 zone_top = new_vertex.value
                 # avoid zone to be too thick (from rapid price change)
-                zone_bot = zone_top - tolerance # max(end_open, zone_top - 0.1 * delta_y_abs)
+                # max(end_open, zone_top - 0.1 * delta_y_abs)
+                zone_bot = zone_top - tolerance
                 self.barrier_zones[1].append(barrier_zone(
                     self.bi_index, new_vertex.ts, zone_top, zone_bot, 1))
 
         self.vertices.append(new_vertex)
+        self.last_active_zones = active_zones
 
-        # s = self.supply_zones[1]
-        # d = self.demand_zones[1]
-        # if len(s) > 1 and len(d) > 1:
-        #     print(s[-1].index, s[-1].left, s[-2].index, s[-2].left)
-        #     print(d[-1].index, d[-1].left, d[-2].index, d[-2].left)
+        # update barrier/premium region snapshot (ease calculations)
+        self.barrier_snapshot = []
+        self.premium_snapshot = []
 
-    def check_sup_res(self, price: float, tol: float):
-        sup = False
-        res = False
-        depth = 0.0
-        for zone in (self.barrier_zones[1]): # forming zones include all 4 types
-            t = zone.type
-            if not sup and (t == 0 or t == 2):
-                if (zone.top + tol) > price > (zone.bottom):
-                    sup = True
-                    depth = zone.top - zone.bottom
+        zones = []
+        for zone in self.barrier_zones[1]:
+            if zone.strength_rating < 2:
+                # newly formed zones are naturally weak
+                # include them to function properly
+                if zone.leaving_bi_VP:
                     continue
-            if not res and (t == 1 or t == 3):
-                if (zone.top) > price > (zone.bottom - tol):
-                    res = True
-                    depth = zone.top - zone.bottom
-                    continue
-        
-        return sup, res, depth
+            zones.append(zone)
+        sorted(zones, key=lambda x: x.top)
+        i = 0
+        while i < len(zones):
+            current_zone = zones[i]
+            if i + 1 < len(zones) and current_zone.bottom >= zones[i + 1].top:
+                # If overlapping, merge with next zone
+                merged_top = min(current_zone.top, zones[i + 1].top)
+                merged_bottom = max(current_zone.bottom, zones[i + 1].bottom)
+                self.barrier_snapshot.append((merged_top + merged_bottom) * 0.5)
+                i += 2
+            else:
+                # No overlap, use current zone
+                self.barrier_snapshot.append((current_zone.top + current_zone.bottom) * 0.5)
+            i += 1
+
+        # for zone in self.barrier_zones[1]:
+        #     if zone.strength_rating < 2:
+        #         # newly formed zones are naturally weak
+        #         # include them to function properly
+        #         if zone.leaving_bi_VP:
+        #             continue
+        #     self.barrier_snapshot.append((zone.top+zone.bottom)*0.5)
+
+        # merging needs to be performed
+
+        if len(self.barrier_snapshot) > 1:
+            self.snapshot_ready = True
+            self.barrier_snapshot.sort()
+            for i, barrier in enumerate(self.barrier_snapshot):
+                dist_to_prev = barrier - self.barrier_snapshot[i-1] \
+                    if i > 0 else self.barrier_snapshot[i+1] - barrier
+                dist_to_next = self.barrier_snapshot[i+1] - barrier \
+                    if i < len(self.barrier_snapshot)-1 else barrier - self.barrier_snapshot[i-1]
+                self.premium_snapshot.append((
+                    barrier - dist_to_prev*0.2,  # < 0.5
+                    barrier + dist_to_next*0.2,  # < 0.5
+                ))
+
+    def check_sup_res(self, price: float):
+        # 0: demand
+        # 1: supply
+        # 2: demand (1st break supply)
+        # 3: supply (1st break demand)
+
+        # price is like a ball bouncing between levels
+        # once it touch a level, it anchor to that level
+        # then it either breakout or reverse
+        # and when it goes to new levels, it may react to it
+
+        # we cannot use bi to determine the previous anchor point,
+        # because bi update is kinda random(maybe too late because of update rules)
+
+        # if the anchor point and price is at the same level,
+        # we go along the price direction
+        # otherwise we seek reversal(because this is reversal strategy)
+
+        NO_RECORD = 4
+        BREAKOUT_COUNT = 10
+
+        if not self.snapshot_ready:  # not enough levels
+            return False, False, [], [], ''
+
+        # Binary search to find the matching region
+        match = False
+        snapshot_len = len(self.premium_snapshot)
+        left, right = 0, snapshot_len - 1
+        while left <= right:
+            mid = (left + right) >> 1  # Faster than division
+            reg = self.premium_snapshot[mid]
+            if reg[0] < price < reg[1]:  # level match found
+                match = True
+                break
+                #
+                # if not (reg[0] < anchor_level < reg[1]):
+                #     self.history_barrier.append((self.barrier_snapshot[mid], 0))
+                # long_short = price > anchor_price
+                # if not (reg[0] < anchor_price < reg[1]):
+                #     symbol = '*'
+                #     long_short = not long_short
+
+            if price <= reg[0]:
+                right = mid - 1
+            else:
+                left = mid + 1
+
+        # update anchor to get long_short
+        if self.history_barrier == []:
+            # barrier_level, entry_dir
+            # (-1: from under, 0: at barrier level, 1: from up)
+            # entry times (avoid false breakout)
+            self.history_barrier.append([price, 0, 0])
+
+        anchor_level = self.history_barrier[-1][0]
+        anchor_flag = self.history_barrier[-1][1]
+        if anchor_flag == 0:  # last anchor is in premium region
+            if not match:  # leaving premium region
+                new_anchor_flag = -1 if price > anchor_level else 1
+                self.history_barrier.append([price, new_anchor_flag, 0])
+            pass
+        else:
+            if match:
+                barrier_level = self.barrier_snapshot[mid]
+                self.history_barrier.append([barrier_level, 0, 0])
+            else:
+                if anchor_flag == -1:  # price rise above barrier
+                    if price > anchor_level:
+                        self.history_barrier[-1][0] = price
+                        # confirm breakouts
+                        self.history_barrier[-1][2] += 1
+                if anchor_flag == 1:  # price drop below barrier
+                    if price < anchor_level:
+                        self.history_barrier[-1][0] = price
+                        # confirm breakouts
+                        self.history_barrier[-1][2] += 1
+
+        num_records = len(self.history_barrier)
+        if num_records > NO_RECORD:
+            self.history_barrier.pop(0)
+
+        if match:
+            # Found matching region
+            lower_targets = self.barrier_snapshot[:mid]
+            upper_targets = self.barrier_snapshot[mid+1:]
+            if not lower_targets:
+                symbol = 'v'
+            if not upper_targets:
+                symbol = '^'
+            symbol = '*'
+
+            #if num_records == NO_RECORD:
+            ## check elasticity built up for quality reversal
+            #dir_1 = price > self.history_barrier[-2][0]
+            #dir_2 = price > self.history_barrier[-3][0]
+            elasticity = abs(price - self.history_barrier[-2][0])
+            # print(elasticity/price,cfg_cpt.FEE * cfg_cpt.NO_FEE)
+            if elasticity/price > (cfg_cpt.FEE * cfg_cpt.NO_FEE):
+                long_short = elasticity < 0
+                return True, long_short, lower_targets, upper_targets, symbol
+            else:
+                return False, False, [], [], ''
+        else:
+            return False, False, [], [], ''
 
     def update_volume_zone(self, price_mapped_volume: List[Union[List[float], List[int]]]):
         A = price_mapped_volume
@@ -317,12 +481,12 @@ class PA_Liquidity:
                 if zone.enter_bi_VP and zone.leaving_bi_VP:
                     volume = sum(
                         zone.enter_bi_VP[1]) + sum(zone.leaving_bi_VP[1])
-                    self.demand_volume_sum, \
-                        self.demand_sample_num, \
+                    self.volume_sum, \
+                        self.sample_num, \
                         zone.strength_rating = \
                         self.get_strength_rating(
-                            self.demand_volume_sum,
-                            self.demand_sample_num,
+                            self.volume_sum,
+                            self.sample_num,
                             volume)
 
     @staticmethod
@@ -330,7 +494,7 @@ class PA_Liquidity:
         new_sum = historical_sum + new_sample_value
         new_sample_num = historical_sample_num + 1
         new_average = new_sum / new_sample_num
-        # 0:<25%, 1:<75%, 2:<125%, ...
+        # 0:<25%, 1:50%, 2:100%, ...
         strength_rating = round(new_sample_value / new_average / 0.5)
         if strength_rating > 10:
             strength_rating = 10

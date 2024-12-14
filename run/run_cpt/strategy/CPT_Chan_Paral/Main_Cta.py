@@ -39,7 +39,7 @@ def pause():
     time.sleep(1000)
     return
 
-class Main_Cta(BaseCtaStrategy):
+class Main_CTA(BaseCtaStrategy):
     # CTA engine:
     #   1. timestamp closure
     #   2. each registered k-bar closure -> on_bar()

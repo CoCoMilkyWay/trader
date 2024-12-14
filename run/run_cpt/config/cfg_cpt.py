@@ -2,8 +2,8 @@ class cfg_cpt:  # Constants Configs
     import os
 
     period, n = 'm', 1  # bar period
-    start = 202406010000
-    end   = 202406150000
+    start = 202405050000
+    end   = 202405100000
     capital = 10000000
 
     mode = '/um'  # spot, um, cm
@@ -24,3 +24,11 @@ class cfg_cpt:  # Constants Configs
     script_dir = os.path.dirname(os.path.abspath(__file__))
     ASSET_FILE = script_dir + '/cpt_assets.json'
     WT_STORAGE_DIR = script_dir + '/../../storage'
+    
+    # indicators
+    #   Chandelier Stop:
+    dump_ind = True
+    
+    FEE = 0.0015
+    NO_FEE = 5
+    

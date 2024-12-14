@@ -168,7 +168,7 @@ class PA_Core:
                 self.PA_Shapes_developing[shape_name].append(conv_type(vertex))
 
     def add_vertex_to_liquidity(self, vertex: vertex):
-        self.PA_Liquidity.add_vertex(vertex, self.end_open, self.end_close)
+        self.PA_Liquidity.add_vertex(vertex)
 
     # # @jit(nopython=True, parallel=False) # acceleration(static compile before run)
     # def process_batch_klu(self, resample_buffer: List[WtNpKline], price_bin_width:float) -> Tuple[CKLine_Unit, List[int|List[int]]]:

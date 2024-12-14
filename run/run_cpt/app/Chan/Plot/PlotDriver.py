@@ -9,6 +9,12 @@ from Chan.Common.CEnum import KL_TYPE, FX_TYPE, KLINE_DIR
 from Chan.KLine.KLine_List import CKLine_List
 from Chan.Common.ChanException import CChanException, ErrCode
 
+from config.cfg_cpt import cfg_cpt
+
+from Math.Chandelier_Stop import ChandelierIndicator
+from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
+from Math.VolumeWeightedBands import VolumeWeightedBands
+
 class ChanPlotter:
     def __init__(self):
         self.fig = go.Figure()
@@ -154,7 +160,9 @@ class ChanPlotter:
 
     def draw_bi(self):
         """Draw Bi-Directional Lines"""
-        print(f'Drawing Bi({self.lv})...')
+        
+        bi_list = self.klc_list.bi_list
+        print(f'Drawing Bi({self.lv}: {len(bi_list)})...')
         # color = 'black'
         show_num = self.plot_para['bi']['show_num']
         num_fontsize = 15
@@ -166,7 +174,6 @@ class ChanPlotter:
         end_color = 'black'
         end_fontsize = 10
 
-        bi_list = self.klc_list.bi_list
         # Draw lines and annotations
         for bi_idx, bi in enumerate(bi_list):
 
@@ -298,6 +305,14 @@ class ChanPlotter:
                 "x0": x0, "x1": x1, "y0": bottom, "y1": top,
                 "fillcolor": f"rgba{color[3:-1]}, 0.3)", "line_width": 0
             })
+
+        # x=[ver.ts for ver in liquidity_class.vertices]
+        # y=[ver.value for ver in liquidity_class.vertices]
+        # self.traces.extend([
+        #     go.Scatter(x=x, y=y,
+        #                mode='lines', line=dict(color='purple', width=10),
+        #                opacity=0.2, showlegend=False),
+        # ])
 
         for zone in barrier_zones:
             default_end = 1 << 31
@@ -478,10 +493,10 @@ class ChanPlotter:
     def draw_markers(self):
         print(f'Drawing bsp and markers({len(self.markers)})...')
         for mark in self.markers:
-            if mark[2] == 'long':
-                arrow_dis = 30
-            elif mark[2] == 'short':
-                arrow_dis = -30
+            if 'long' in mark[2]:
+                arrow_dis = 50
+            elif 'short' in mark[2]:
+                arrow_dis = -50
             else:
                 arrow_dis = 0
             self.annotations.append({
@@ -495,7 +510,7 @@ class ChanPlotter:
                 'arrowhead': 2,
                 'ax': 0,
                 'ay': arrow_dis,
-                'font': {'color': mark[3]},
+                'font': {'color': mark[3], 'size': 14},
                 'yanchor': 'middle',
                 'xanchor': 'center',
                 'opacity': 1
@@ -549,13 +564,136 @@ class ChanPlotter:
 
         return self.fig
 
+    def draw_ind(self):
+        "Draw Indicators: "
+        if cfg_cpt.dump_ind:
+            ind_c:ChandelierIndicator = self.indicators[0]
+            ind_ps:ParabolicSARIndicator = self.indicators[1]
+            ind_vb:VolumeWeightedBands = self.indicators[2]
+            ind_ts = self.indicators[3]
+            ind_value = self.indicators[-2]
+            ind_text = self.indicators[-1]
+            
+            # print(f'Chandelier Stop({ind_c.long_idx} switches)...')
+            # for i in range(ind_c.long_idx):
+            #     self.traces.extend([
+            #         go.Scatter(x=ind_c.his_longts[i], y=ind_c.his_longcs[i],
+            #                 mode='lines',
+            #                 line=dict(color='red', width=2), # dash='dot'
+            #                 opacity=0.6, showlegend=False),
+            #     ])
+            # for i in range(ind_c.short_idx):
+            #     self.traces.extend([
+            #         go.Scatter(x=ind_c.his_shortts[i], y=ind_c.his_shortcs[i],
+            #                 mode='lines',
+            #                 line=dict(color='blue', width=2), # dash='dot'
+            #                 opacity=0.6, showlegend=False),
+            #     ])
+
+            # print(f'Chandelier Stop({ind_c.switch_idx} switches)...')
+            # self.traces.extend([
+            #     go.Scatter(x=ind_c.his_ts, y=ind_c.his_longcs,
+            #             mode='lines',
+            #             line=dict(color='red', width=1), # dash='dot'
+            #             opacity=0.6, showlegend=False),
+            #     go.Scatter(x=ind_c.his_ts, y=ind_c.his_shortcs,
+            #             mode='lines',
+            #             line=dict(color='blue', width=1), # dash='dot'
+            #             opacity=0.6, showlegend=False),
+            #     go.Scatter(x=ind_c.his_switch_ts, y=ind_c.his_switch_vs,
+            #             mode='markers',
+            #             marker=dict(color='black', size=2), # dash='dot'
+            #             opacity=1, showlegend=False),
+            # ])
+# 
+            # print(f'Parabolic SAR({len(ind_ps.his_ep)} extreme points) Stop...')
+            # self.traces.extend([
+            #     go.Scatter(x=ind_ps.his_ts, y=ind_ps.his_sar,
+            #                mode='lines',
+            #                line=dict(color='black', width=2, dash='dot'), # dash='dot'
+            #                opacity=0.6, showlegend=False),
+            # ])
+            
+            print(f'Volume weighted Bands...')
+            self.traces.extend([
+                go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_vavg,
+                           mode='lines',
+                           line=dict(color='orange', width=2), # dash='dot
+                           opacity=1, showlegend=False),
+                go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_tavg,
+                           mode='lines',
+                           line=dict(color='blue', width=2), # dash='dot
+                           opacity=1, showlegend=False),
+                go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1up,
+                           mode='lines',
+                           line=dict(color='black', width=2), # dash='dot
+                           opacity=0.4, showlegend=False),
+                go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1lo,
+                           mode='lines',
+                           line=dict(color='black', width=2), # dash='dot
+                           opacity=0.4, showlegend=False),
+            ])
+            
+            # if cfg_cpt.dump_ind:
+            #     print(f'Shapes...')
+            #     for i, txt in enumerate(ind_text):
+            #         if 'v' in txt:
+            #             color = 'green'
+            #         elif '^' in txt:
+            #             color = 'red'
+            #         else:
+            #             color = 'black'
+            #         self.traces.extend([
+            #             go.Scatter(x=ind_ts[i], y=ind_value[i],
+            #                        mode='lines',
+            #                        line=dict(color=color, width=2), # dash='dot'
+            #                        opacity=1, showlegend=False),
+            #         ])
+            #         self.annotations.append({
+            #             'x': ind_ts[i][-1],
+            #             'y': ind_value[i][-1],
+            #             'text': ind_text[i],
+            #             'showarrow': True,
+            #             'arrowsize': 1,
+            #             'arrowwidth': 1,
+            #             'arrowcolor': color,
+            #             'arrowhead': 2,
+            #             'ax': 0,
+            #             'ay': 30,
+            #             'font': {'color': 'black', 'size': 10},
+            #             'yanchor': 'middle',
+            #             'xanchor': 'center',
+            #             'opacity': 1
+            #         })
+            for i, txt in enumerate(ind_text):
+                if i%1==0:
+                    
+                    if txt[0]:
+                        color = 'yellow'
+                    else:
+                        color = 'orange'
+                    
+                    self.annotations.append({
+                        'x': ind_ts[i],
+                        'y': ind_value[i],
+                        'text': txt[1],
+                        'showarrow': False,
+                        'font': {'color': color, 'size': 15 if '|' not in txt[1] else 55},
+                        'yanchor': 'middle',
+                        'xanchor': 'center',
+                        'opacity': 1
+                    })
+        return self.fig
+
     def plot(self,
              kl_datas: Dict[KL_TYPE, CKLine_List],
              markers: List[Tuple],
+             indicators: List,
              **kwargs):
         """Convenience method to draw both KLC and Bi elements"""
 
         self.markers = markers
+        self.indicators = indicators
         # plot from small to big
         no_lv = len(self.lv_type_list)
         for lv_idx_rev, lv in enumerate(reversed(self.lv_type_list)):
@@ -567,7 +705,7 @@ class ChanPlotter:
             self.klc_list = kl_datas[lv]
             self.color = self.color_list[self.lv_idx]
             self.opacity = self.opacity_list[self.lv_idx]
-            if self.lv_idx == no_lv - 1 - 1: # 5M
+            if self.lv_idx == no_lv - 1 - 2: # 5M
                 self.draw_klu()
                 self.draw_klc()
                 self.draw_volume()
@@ -577,6 +715,7 @@ class ChanPlotter:
             self.draw_liquidity_zones()
             self.draw_volume_profile()
         self.draw_markers()
+        self.draw_ind()
 
         # Add traces
         self.fig.add_traces(self.traces, rows=1, cols=1)

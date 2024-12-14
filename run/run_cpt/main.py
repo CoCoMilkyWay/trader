@@ -17,9 +17,11 @@ from wtpy import WtBtEngine, EngineType, WtDtServo
 
 from Util.UtilCpt import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
 from config.cfg_cpt import cfg_cpt
-from strategy.CPT_Chart.Main_Cta import Main_Cta
+from strategy.CPT_Chart.Main_CTA import Main_CTA
+from strategy.CPT_Train.Main_Train import Main_Train
 
 run = True
+train = False
 analyze = False
 snoop = False
 profile = False
@@ -50,17 +52,26 @@ def run_bt():
 
     # straInfo = StraDualThrust(name=str_name, code=wt_assets[0], barCnt=50, period=period_str, days=30, k1=0.1, k2=0.1)
     # straInfo = ML_pred(name=str_name, code=wt_asset, barCnt=1, period=period_str)
-    straInfo = Main_Cta(name=str_name, codes=wt_assets,
-                        period=period_str, capital=cfg_cpt.capital)
 
-    engine.set_cta_strategy(straInfo, slippage=0)
     
     if run:
+        straInfo = Main_CTA(name=str_name, codes=wt_assets,
+                    period=period_str, capital=cfg_cpt.capital)
+        engine.set_cta_strategy(straInfo, slippage=0)
         print('Running Backtest ...')
         print('Use CTRL+4 to interrupt')
         engine.run_backtest()
         print(f'Backtest Done')
-
+        
+    elif train:
+        straInfo = Main_Train(name=str_name, codes=wt_assets,
+                    period=period_str, capital=cfg_cpt.capital)
+        engine.set_cta_strategy(straInfo, slippage=0)
+        print('Running Entry Pattern Train ...')
+        print('Use CTRL+4 to interrupt')
+        engine.run_backtest()
+        print(f'Training Done')
+    
     if analyze:
         print('Analyzing ...')
         analyst = WtBtAnalyst()
