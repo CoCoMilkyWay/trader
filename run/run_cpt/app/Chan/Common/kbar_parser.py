@@ -1,49 +1,35 @@
 from typing import List, Dict, Optional
-
 from wtpy.WtDataDefs import WtNpKline
-
 from Chan.Common.CEnum import KL_TYPE, DATA_FIELD
 from Chan.Common.CTime import CTime
 from Chan.KLine.KLine_Unit import CKLine_Unit
 
-# handler = KLineHandler(lv_dict)
-# for np_bar in bars:
-#     results = handler.process_bar(np_bar)
-
 class KLineHandler:
-    __slots__ = ('levels', 'multiplier', 'periods', 'counts', 'opens', 'highs', 'lows', 'closes', 'volumes', 'start_times')
+    __slots__ = ('levels', 'multiplier', 'periods', 'counts', 'opens', 'highs', 
+                 'lows', 'closes', 'volumes', 'start_times')
     
     def __init__(self, lv_list: list):
         # Store levels in reverse order (1m -> 5m -> 15m -> ...)
-        self.levels     = [lv[0] for lv in reversed(lv_list)]
+        self.levels = [lv[0] for lv in reversed(lv_list)]
         self.multiplier = [lv[1] for lv in reversed(lv_list)]
-                
-        # Calculate periods for each level (how many bars from previous level needed)
-        self.periods = {}
-        for i in range(len(self.levels)):
-            self.periods[self.levels[i]] = self.multiplier[i]
         
-
-        # Single arrays for all levels
-        self.counts = {level: 0 for level in self.periods}
-        self.opens = {level: 0.0 for level in self.periods}
-        self.highs = {level: 0.0 for level in self.periods}
-        self.lows = {level: 0.0 for level in self.periods}
-        self.closes = {level: 0.0 for level in self.periods}
-        self.volumes = {level: 0 for level in self.periods}
+        # Pre-calculate periods
+        self.periods = dict(zip(self.levels, self.multiplier))
+        
+        # Use lists instead of dictionaries for better access speed
+        n_levels = len(self.levels)
+        self.counts = [0] * n_levels
+        self.opens = [0.0] * n_levels
+        self.highs = [0.0] * n_levels
+        self.lows = [0.0] * n_levels
+        self.closes = [0.0] * n_levels
+        self.volumes = [0] * n_levels
         self.start_times = {level: CTime(1990,1,1,0,0) for level in self.periods}
     
     def process_bar(self, np_bars: WtNpKline) -> dict[KL_TYPE, List[CKLine_Unit]]:
-        """Single method to handle all processing"""
-        # Extract bar data once
+        """Optimized method to handle all processing"""
+        # Extract bar data once and use local variables
         time_str = str(np_bars.bartimes[-1])
-        open_ = np_bars.opens[-1]
-        high = np_bars.highs[-1]
-        low = np_bars.lows[-1]
-        close = np_bars.closes[-1]
-        volume = int(np_bars.volumes[-1])
-        
-        # Create 1-min bar
         time = CTime(
             int(time_str[:4]),
             int(time_str[4:6]),
@@ -53,63 +39,71 @@ class KLineHandler:
             auto=False
         )
         
-        results = {
-            KL_TYPE.K_1M: [CKLine_Unit({
-                DATA_FIELD.FIELD_TIME: time,
-                DATA_FIELD.FIELD_OPEN: open_,
-                DATA_FIELD.FIELD_HIGH: high,
-                DATA_FIELD.FIELD_LOW: low,
-                DATA_FIELD.FIELD_CLOSE: close,
-                DATA_FIELD.FIELD_VOLUME: volume
-            }, autofix=True)]
+        curr_open = np_bars.opens[-1]
+        curr_high = np_bars.highs[-1]
+        curr_low = np_bars.lows[-1]
+        curr_close = np_bars.closes[-1]
+        curr_vol = int(np_bars.volumes[-1])
+        
+        # Create initial bar dict to avoid repeated key lookups
+        bar_dict = {
+            DATA_FIELD.FIELD_TIME: time,
+            DATA_FIELD.FIELD_OPEN: curr_open,
+            DATA_FIELD.FIELD_HIGH: curr_high,
+            DATA_FIELD.FIELD_LOW: curr_low,
+            DATA_FIELD.FIELD_CLOSE: curr_close,
+            DATA_FIELD.FIELD_VOLUME: curr_vol
         }
         
-        # Current bar values to feed into next level
-        curr_open, curr_high = open_, high
-        curr_low, curr_close = low, close
-        curr_vol, curr_time = volume, time
+        # Pre-allocate results dict with known first entry
+        results = {
+            KL_TYPE.K_1M: [CKLine_Unit(bar_dict, autofix=True)]
+        }
         
-        # Process each level using output from previous level
-        for level in self.levels:
-            count = self.counts[level]
+        # Process each level
+        for i, level in enumerate(self.levels):
+            count = self.counts[i]
             
             if count == 0:
-                self.opens[level] = curr_open
-                self.highs[level] = curr_high
-                self.lows[level] = curr_low
-                self.start_times[level] = curr_time
+                self.opens[i] = curr_open
+                self.highs[i] = curr_high
+                self.lows[i] = curr_low
+                self.start_times[level] = time
             else:
-                self.highs[level] = max(self.highs[level], curr_high)
-                self.lows[level] = min(self.lows[level], curr_low)
+                # Use direct comparison instead of min/max functions
+                if curr_high > self.highs[i]:
+                    self.highs[i] = curr_high
+                if curr_low < self.lows[i]:
+                    self.lows[i] = curr_low
             
-            self.closes[level] = curr_close
-            self.volumes[level] += curr_vol
+            self.closes[i] = curr_close
+            self.volumes[i] += curr_vol
             count += 1
             
-            if count >= self.periods[level]:
-                # Create bar for this level
-                results[level] = [CKLine_Unit({
+            if count >= self.multiplier[i]:
+                # Reuse bar_dict pattern for better performance
+                bar_dict = {
                     DATA_FIELD.FIELD_TIME: time,
-                    DATA_FIELD.FIELD_OPEN: self.opens[level],
-                    DATA_FIELD.FIELD_HIGH: self.highs[level],
-                    DATA_FIELD.FIELD_LOW: self.lows[level],
-                    DATA_FIELD.FIELD_CLOSE: self.closes[level],
-                    DATA_FIELD.FIELD_VOLUME: self.volumes[level]
-                }, autofix=True)]
+                    DATA_FIELD.FIELD_OPEN: self.opens[i],
+                    DATA_FIELD.FIELD_HIGH: self.highs[i],
+                    DATA_FIELD.FIELD_LOW: self.lows[i],
+                    DATA_FIELD.FIELD_CLOSE: self.closes[i],
+                    DATA_FIELD.FIELD_VOLUME: self.volumes[i]
+                }
+                results[level] = [CKLine_Unit(bar_dict, autofix=True)]
                 
                 # Update values for next level
-                curr_open = self.opens[level]
-                curr_high = self.highs[level]
-                curr_low = self.lows[level]
-                curr_close = self.closes[level]
-                curr_vol = self.volumes[level]
-                curr_time = self.start_times[level]
+                curr_open = self.opens[i]
+                curr_high = self.highs[i]
+                curr_low = self.lows[i]
+                curr_close = self.closes[i]
+                curr_vol = self.volumes[i]
                 
                 # Reset counters
-                self.counts[level] = 0
-                self.volumes[level] = 0
+                self.counts[i] = 0
+                self.volumes[i] = 0
             else:
-                self.counts[level] = count
-                return results  # Early return if this level isn't complete
+                self.counts[i] = count
+                return results
                 
         return results

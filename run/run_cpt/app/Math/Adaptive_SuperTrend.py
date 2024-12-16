@@ -9,19 +9,16 @@ Lookback Period:
     Provides enough data for meaningful clustering
     Recent enough to be relevant to current market conditions
 """
-
-#　# Initialize
-#　indicator = AdaptiveSuperTrend(atr_len=10, factor=3, lookback=100)
-#　
-#　# Process new bar
-#　def on_bar(high, low, close):
-#　    result = indicator.update(high, low, close)
-#　    if result['signal']:
-#　        print(f"Signal: {result['signal']}")
-#　        print(f"Cluster: {'High' if result['cluster'] == 0 else 'Medium' if result['cluster'] == 1 else 'Low'}")
-#　        print(f"SuperTrend: {result['value']:.2f}")
+from typing import Tuple, List
+from collections import deque
+from config.cfg_cpt import cfg_cpt
 
 class AdaptiveSuperTrend:
+    __slots__ = ('atr_len', 'factor', 'lookback', 'prev_close', 'prev_atr',
+                 'prev_supertrend', 'prev_direction', 'prev_upper', 'prev_lower',
+                 'atr_history', 'centroids', 'current_cluster', 'is_initialized',
+                 'his_ts', 'his_val', '_cluster_factors')
+
     def __init__(self, atr_len=10, factor=3, lookback=200):
         self.atr_len = atr_len
         self.factor = factor
@@ -37,59 +34,90 @@ class AdaptiveSuperTrend:
         self.prev_upper = 0.0
         self.prev_lower = 0.0
         
-        # Volatility state
-        self.atr_history = []
-        self.centroids = [0.0, 0.0, 0.0]
+        # Volatility state - only use deque for atr_history
+        self.atr_history = deque(maxlen=lookback)
+        self.centroids = [0.0, 0.0, 0.0]  # Fixed size of 3
         self.current_cluster = 1  # Start with medium volatility
+        
+        # Pre-calculate factors
+        self._cluster_factors = (1.5, 1.0, 0.75)  # Fixed size tuple of 3
         
         # Init state flag
         self.is_initialized = False
         
+        # Keep lists for debug to maintain original behavior
+        if cfg_cpt.dump_ind:
+            self.his_ts = []
+            self.his_val = []
+
     def _calculate_kmeans(self):
-        """Run k-means on ATR history when SuperTrend changes"""
+        """Optimized k-means on ATR history"""
         if len(self.atr_history) < 3:
             return 1
             
-        # Initialize centroids based on percentiles
+        # Convert deque to sorted list once
         data = sorted(self.atr_history)
-        high_idx = int(len(data) * 0.75)
-        low_idx = int(len(data) * 0.25)
-        self.centroids = [
-            data[high_idx],      # 75th percentile
-            data[len(data)//2],  # median
-            data[low_idx]        # 25th percentile
-        ]
+        n = len(data)
+        
+        # Quick percentile calculation
+        self.centroids[0] = data[n * 3 // 4]  # 75th percentile
+        self.centroids[1] = data[n // 2]      # median
+        self.centroids[2] = data[n // 4]      # 25th percentile
+        
+        # Use lists for clusters to maintain original behavior
+        clusters = ([], [], [])
         
         # Run k-means iterations
         for _ in range(5):
-            clusters = [[], [], []]
+            # Clear previous clusters
+            for cluster in clusters:
+                cluster.clear()
             
-            # Assign points to nearest centroid
-            for atr in self.atr_history:
-                distances = [abs(atr - c) for c in self.centroids]
-                nearest = distances.index(min(distances))
-                clusters[nearest].append(atr)
+            # Assign points to nearest centroid - optimized distance calculation
+            for atr in data:
+                d0 = abs(atr - self.centroids[0])
+                d1 = abs(atr - self.centroids[1])
+                d2 = abs(atr - self.centroids[2])
+                
+                if d0 <= d1 and d0 <= d2:
+                    clusters[0].append(atr)
+                elif d1 <= d0 and d1 <= d2:
+                    clusters[1].append(atr)
+                else:
+                    clusters[2].append(atr)
             
-            # Update centroids
-            for i in range(3):
-                if clusters[i]:
-                    self.centroids[i] = sum(clusters[i]) / len(clusters[i])
+            # Update centroids - use direct sum
+            for i, cluster in enumerate(clusters):
+                if cluster:  # Only update if cluster has points
+                    self.centroids[i] = sum(cluster) / len(cluster)
             
-            # Keep centroids ordered (high to low)
-            self.centroids.sort(reverse=True)
+            # Keep centroids ordered
+            if self.centroids[1] > self.centroids[0]:
+                self.centroids[0], self.centroids[1] = self.centroids[1], self.centroids[0]
+            if self.centroids[2] > self.centroids[1]:
+                self.centroids[1], self.centroids[2] = self.centroids[2], self.centroids[1]
+                if self.centroids[1] > self.centroids[0]:
+                    self.centroids[0], self.centroids[1] = self.centroids[1], self.centroids[0]
         
-        # Determine current cluster
-        distances = [abs(self.prev_atr - c) for c in self.centroids]
-        return distances.index(min(distances))
+        # Find current cluster - optimized distance comparison
+        d0 = abs(self.prev_atr - self.centroids[0])
+        d1 = abs(self.prev_atr - self.centroids[1])
+        d2 = abs(self.prev_atr - self.centroids[2])
+        
+        if d0 <= d1 and d0 <= d2:
+            return 0
+        elif d1 <= d0 and d1 <= d2:
+            return 1
+        return 2
 
-    def update(self, high: float, low: float, close: float) -> dict:
+    def update(self, high: float, low: float, close: float, ts: float) -> Tuple[bool, bool]:
         # Calculate TR and ATR
         if self.is_initialized:
-            tr = max(
-                high - low,
-                abs(high - self.prev_close),
-                abs(low - self.prev_close)
-            )
+            tr1 = high - low
+            tr2 = abs(high - self.prev_close)
+            tr3 = abs(low - self.prev_close)
+            tr = tr1 if tr1 > tr2 else tr2
+            tr = tr if tr > tr3 else tr3
         else:
             tr = high - low
             
@@ -100,18 +128,16 @@ class AdaptiveSuperTrend:
         else:
             self.prev_atr = tr
         
-        # Update ATR history
+        # Update ATR history - O(1) with deque
         self.atr_history.append(self.prev_atr)
-        if len(self.atr_history) > self.lookback:
-            self.atr_history.pop(0)
 
         # Calculate basic bands
-        mid = (high + low) / 2
-        cluster_factors = [1.5, 1.0, 0.75]  # High, Medium, Low volatility factors
-        adaptive_factor = self.factor * cluster_factors[self.current_cluster]
+        mid = (high + low) * 0.5  # Multiply is faster than divide
+        adaptive_factor = self.factor * self._cluster_factors[self.current_cluster]
         
-        upper = mid + (adaptive_factor * self.prev_atr)
-        lower = mid - (adaptive_factor * self.prev_atr)
+        band_offset = adaptive_factor * self.prev_atr
+        upper = mid + band_offset
+        lower = mid - band_offset
 
         # Initialize on first bar
         if not self.is_initialized:
@@ -120,13 +146,8 @@ class AdaptiveSuperTrend:
             self.prev_upper = upper
             self.prev_lower = lower
             self.is_initialized = True
-            return {
-                'value': mid,
-                'direction': self.prev_direction,
-                'signal': '',
-                'cluster': self.current_cluster,
-                'atr': self.prev_atr
-            }
+            
+            return False, False
 
         # Update bands
         final_upper = upper if (upper < self.prev_upper or close > self.prev_upper) else self.prev_upper
@@ -136,22 +157,27 @@ class AdaptiveSuperTrend:
         direction = 1 if close > self.prev_supertrend else -1
         supertrend = final_lower if direction == 1 else final_upper
 
-        # Check for trend change and recalculate clusters if needed
+        # Check for trend change
         signal = ''
+        long_switch = False
+        short_switch = False
         if direction != self.prev_direction:
             self.current_cluster = self._calculate_kmeans()
-            signal = 'buy' if direction == 1 else 'sell'
+            if direction == 1:
+                signal = 'buy'
+                long_switch = True
+            else:
+                signal = 'sell'
+                short_switch = True
 
         # Update state
         self.prev_supertrend = supertrend
         self.prev_direction = direction
         self.prev_upper = final_upper
         self.prev_lower = final_lower
+        
+        if cfg_cpt.dump_ind:
+            self.his_ts.append(ts)
+            self.his_val.append(supertrend)
 
-        return {
-            'value': supertrend,
-            'direction': direction,
-            'signal': signal,
-            'cluster': self.current_cluster,
-            'atr': self.prev_atr
-        }
+        return long_switch, short_switch

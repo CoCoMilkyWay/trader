@@ -52,21 +52,7 @@ from wtpy.WtCoreDefs import WTSBarStruct
 from wtpy.SessionMgr import SessionMgr
 
 def testBtSnooper():
-    dtServo = WtDtServo()
-    dtServo.setBasefiles(
-        folder          = "cfg/",
-        commfile        = "",
-        contractfile    = "",
-        holidayfile     = "",
-        sessionfile     = "",
-        hotfile         = "",
-                         )
-    dtServo.setStorage(
-        path='storage',
-        adjfactor=''
-        )
-    snooper = WtBtSnooper(dtServo)
-    snooper.run_as_server(port=8081, host="0.0.0.0")
+    pass
 
 # ================================================
 # CSV to DATABASE file (DSB indexed my month/day)
@@ -210,6 +196,7 @@ def combine_dsb_1m(asset, database_db_folder, merged_db_path, begin_date=datetim
             file_path = os.path.join(database_db_folder, file)
             df.append(dtHelper.read_dsb_bars(file_path).to_df())
         df = pd.concat(df, ignore_index=False)
+        print(df)
         wt_df_2_dsb(df, mkdir(merged_db_path))
 
 def sort_files_by_date(folder_path, start_date=datetime(1900,1,1), end_date=datetime(2050,1,1)):

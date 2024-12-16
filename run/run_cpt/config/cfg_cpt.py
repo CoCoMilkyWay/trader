@@ -2,10 +2,22 @@ class cfg_cpt:  # Constants Configs
     import os
 
     period, n = 'm', 1  # bar period
-    start = 202405050000
-    end   = 202405100000
+    start = 202306010000
+    end   = 202306100000
     capital = 10000000
 
+    # run_mode(1 in 3):
+    normal = False
+    train  = False
+    stats  = True
+
+    # misc functions:
+    analyze = True
+    plot    = True
+    snoop   = False
+    profile = True
+    panel   = False
+    
     mode = '/um'  # spot, um, cm
     market = 'Binance'
 
@@ -24,11 +36,14 @@ class cfg_cpt:  # Constants Configs
     script_dir = os.path.dirname(os.path.abspath(__file__))
     ASSET_FILE = script_dir + '/cpt_assets.json'
     WT_STORAGE_DIR = script_dir + '/../../storage'
-    
+
+    # ML model
+    model_path = './models/BiLTSM.pkl'
+
     # indicators
-    #   Chandelier Stop:
-    dump_ind = True
-    
+    stats_result = './strategy/CPT_Statistics/stats'
+    dump_ind = True if normal else False
+
     FEE = 0.0015
     NO_FEE = 5
     

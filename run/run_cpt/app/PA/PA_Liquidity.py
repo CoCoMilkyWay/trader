@@ -105,8 +105,8 @@ class PA_Liquidity:
         self.barrier_snapshot: List[float] = []
         self.premium_snapshot: List[Tuple[float, float]] = []
         self.snapshot_ready: bool = False
-        self.history_barrier: List[List[float | int]] = []
-        self.anchor_barrier: float = 0.0
+        # self.history_barrier: List[List[float | int]] = []
+        # self.anchor_barrier: float = 0.0
 
         # corner cases
         self.last_active_zones: List[Tuple[int, bool, int]] = []
@@ -304,36 +304,38 @@ class PA_Liquidity:
         self.barrier_snapshot = []
         self.premium_snapshot = []
 
-        zones = []
+        #zones = []
+        #for zone in self.barrier_zones[1]:
+        #    if zone.strength_rating < 2:
+        #        # newly formed zones are naturally weak
+        #        # include them to function properly
+        #        if zone.leaving_bi_VP:
+        #            continue
+        #    zones.append(zone)
+        #sorted(zones, key=lambda x: x.top)
+        #i = 0
+        #while i < len(zones):
+        #    current_zone = zones[i]
+        #    if i + 1 < len(zones) and current_zone.bottom >= zones[i + 1].top:
+        #        # If overlapping, merge with next zone
+        #        merged_top = min(current_zone.top, zones[i + 1].top)
+        #        merged_bottom = max(current_zone.bottom, zones[i + 1].bottom)
+        #        self.barrier_snapshot.append((merged_top + merged_bottom) * 0.5)
+        #        i += 2
+        #    else:
+        #        # No overlap, use current zone
+        #        self.barrier_snapshot.append((current_zone.top + current_zone.bottom) * 0.5)
+        #    i += 1
+
         for zone in self.barrier_zones[1]:
             if zone.strength_rating < 2:
                 # newly formed zones are naturally weak
                 # include them to function properly
                 if zone.leaving_bi_VP:
                     continue
-            zones.append(zone)
-        sorted(zones, key=lambda x: x.top)
-        i = 0
-        while i < len(zones):
-            current_zone = zones[i]
-            if i + 1 < len(zones) and current_zone.bottom >= zones[i + 1].top:
-                # If overlapping, merge with next zone
-                merged_top = min(current_zone.top, zones[i + 1].top)
-                merged_bottom = max(current_zone.bottom, zones[i + 1].bottom)
-                self.barrier_snapshot.append((merged_top + merged_bottom) * 0.5)
-                i += 2
-            else:
-                # No overlap, use current zone
-                self.barrier_snapshot.append((current_zone.top + current_zone.bottom) * 0.5)
-            i += 1
-
-        # for zone in self.barrier_zones[1]:
-        #     if zone.strength_rating < 2:
-        #         # newly formed zones are naturally weak
-        #         # include them to function properly
-        #         if zone.leaving_bi_VP:
-        #             continue
-        #     self.barrier_snapshot.append((zone.top+zone.bottom)*0.5)
+            # if not zone.OB:
+            #     continue
+            self.barrier_snapshot.append((zone.top+zone.bottom)*0.5)
 
         # merging needs to be performed
 
@@ -346,8 +348,8 @@ class PA_Liquidity:
                 dist_to_next = self.barrier_snapshot[i+1] - barrier \
                     if i < len(self.barrier_snapshot)-1 else barrier - self.barrier_snapshot[i-1]
                 self.premium_snapshot.append((
-                    barrier - dist_to_prev*0.2,  # < 0.5
-                    barrier + dist_to_next*0.2,  # < 0.5
+                    barrier - dist_to_prev*0.1,  # < 0.5
+                    barrier + dist_to_next*0.1,  # < 0.5
                 ))
 
     def check_sup_res(self, price: float):
@@ -372,18 +374,24 @@ class PA_Liquidity:
         BREAKOUT_COUNT = 10
 
         if not self.snapshot_ready:  # not enough levels
-            return False, False, [], [], ''
+            return False, [], [], ''
+
+        if price > self.barrier_snapshot[-1]: # newest high, short
+            return True, self.barrier_snapshot, [], '^'
+        if price < self.barrier_snapshot[0]: # newest low, long
+            return True, [], self.barrier_snapshot, 'v'
 
         # Binary search to find the matching region
-        match = False
         snapshot_len = len(self.premium_snapshot)
         left, right = 0, snapshot_len - 1
         while left <= right:
             mid = (left + right) >> 1  # Faster than division
             reg = self.premium_snapshot[mid]
             if reg[0] < price < reg[1]:  # level match found
-                match = True
-                break
+                # Found matching region
+                lower_targets = self.barrier_snapshot[:mid]
+                upper_targets = self.barrier_snapshot[mid+1:]
+                return True, lower_targets, upper_targets, '*'
                 #
                 # if not (reg[0] < anchor_level < reg[1]):
                 #     self.history_barrier.append((self.barrier_snapshot[mid], 0))
@@ -397,63 +405,65 @@ class PA_Liquidity:
             else:
                 left = mid + 1
 
-        # update anchor to get long_short
-        if self.history_barrier == []:
-            # barrier_level, entry_dir
-            # (-1: from under, 0: at barrier level, 1: from up)
-            # entry times (avoid false breakout)
-            self.history_barrier.append([price, 0, 0])
-
-        anchor_level = self.history_barrier[-1][0]
-        anchor_flag = self.history_barrier[-1][1]
-        if anchor_flag == 0:  # last anchor is in premium region
-            if not match:  # leaving premium region
-                new_anchor_flag = -1 if price > anchor_level else 1
-                self.history_barrier.append([price, new_anchor_flag, 0])
-            pass
-        else:
-            if match:
-                barrier_level = self.barrier_snapshot[mid]
-                self.history_barrier.append([barrier_level, 0, 0])
-            else:
-                if anchor_flag == -1:  # price rise above barrier
-                    if price > anchor_level:
-                        self.history_barrier[-1][0] = price
-                        # confirm breakouts
-                        self.history_barrier[-1][2] += 1
-                if anchor_flag == 1:  # price drop below barrier
-                    if price < anchor_level:
-                        self.history_barrier[-1][0] = price
-                        # confirm breakouts
-                        self.history_barrier[-1][2] += 1
-
-        num_records = len(self.history_barrier)
-        if num_records > NO_RECORD:
-            self.history_barrier.pop(0)
-
-        if match:
-            # Found matching region
-            lower_targets = self.barrier_snapshot[:mid]
-            upper_targets = self.barrier_snapshot[mid+1:]
-            if not lower_targets:
-                symbol = 'v'
-            if not upper_targets:
-                symbol = '^'
-            symbol = '*'
-
-            #if num_records == NO_RECORD:
-            ## check elasticity built up for quality reversal
-            #dir_1 = price > self.history_barrier[-2][0]
-            #dir_2 = price > self.history_barrier[-3][0]
-            elasticity = abs(price - self.history_barrier[-2][0])
-            # print(elasticity/price,cfg_cpt.FEE * cfg_cpt.NO_FEE)
-            if elasticity/price > (cfg_cpt.FEE * cfg_cpt.NO_FEE):
-                long_short = elasticity < 0
-                return True, long_short, lower_targets, upper_targets, symbol
-            else:
-                return False, False, [], [], ''
-        else:
-            return False, False, [], [], ''
+        return False, [], [], ''
+    
+        # # update anchor to get long_short
+        # if self.history_barrier == []:
+        #     # barrier_level, entry_dir
+        #     # (-1: from under, 0: at barrier level, 1: from up)
+        #     # entry times (avoid false breakout)
+        #     self.history_barrier.append([price, 0, 0])
+        #
+        # anchor_level = self.history_barrier[-1][0]
+        # anchor_flag = self.history_barrier[-1][1]
+        # if anchor_flag == 0:  # last anchor is in premium region
+        #     if not match:  # leaving premium region
+        #         new_anchor_flag = -1 if price > anchor_level else 1
+        #         self.history_barrier.append([price, new_anchor_flag, 0])
+        #     pass
+        # else:
+        #     if match:
+        #         barrier_level = self.barrier_snapshot[mid]
+        #         self.history_barrier.append([barrier_level, 0, 0])
+        #     else:
+        #         if anchor_flag == -1:  # price rise above barrier
+        #             if price > anchor_level:
+        #                 self.history_barrier[-1][0] = price
+        #                 # confirm breakouts
+        #                 self.history_barrier[-1][2] += 1
+        #         if anchor_flag == 1:  # price drop below barrier
+        #             if price < anchor_level:
+        #                 self.history_barrier[-1][0] = price
+        #                 # confirm breakouts
+        #                 self.history_barrier[-1][2] += 1
+        #
+        # num_records = len(self.history_barrier)
+        # if num_records > NO_RECORD:
+        #     self.history_barrier.pop(0)
+        #
+        # if match:
+        #     # Found matching region
+        #     lower_targets = self.barrier_snapshot[:mid]
+        #     upper_targets = self.barrier_snapshot[mid+1:]
+        #     if not lower_targets:
+        #         symbol = 'v'
+        #     if not upper_targets:
+        #         symbol = '^'
+        #     symbol = '*'
+        #
+        #     #if num_records == NO_RECORD:
+        #     ## check elasticity built up for quality reversal
+        #     #dir_1 = price > self.history_barrier[-2][0]
+        #     #dir_2 = price > self.history_barrier[-3][0]
+        #     elasticity = abs(price - self.history_barrier[-2][0])
+        #     # print(elasticity/price,cfg_cpt.FEE * cfg_cpt.NO_FEE)
+        #     if elasticity/price > (cfg_cpt.FEE * cfg_cpt.NO_FEE):
+        #         long_short = elasticity < 0
+        #         return True, long_short, lower_targets, upper_targets, symbol
+        #     else:
+        #         return False, False, [], [], ''
+        # else:
+        #     return False, False, [], [], ''
 
     def update_volume_zone(self, price_mapped_volume: List[Union[List[float], List[int]]]):
         A = price_mapped_volume

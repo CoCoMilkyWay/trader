@@ -11,6 +11,12 @@ tasklist | grep -i python | awk '{print $2}' | xargs -r -I {} taskkill //F //PID
 echo "Terminating UCRT64/MSYS2 Python processes..."
 ps aux | grep python | grep -v grep | awk '{print $2}' | xargs -r kill -9
 
+# Remove Old Files
+echo "Removing old results..."
+rm -rf ./*.xlsx
+rm -rf ./*.html
+rm -rf ./*.prof
+
 # Start main.py
 echo "Starting main.py..."
 python main.py

@@ -19,13 +19,18 @@ from Chan.Common.kbar_parser import KLineHandler
 from Chan.KLine.KLine_List import CKLine_List
 
 from PA.PA_Pattern_Chart import conv_type
+from Util.UtilCpt import mkdir
 from Util.MemoryAnalyzer import MemoryAnalyzer
+from Util.BiLTSM_Pattern_Recog import PatternRecognizer
 from Math.Chandelier_Stop import ChandelierIndicator
 from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
+from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
 from Math.VolumeWeightedBands import VolumeWeightedBands
 from Math.Mini_Entry_Pattern import Mini_Entry_Pattern
-from config.cfg_cpt import cfg_cpt
 
+from config.cfg_cpt import cfg_cpt
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../app"))
 
 # CTA = EA = BOT
@@ -79,37 +84,16 @@ Adaptive SuperTrend(K-means)
 Anchored VWAP
 """
 
-"""
-For the green triangles (upward breakouts), I'd guess the conditions might be:
+ML_Pattern_Len = 10
 
-Price is likely near/below VWAP (oversold condition)
-Price is probably near/below lower Bollinger Band
-ATR is likely expanding (increasing volatility)
-
-Specific trigger conditions might be:
-
-Price crosses above VWAP while being near/below lower BB
-AND ATR is expanding above its short-term average
-AND Bollinger Bands width is starting to expand after being narrow (squeeze ending)
-
-For purple triangles (downward breakouts), the reverse logic:
-
-Price crosses below VWAP while being near/above upper BB
-AND ATR expanding
-AND BB width expanding after squeeze
-
-The key insight is that these triangles appear to signal breakout trades after periods of consolidation:
-
-First wait for BB squeeze (narrow bands)
-Then look for price crossing VWAP in the direction of potential breakout
-Confirm with expanding ATR showing increasing momentum
-"""
 class Main_CTA(BaseCtaStrategy):
-    def __init__(self, name: str, codes: List[str], period: str, capital: float):
+    def __init__(self, name: str, codes: List[str], period: str, capital: float, plot:bool, train:bool):
         BaseCtaStrategy.__init__(self, name)
         self.__period__ = period
         self.__codes__ = codes
         self.__capital__ = capital
+        self.__plot__ = plot
+        self.__train__ = train
 
         self.config: CChanConfig = CChanConfig()
         self.KLineHandler: Dict[str, KLineHandler] = {}
@@ -127,6 +111,18 @@ class Main_CTA(BaseCtaStrategy):
 
         # models
         self.chan_snapshot: Dict[str, CChan] = {}
+        
+        # ML_models
+        if not self.__train__:
+            self.recognizer = PatternRecognizer(
+                sequence_length=ML_Pattern_Len, 
+                shape_features=2, 
+                additional_features=3,
+                price_normalization='standard',
+                additional_features_normalization='standard'
+            )
+            self.recognizer.load_model(cfg_cpt.model_path)
+            self.recognizer.compile_model()
 
         # factors
 
@@ -144,6 +140,7 @@ class Main_CTA(BaseCtaStrategy):
         # indicators
         self.chandelier_stop: Dict[str, ChandelierIndicator] = {}
         self.parabola_sar_stop: Dict[str, ParabolicSARIndicator] = {}
+        self.adaptive_supertrend: Dict[str, AdaptiveSuperTrend] = {}
         self.volume_weighted_bands: Dict[str, VolumeWeightedBands] = {}
         self.mini_entry_pattern: Dict[str, Mini_Entry_Pattern] = {}
 
@@ -173,14 +170,12 @@ class Main_CTA(BaseCtaStrategy):
 
             # Indicators
             # conservative stop(use earlier)
-            self.chandelier_stop[code] = ChandelierIndicator(
-                length=22, atr_period=2, mult=3)
+            self.chandelier_stop[code] = ChandelierIndicator(length=100, atr_period=2, mult=4)
             # aggressive stop(use latter)
-            self.parabola_sar_stop[code] = ParabolicSARIndicator(
-                acceleration=0.002, max_acceleration=0.02)
+            self.parabola_sar_stop[code] = ParabolicSARIndicator(acceleration=0.001, max_acceleration=0.01, initial_acceleration=0)
+            self.adaptive_supertrend[code] = AdaptiveSuperTrend(atr_len=100, factor=5, lookback=100)
             self.volume_weighted_bands[code] = VolumeWeightedBands(window_size=60*4)
-            self.mini_entry_pattern[code] = Mini_Entry_Pattern(
-                self.kl_datas[code][KL_TYPE.K_1M].bi_list)
+            self.mini_entry_pattern[code] = Mini_Entry_Pattern(self.kl_datas[code][KL_TYPE.K_1M].bi_list)
 
             # ST(Strategies): liquidity
             self.ST_signals[code] = []
@@ -245,15 +240,16 @@ class Main_CTA(BaseCtaStrategy):
                 self.kl_datas[code][lv].PA_Core.parse_dynamic_bi_list()
 
             # update indicators
-            self.longcs, self.shortcs = self.chandelier_stop[code].update(
-                self.high, self.low, self.close, self.ts)
-            self.longshortps = self.parabola_sar_stop[code].update(
-                self.high, self.low, self.ts)
-            self.volume_weighted_bands[code].update(
-                self.high, self.low, self.close, self.volume, self.ts)
+            self.c_long_switch, self.c_short_switch = self.chandelier_stop[code].update(self.high, self.low, self.close, self.ts)
+            self.p_long_switch, self.p_short_switch = self.parabola_sar_stop[code].update(self.high, self.low, self.ts)
+            self.s_long_switch, self.s_short_switch = self.adaptive_supertrend[code].update(self.high, self.low, self.close, self.ts)
+            self.vwap, self.dev = self.volume_weighted_bands[code].update(self.high, self.low, self.close, self.volume, self.ts)
 
             # update bsp
-            self.ST_SR_reversal(context, code)
+            if self.__train__:
+                self.ST_Train(context, code)
+            else:
+                self.ST_SR_reversal(context, code)
 
     def trade_order(self, context: CtaContext, code: str, buy: bool, sell: bool, clear: bool, text: str):
         cpu_id = 0
@@ -338,27 +334,81 @@ class Main_CTA(BaseCtaStrategy):
             for obj in list(chan.kl_datas.items()):
                 size = MemoryAnalyzer().get_deep_size(obj)
                 print(f'{size/1000/1000:3.2f}MB: {obj}')
+        if self.__plot__:
+            from Chan.Plot.PlotDriver import ChanPlotter
+            from Util.plot.plot_fee_grid import plot_fee_grid
+            from Util.plot.plot_show import plot_show
+            
+            for code in self.__codes__:
+                indicators = [
+                    self.chandelier_stop[code],
+                    self.parabola_sar_stop[code],
+                    self.adaptive_supertrend[code],
+                    self.volume_weighted_bands[code],
+                    self.ind_ts,
+                ]
+                if cfg_cpt.dump_ind:
+                    indicators.extend([
+                        self.ind_value,
+                        self.ind_text,
+                    ])
+                fig = ChanPlotter().plot(
+                    self.kl_datas[code], self.markers[code], indicators)
+                fig = plot_fee_grid(fig, dtick=self.last_price[code]*cfg_cpt.FEE)
+                plot_show(fig)
+        
+        if self.__train__:                
+            # Generate some test data
+            print('Generating Traning data')
+            for code in self.__codes__:
+                train_sequences = []
+                train_features  = []
+                train_labels    = []
+                for signal in tqdm(self.ST_signals[code]):
+                    signal_state = signal[0]
+                    bi_pattern = signal[1]
+                    long_short = signal[2]
+                    elasticity = signal[3]
+                    entry_price = signal[4]
+                    label = signal[5]
+                    if signal[0] == 1:
+                        train_sequences.append(bi_pattern)
+                        train_features.append([
+                            int(long_short),
+                            elasticity,
+                            entry_price,
+                        ])
+                        train_labels.append(label)
 
-        from Chan.Plot.PlotDriver import ChanPlotter
-        from Util.plot.plot_fee_grid import plot_fee_grid
-        from Util.plot.plot_show import plot_show
+                train_sequences = np.array(train_sequences)
+                train_features  = np.array(train_features )
+                train_labels    = np.array(train_labels   )
+                
+                # Initialize and train model
+                recognizer = PatternRecognizer(
+                    sequence_length=ML_Pattern_Len, 
+                    shape_features=2, 
+                    additional_features=len(train_features[-1]),
+                    price_normalization='standard',
+                    additional_features_normalization='standard'
+                )
+                history = recognizer.train(
+                    train_sequences, 
+                    train_features, 
+                    train_labels,
+                    epochs=50, 
+                    batch_size=32
+                )
+                recognizer.compile_model()
+                
+                recognizer.save_model(mkdir(cfg_cpt.model_path))
+                
+                # Make predictions
+                predictions = recognizer.predict(train_sequences, train_features)
 
-        for code in self.__codes__:
-            indicators = [
-                self.chandelier_stop[code],
-                self.parabola_sar_stop[code],
-                self.volume_weighted_bands[code],
-                self.ind_ts,
-            ]
-            if cfg_cpt.dump_ind:
-                indicators.extend([
-                    self.ind_value,
-                    self.ind_text,
-                ])
-            fig = ChanPlotter().plot(
-                self.kl_datas[code], self.markers[code], indicators)
-            fig = plot_fee_grid(fig, dtick=self.last_price[code]*cfg_cpt.FEE)
-            plot_show(fig)
+                # Print results
+                for i, (pred, true_label) in enumerate(zip(predictions, train_labels)):
+                    print(f"Sample {i}: Prediction={pred[0]:.2f}, True Label={true_label}")
 
     def ST_SR_reversal(self, context: CtaContext, code: str):  # -> buy, sell, clear
         """
@@ -374,86 +424,94 @@ class Main_CTA(BaseCtaStrategy):
         # ST_signals: [[signal_state, long_short, targets, m1_bi_index, entry_price, pullback, type], ...]
         # ST_trade: [exec_state, long_short, trade_price, targets, type]
         PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
-        m1_bi_list = self.kl_datas[code][KL_TYPE.K_1M].PA_Core.bi_list
-        bi_list = PA.bi_list
+        bi_list_m1 = self.kl_datas[code][KL_TYPE.K_1M].PA_Core.bi_list
+        bi_list_m15 = self.kl_datas[code][KL_TYPE.K_15M].PA_Core.bi_list
         kl_list = self.kl_datas[code][self.lv_list[-1]]
-        if len(bi_list) < 3:  # make sure we have both sup and res
+        if len(bi_list_m15) < 3:  # make sure we have both sup and res
             return
         if self.ST_trade[code] == []:  # no ongoing trade
             # get new potential trade
             #   1. premium region of a relatively strong zone @t1
             #   2. entry mini-pattern formed (trend is not strong) @t1
-            match, long_short, lower_targets, upper_targets, hint = \
+            match, lower_targets, upper_targets, hint = \
             PA.PA_Liquidity.check_sup_res(self.close)
             
             found = False
             if match:
+                long_short =  self.vwap > self.close
                 if long_short:
                     targets = upper_targets
                 else:
                     targets = lower_targets
-                self.ind_ts.append(m1_bi_list[-1].get_end_klu().time.ts)
+                self.ind_ts.append(bi_list_m1[-1].get_end_klu().time.ts)
                 self.ind_value.append(self.close)
                 self.ind_text.append((long_short,hint))
 
-                if len(targets) > 0:  # this is usually not a problem, just to be safe
-                    found, idx_list, type, entry_price, pullback = self.mini_entry_pattern[code].check_patterns(
-                        long_short)
-                    if found and m1_bi_list[-1].is_sure:
+                if len(targets) > 0 and bi_list_m1[-1].is_sure:
+                    # found, idx_list, type, entry_price, pullback = self.mini_entry_pattern[code].check_patterns(long_short)
+                    long_short =  self.vwap > self.close
+                    elasticity =  abs(self.vwap - self.close)/self.dev
+                    sequence = np.array([(bi.get_klu_cnt(), bi.get_end_val()) for bi in bi_list_m1[-ML_Pattern_Len:]])
+                    feature = np.array([
+                        long_short,
+                        elasticity,
+                        self.close,
+                    ])
+                    # sequence = sequence.reshape(1, *sequence.shape)
+                    # feature = feature.reshape(1, -1)
+                    label = self.recognizer.predict_single_sample(sequence, feature)
+                    if label > 0.51:
                         self.ST_signals[code].append(
-                            [0, long_short, targets, idx_list[-1],
-                                entry_price, pullback, '',]
+                            [0, long_short, targets, self.close, '',]
                         )
                         if cfg_cpt.dump_ind:
                             idx = len(self.ind_text)
                             self.ST_signals[code][-1].append(idx)
-                            self.ind_ts.append([bi.get_end_klu().time.ts for bi in m1_bi_list[-6:]])
-                            self.ind_value.append([bi.get_end_val() for bi in m1_bi_list[-6:]])
-                            self.ind_text.append(type)
+                            self.ind_ts.append([bi.get_end_klu().time.ts for bi in bi_list_m1[-6:]])
+                            self.ind_value.append([bi.get_end_val() for bi in bi_list_m1[-6:]])
+                            self.ind_text.append((long_short,''))
 
             # confirm potential trades
             #   3. pull-away from FX in the right direction to avoid fake bi(FX) @t3
             #   4. valid candle pattern(FX strength) @t3
             #   5. valid volume character @t3
             if len(self.ST_signals[code]) > 0:
-
                 for signal in self.ST_signals[code][:]:
                     signal_state = signal[0]
                     long_short = signal[1]
                     targets = signal[2]
-                    m1_bi_index = signal[3]
-                    entry_price = signal[4]
-                    pullback = signal[5]
-                    type = signal[6]
-                    if found and (m1_bi_index not in idx_list):
-                        # signal is even out of pattern checking range, remove
-                        self.ST_signals[code].remove(signal)
-                        continue
+                    entry_price = signal[3]
+                    type = signal[4]
+                    # if found and (m1_bi_index not in idx_list):
+                    #     # signal is even out of pattern checking range, remove
+                    #     self.ST_signals[code].remove(signal)
+                    #     continue
                     if signal_state == 0:
                         if cfg_cpt.dump_ind:
                             idx = signal[-1]
 
-                        # pull-away safety check
-                        #if abs(m1_bi_index-m1_bi_list[-1].idx) > 1:
-                        if m1_bi_index!=m1_bi_list[-1].idx:
-                            # not pulling back in time
-                            self.ST_signals[code].remove(signal)
-                            continue
-                        pull_away_check = False
-                        if long_short and self.close > (entry_price + pullback):
-                            pull_away_check = True
-                        elif not long_short and self.close < (entry_price - pullback):
-                            pull_away_check = True
-                        if not pull_away_check:
-                            continue
-                        if cfg_cpt.dump_ind:
-                            self.ind_text[idx] += '1'
+                        # # pull-away safety check
+                        # #if abs(m1_bi_index-m1_bi_list[-1].idx) > 1:
+                        # if m1_bi_index!=bi_list_m1[-1].idx:
+                        #     # not pulling back in time
+                        #     self.ST_signals[code].remove(signal)
+                        #     continue
+                        # pull_away_check = False
+                        # if long_short and self.close > (entry_price + pullback):
+                        #     pull_away_check = True
+                        # elif not long_short and self.close < (entry_price - pullback):
+                        #     pull_away_check = True
+                        # if not pull_away_check:
+                        #     continue
+                        # if cfg_cpt.dump_ind:
+                        #     self.ind_text[idx] += '1'
 
                         self.ST_trade[code] = [
                             0, long_short, self.close, targets, type]
                         self.ST_signals[code] = []  # clear all signals
                         break
-
+        if self.s_short_switch or self.s_long_switch:
+            print('switch long: ', self.s_long_switch, self.date, self.time)
         if self.ST_trade[code]:  # has ongoing trade
             # state =
             #   0: place order
@@ -466,203 +524,112 @@ class Main_CTA(BaseCtaStrategy):
             trade_price = self.ST_trade[code][2]
             targets = self.ST_trade[code][3]
             type = self.ST_trade[code][4]
+            break_even_high = self.close > trade_price*(1+cfg_cpt.FEE)
+            break_even_low = self.close < trade_price*(1-cfg_cpt.FEE)
             if state == 0:
                 if long_short:
-                    self.trade_order(context, code, True,
-                                     False, False, f'long({type})')  # buy
+                    self.trade_order(context, code, True, False, False, f'long({type})')  # buy
                 else:
-                    self.trade_order(context, code, False,
-                                     True, False, f'short({type})')  # sell
+                    self.trade_order(context, code, False, True, False, f'short({type})')  # sell
                 self.ST_trade[code][0] = 1
             elif state == 1:
                 stop = False
-                if long_short and self.shortcs:
-                    stop = True
-                elif not long_short and self.longcs:
-                    stop = True
+                if long_short:
+                    # if break_even_high:
+                    #     self.ST_trade[code][0] = 2
+                    if self.s_short_switch:
+                        stop = True
+                elif not long_short:
+                    # if break_even_low:
+                    #     self.ST_trade[code][0] = 2
+                    if self.s_long_switch:
+                        stop = True
                 if stop:
-                    self.trade_order(context, code, False,
-                                     False, True, 'algo-tp')  # clear
+                    #self.trade_order(context, code, False,False, True, 'stop')  # clear
+                    self.trade_order(context, code, False, False, True, 'algo-tp')  # clear
                     self.ST_trade[code] = []  # exit trade
+            # elif state == 2:
+            #     stop = False
+            #     if long_short:
+            #         if not break_even_high:
+            #             self.trade_order(context, code, False, False, True, 'even')  # clear
+            #         elif self.c_short_switch:
+            #             stop = True
+            #     elif not long_short:
+            #         if not break_even_low:
+            #             self.trade_order(context, code, False, False, True, 'even')  # clear
+            #         elif self.c_long_switch:
+            #             stop = True
+            #     if stop:
+            #         self.trade_order(context, code, False, False, True, 'algo-tp')  # clear
+            #         self.ST_trade[code] = []  # exit trade
 
-    # ======================================================================
-    # ===============================Strategies=============================
-    # ======================================================================
-    # def ST_bi_align(self, code):
-    #     dirs = []
-    #     bsp = False
-    #     dir = None
-    #     for lv_idx, lv in enumerate(self.lv_list):
-    #         bi_list = self.kl_datas[code][lv].bi_list
-    #         if len(bi_list) == 0:
-    #             return bsp, dir
-    #         dir = bi_list[-1].dir
-    #         dirs.append(dir)
-    #     # you may tempt to do long = [long, long, long, ...] from high to low level
-    #     # actually long = [short, long, long, ...]
-    #     align = (len(set(dirs[1:])) == 1) and (dirs[0] != dirs[1])
-    #     if align and not self.align:
-    #         bsp = True
-    #     else:
-    #         bsp = False
-    #     self.align = align
-    #     return bsp, dir
-    #
-    # def ST_MW_bsp123(self, code):
-    #     """bsp type 1/2/3 on M/W shaped bi"""
-    #     for lv in self.lv_list[-2:]:  # focus on lower levels
-    #         exist, static_shapes = self.kl_datas[code][lv].PA_Core.get_static_shapes(
-    #             potential=True)
-    #         if exist:
-    #             for shape in static_shapes['conv_type']:
-    #                 # print(self.close, shape.top_y[-1], shape.bot_y[-1])
-    #                 if self.close > shape.top_y[-1] > self.close*0.9:
-    #                     # bi up
-    #                     return True, True, False
-    #                 elif self.close < shape.bot_y[-1] < self.close*1.1:
-    #                     # bi down
-    #                     return True, False, True
-    #
-    # def ST_liquidity_zones(self, context: CtaContext, code: str):  # -> buy, sell, clear
-    #     """bsp type liquidity zones"""
-    #     FEE = 0.002
-    #     NO_FEE = 5
-    #
-    #     # ST_signals: [[long_short, fx_price, zone_depth, target], ...]
-    #     # ST_trade: [exec_state, long_short, trade_price, pull_back]
-    #
-    #     PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
-    #     bi_list = PA.bi_list
-    #     kl_list = self.kl_datas[code][self.lv_list[-1]]
-    #     if len(bi_list) < 2:
-    #         return
-    #
-    #     if self.ST_trade[code] == []:  # no ongoing trade
-    #         # get new potential trades
-    #         #   0. wait for 1M to show ChoCh
-    #         #   1. FX @t1
-    #         #   2. sup/res @t1
-    #         #   3. swing range to 1st target > NO_FEE*FEE
-    #         unformed_bi_dy = abs(self.close - PA.bi_list[-2].get_end_val())
-    #         entering_strength = 0.1 * unformed_bi_dy
-    #         if kl_list.fx == FX_TYPE.BOTTOM:
-    #             sup, _, depth, targets = PA.PA_Liquidity.check_sup_res(
-    #                 self.close, entering_strength)
-    #             if sup:
-    #                 if abs(targets[0] - self.close)/self.close > NO_FEE*FEE:
-    #                     self.ST_signals[code].append(
-    #                         [True, kl_list.lst[-2].low, depth, targets])
-    #         elif kl_list.fx == FX_TYPE.TOP:
-    #             _, res, depth, targets = PA.PA_Liquidity.check_sup_res(
-    #                 self.close, entering_strength)
-    #             if res:
-    #                 if abs(self.close - targets[0])/self.close > NO_FEE*FEE:
-    #                     self.ST_signals[code].append(
-    #                         [False, kl_list.lst[-2].high, depth, targets])
-    #
-    #         # confirm potential trades
-    #         #   3. pull back enough @t2
-    #         #   4. valid candle pattern(FX strength) @t2
-    #         #   5. valid volume character @t2
-    #         for signal in self.ST_signals[code]:
-    #             long_short = signal[0]
-    #             fx_price = signal[1]
-    #             zone_depth = signal[2]
-    #             targets = signal[3]
-    #             pull_back = max(entering_strength, zone_depth)
-    #             if long_short and self.close > fx_price + pull_back:
-    #                 # if ...
-    #                 self.ST_trade[code] = [0, long_short,
-    #                                        self.close, pull_back, targets]
-    #                 self.ST_signals[code] = []  # clear all signals
-    #                 break
-    #             if not long_short and self.close < fx_price - pull_back:
-    #                 # if ...
-    #                 self.ST_trade[code] = [0, long_short,
-    #                                        self.close, pull_back, targets]
-    #                 self.ST_signals[code] = []  # clear all signals
-    #                 break
-    #
-    #     if self.ST_trade[code]:  # has ongoing trade
-    #         # state =
-    #         #   0: place order
-    #         #   1: set 1:1 pnl with w=pullback (may lose money)
-    #         #   2: set target to premium region of target opposite liquidity zone,
-    #         #       also raise take_profit to at least break even
-    #         #   3: entered target region, use algo take-profit
-    #         state = self.ST_trade[code][0]
-    #         long_short = self.ST_trade[code][1]
-    #         trade_price = self.ST_trade[code][2]
-    #         pull_back = self.ST_trade[code][3]
-    #         targets = self.ST_trade[code][4]
-    #         if state == 0:
-    #             if long_short:
-    #                 self.trade_order(context, code, True,
-    #                                  False, False, 'long')  # buy
-    #             else:
-    #                 self.trade_order(context, code, False,
-    #                                  True, False, 'short')  # sell
-    #             self.ST_trade[code][0] = 1
-    #         elif state == 1:
-    #             break_low = self.close < trade_price - pull_back
-    #             break_high = self.close > trade_price + pull_back
-    #             if long_short:
-    #                 if break_low:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'stop')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
-    #                 elif break_high:
-    #                     self.ST_trade[code][0] = 2
-    #             else:
-    #                 if break_high:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'stop')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
-    #                 elif break_low:
-    #                     self.ST_trade[code][0] = 2
-    #         elif state == 2:
-    #             target_1st = targets[0]
-    #             if long_short:
-    #                 break_even_low = self.close < trade_price*(1+FEE)
-    #                 break_premium_high = self.close > (
-    #                     2*target_1st + trade_price)/3
-    #                 if break_even_low:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'even')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
-    #                 elif break_premium_high:
-    #                     self.ST_trade[code][0] = 3
-    #             else:
-    #                 break_even_high = self.close > trade_price*(1-FEE)
-    #                 break_premium_low = self.close < (
-    #                     2*target_1st + trade_price)/3
-    #                 if break_even_high:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'even')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
-    #                 elif break_premium_low:
-    #                     self.ST_trade[code][0] = 3
-    #         elif state == 3:
-    #             target_1st = targets[0]
-    #             if long_short:
-    #                 break_premium_low = self.close < (
-    #                     2*target_1st + trade_price)/3
-    #                 if break_premium_low:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'pnl-tp')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
-    #                 elif self.stop_dir == -1:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'algo-tp')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
-    #             else:
-    #                 break_premium_high = self.close > (
-    #                     2*target_1st + trade_price)/3
-    #                 if break_premium_high:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'pnl-tp')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
-    #                 elif self.stop_dir == 1:
-    #                     self.trade_order(context, code, False,
-    #                                      False, True, 'algo-tp')  # clear
-    #                     self.ST_trade[code] = []  # exit trade
+    def ST_Train(self, context: CtaContext, code: str):
+        """
+        Strategy: Training ML model
+        """
+        PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
+        bi_list_m1 = self.kl_datas[code][KL_TYPE.K_1M].PA_Core.bi_list
+        bi_list_m15 = self.kl_datas[code][KL_TYPE.K_15M].PA_Core.bi_list
+        kl_list = self.kl_datas[code][self.lv_list[-1]]
+        if len(bi_list_m15) < 3:  # make sure we have both sup and res
+            return
+
+        match, lower_targets, upper_targets, hint = \
+        PA.PA_Liquidity.check_sup_res(self.close)
+        
+        if match:
+            long_short =  self.vwap > self.close
+            elasticity =  abs(self.vwap - self.close)/self.dev
+            if long_short:
+                targets = upper_targets
+            else:
+                targets = lower_targets
+            if len(targets) > 0: # this is usually not a problem, just to be safe
+                if bi_list_m1[-1].is_sure:
+                    self.ST_signals[code].append([
+                        # status
+                        0, # 0: opened 1: closed with feature and label
+                        
+                        # features
+                        [(bi.get_klu_cnt(), bi.get_end_val()) for bi in bi_list_m1[-ML_Pattern_Len:]], # pattern
+                        long_short, # dir of trade (long/short properties may be asymmetric)
+                        elasticity,
+                        self.close, # entry_price
+                        # TODO: e.g. dst to 1st OB, trend, etc
+                        
+                        # label(pnl)
+                        0.0,
+                        ])
+
+            for signal in self.ST_signals[code][:]:
+                signal_state = signal[0]
+                bi_pattern = signal[1]
+                long_short = signal[2]
+                elasticity = signal[3]
+                entry_price = signal[4]
+                label = signal[5]
+
+                stop = False
+                dir = 0
+                if signal_state == 0:
+                    if long_short:
+                        if self.s_short_switch:
+                            stop = True
+                            dir = 1
+                    elif not long_short:
+                        if self.s_long_switch:
+                            stop = True
+                            dir = -1
+                    if stop:
+                        signal[0] = 1
+                        pnl = dir*(self.close - entry_price)/entry_price
+                        pnl = pnl + 0.5 # [-1, 0 ,1] -> [-0.5, 0.5, 1.5]
+                        if pnl < 0:
+                            pnl = 0
+                        elif pnl > 1:
+                            pnl = 1
+                        signal[5] = pnl
+                        if signal[5] > 0.01:
+                            symbol = "v" if long_short else "^"
+                            print(f'{self.date}-{self.time:>4} {symbol} label:{signal[5]:>3.2f}')

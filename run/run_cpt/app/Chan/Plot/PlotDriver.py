@@ -13,6 +13,7 @@ from config.cfg_cpt import cfg_cpt
 
 from Math.Chandelier_Stop import ChandelierIndicator
 from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
+from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
 from Math.VolumeWeightedBands import VolumeWeightedBands
 
 class ChanPlotter:
@@ -569,8 +570,9 @@ class ChanPlotter:
         if cfg_cpt.dump_ind:
             ind_c:ChandelierIndicator = self.indicators[0]
             ind_ps:ParabolicSARIndicator = self.indicators[1]
-            ind_vb:VolumeWeightedBands = self.indicators[2]
-            ind_ts = self.indicators[3]
+            ind_st:AdaptiveSuperTrend = self.indicators[2]
+            ind_vb:VolumeWeightedBands = self.indicators[3]
+            ind_ts = self.indicators[4]
             ind_value = self.indicators[-2]
             ind_text = self.indicators[-1]
             
@@ -590,29 +592,37 @@ class ChanPlotter:
             #                 opacity=0.6, showlegend=False),
             #     ])
 
-            # print(f'Chandelier Stop({ind_c.switch_idx} switches)...')
-            # self.traces.extend([
-            #     go.Scatter(x=ind_c.his_ts, y=ind_c.his_longcs,
-            #             mode='lines',
-            #             line=dict(color='red', width=1), # dash='dot'
-            #             opacity=0.6, showlegend=False),
-            #     go.Scatter(x=ind_c.his_ts, y=ind_c.his_shortcs,
-            #             mode='lines',
-            #             line=dict(color='blue', width=1), # dash='dot'
-            #             opacity=0.6, showlegend=False),
-            #     go.Scatter(x=ind_c.his_switch_ts, y=ind_c.his_switch_vs,
-            #             mode='markers',
-            #             marker=dict(color='black', size=2), # dash='dot'
-            #             opacity=1, showlegend=False),
-            # ])
-# 
-            # print(f'Parabolic SAR({len(ind_ps.his_ep)} extreme points) Stop...')
-            # self.traces.extend([
-            #     go.Scatter(x=ind_ps.his_ts, y=ind_ps.his_sar,
-            #                mode='lines',
-            #                line=dict(color='black', width=2, dash='dot'), # dash='dot'
-            #                opacity=0.6, showlegend=False),
-            # ])
+            print(f'Chandelier Stop({ind_c.switch_idx} switches)...')
+            self.traces.extend([
+                go.Scatter(x=ind_c.his_ts, y=ind_c.his_longcs,
+                        mode='lines',
+                        line=dict(color='red', width=1), # dash='dot'
+                        opacity=0.6, showlegend=False),
+                go.Scatter(x=ind_c.his_ts, y=ind_c.his_shortcs,
+                        mode='lines',
+                        line=dict(color='blue', width=1), # dash='dot'
+                        opacity=0.6, showlegend=False),
+                go.Scatter(x=ind_c.his_switch_ts, y=ind_c.his_switch_vs,
+                        mode='markers',
+                        marker=dict(color='black', size=2), # dash='dot'
+                        opacity=1, showlegend=False),
+            ])
+            
+            print(f'Parabolic SAR({len(ind_ps.his_ep)} extreme points) Stop...')
+            self.traces.extend([
+                go.Scatter(x=ind_ps.his_ts, y=ind_ps.his_sar,
+                           mode='lines',
+                           line=dict(color='black', width=2, dash='dot'), # dash='dot'
+                           opacity=0.6, showlegend=False),
+            ])
+            
+            print(f'Adaptive(k-means) SuperTrend...')
+            self.traces.extend([
+                go.Scatter(x=ind_st.his_ts, y=ind_st.his_val,
+                           mode='lines',
+                           line=dict(color='purple', width=2), # dash='dot'
+                           opacity=1, showlegend=False),
+            ])
             
             print(f'Volume weighted Bands...')
             self.traces.extend([

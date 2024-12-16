@@ -1,4 +1,4 @@
-from typing import List
+from typing import Tuple, List
 from config.cfg_cpt import cfg_cpt
 
 class VolumeWeightedBands:
@@ -64,7 +64,7 @@ class VolumeWeightedBands:
         weighted_variance = sum(weighted_squared_deviations) / total_volume
         return (weighted_variance ** 0.5) if weighted_variance > 0 else 0
     
-    def update(self, high: float, low: float, close: float, volume: float, ts:float) -> tuple:
+    def update(self, high: float, low: float, close: float, volume: float, ts:float) -> Tuple[float,float]:
         """
         Process new price bar and calculate bands
         Returns: (average, band1_up, band1_down, band2_up, band2_down, ...)
@@ -88,30 +88,30 @@ class VolumeWeightedBands:
         dispersion = self._calculate_rolling_dispersion(average)
         
         # Generate band results
-        result = [average, sum(self.price_history)/len(self.price_history)]
-        for band_config in self.band_params:
-            if len(band_config) == 3:  # Check if band is enabled
-                upper_mult, lower_mult, is_enabled = band_config
-                if is_enabled:
-                    result.extend([
-                        average + upper_mult * dispersion, 
-                        average - lower_mult * dispersion
-                    ])
-                else:
-                    result.extend([0.0, 0.0])
-            else:
-                # Always include bands 1 and 2
-                upper_mult, lower_mult = band_config
-                result.extend([
-                    average + upper_mult * dispersion, 
-                    average - lower_mult * dispersion
-                ])
+        result = (average, dispersion)
+        # sum(self.price_history)/len(self.price_history)
+        # for band_config in self.band_params:
+        #     if len(band_config) == 3:  # Check if band is enabled
+        #         upper_mult, lower_mult, is_enabled = band_config
+        #         if is_enabled:
+        #             result.extend([
+        #                 average + upper_mult * dispersion, 
+        #                 average - lower_mult * dispersion
+        #             ])
+        #         else:
+        #             result.extend([0.0, 0.0])
+        #     else:
+        #         # Always include bands 1 and 2
+        #         upper_mult, lower_mult = band_config
+        #         result.extend([
+        #             average + upper_mult * dispersion, 
+        #             average - lower_mult * dispersion
+        #         ])
         
         
         if cfg_cpt.dump_ind:
             self.his_ts.append(ts)
-            self.his_vavg.append( result[0])
-            self.his_tavg.append( result[1])
-            self.his_b1up.append(result[2])
-            self.his_b1lo.append(result[3])
-        return tuple(result)
+            self.his_vavg.append(result[0])
+            # self.his_b1up.append(result[2])
+            # self.his_b1lo.append(result[3])
+        return result

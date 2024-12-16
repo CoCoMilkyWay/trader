@@ -1,41 +1,44 @@
+from typing import Tuple, List
 from config.cfg_cpt import cfg_cpt
-from typing import Tuple, List, Dict
-
 
 class ChandelierIndicator:
-    def __init__(self, length=22, atr_period=22, mult=3.0):
-        self.length = length
-        self.atr_period = atr_period
-        self.mult = mult
+    def __init__(self, length=22, atr_period=14, mult=2.0, use_close=False):
+        self.high_length = length
+        self.low_length = length
+        self.atr_length = atr_period
+        self.multiplier = mult
+        self.use_close = use_close
 
         # Price histories
-        self.highs:List[float] = []
-        self.lows:List[float] = []
-        self.closes:List[float] = []
-        self.tr:List[float] = []
+        self.highs: List[float] = []
+        self.lows: List[float] = []
+        self.closes: List[float] = []
+        self.tr: List[float] = []
 
         # State variables
-        self.prev_shortcs = 1<<30
-        self.prev_longcs = 0
-        self.prev_direction = 0
-        self.prev_close = 0
-
-        # History
+        self.direction = 1  # Initialize direction as up
+        self.prev_close = None
+        
+        # History for plotting/analysis
         if cfg_cpt.dump_ind:
-            # self.long_idx: int = 0
-            # self.short_idx: int = 0
-            # self.his_longts: List[List[float]] = [[]]
-            # self.his_shortts:List[List[float]] = [[]]
-            # self.his_longcs: List[List[float]] = [[]]
-            # self.his_shortcs:List[List[float]] = [[]]
-
+            self.his_ts: List[float] = []
+            self.his_longcs: List[float] = []
+            self.his_shortcs: List[float] = []
             self.switch_idx: int = 0
             self.his_switch_ts: List[float] = []
             self.his_switch_vs: List[float] = []
 
-            self.his_ts: List[float] = []
-            self.his_longcs: List[float] = []
-            self.his_shortcs: List[float] = []
+    def _calculate_atr(self) -> float:
+        """Calculate RMA-based ATR"""
+        if len(self.tr) < self.atr_length:
+            return 0.0
+        
+        # Use RMA (Rolling Moving Average) for ATR calculation
+        alpha = 1.0 / self.atr_length
+        atr = self.tr[0]
+        for i in range(1, self.atr_length):
+            atr = (alpha * self.tr[i]) + ((1 - alpha) * atr)
+        return atr
 
     def update(self, high: float, low: float, close: float, ts: float) -> Tuple[bool, bool]:
         # Update price histories
@@ -43,93 +46,70 @@ class ChandelierIndicator:
         self.lows.append(low)
         self.closes.append(close)
 
-        # Keep only needed history
-        max_period = max(self.length, self.atr_period)
-        if len(self.highs) > max_period:
+        # Calculate True Range
+        if self.prev_close is not None:
+            tr = max(
+                high - low,
+                abs(high - self.prev_close),
+                abs(low - self.prev_close)
+            )
+        else:
+            tr = high - low
+        self.tr.append(tr)
+
+        # Keep required history length
+        max_period = max(max(self.high_length, self.low_length), self.atr_length)
+        while len(self.highs) > max_period:
             self.highs.pop(0)
             self.lows.pop(0)
             self.closes.pop(0)
-
-        if len(self.highs) < 2:
-            return False, False
-
-        # Calculate TR
-        tr = max(
-            high - low,
-            abs(high - self.prev_close) if self.prev_close else 0,
-            abs(low - self.prev_close) if self.prev_close else 0
-        )
-        self.tr.append(tr)
-        if len(self.tr) > self.atr_period:
             self.tr.pop(0)
 
         if len(self.highs) < max_period:
+            self.prev_close = close
             return False, False
 
         # Calculate ATR
-        atr = sum(self.tr) / len(self.tr)
+        atr = self._calculate_atr()
+        if atr is None:
+            self.prev_close = close
+            return False, False
+
+        atr_mult = atr * self.multiplier
 
         # Calculate stops
-        highest = max(self.highs[-self.length:])
-        lowest = min(self.lows[-self.length:])
+        if self.use_close:
+            roll_length = max(self.high_length, self.low_length)
+            highest = max(self.closes[-roll_length:])
+            lowest = min(self.closes[-roll_length:])
+        else:
+            highest = max(self.highs[-self.high_length:])
+            lowest = min(self.lows[-self.low_length:])
 
-        short_stop = highest + self.mult * atr  # max(tr, atr) * self.mult
-        long_stop = lowest - self.mult * atr
+        long_stop = highest - atr_mult
+        short_stop = lowest + atr_mult
 
-        # Update stops
-        shortcs = short_stop if close > self.prev_shortcs else min(short_stop, self.prev_shortcs)
-        longcs = long_stop if close < self.prev_longcs else max(long_stop, self.prev_longcs)
-        
-        # Calculate switches (close price break through stop level)
-        long_switch = close >= self.prev_shortcs and self.prev_close < self.prev_shortcs
-        short_switch = close <= self.prev_longcs and self.prev_close > self.prev_longcs
+        # Calculate trend changes
+        prev_direction = self.direction
+        if close > long_stop:
+            self.direction = 1
+        elif close < short_stop:
+            self.direction = -1
 
-        # Calculate direction
-        direction = (1 if self.prev_direction <= 0 and long_switch else
-                     -1 if self.prev_direction >= 0 and short_switch else
-                     self.prev_direction)
+        # Determine switches
+        long_switch = self.direction == 1 and prev_direction <= 0
+        short_switch = self.direction == -1 and prev_direction >= 0
 
-        switch = direction != self.prev_direction
-        
-        # Update state
-        self.prev_shortcs = shortcs
-        self.prev_longcs = longcs
-        self.prev_direction = direction
-        self.prev_close = close
-
+        # Store history if enabled
         if cfg_cpt.dump_ind:
-            # if direction == 1 and not long_switch: # long
-            #     self.his_longts[self.long_idx].append(ts)
-            #     self.his_longcs[self.long_idx].append(longcs)
-            # elif direction == -1 and not short_switch: # short
-            #     self.his_shortts[self.short_idx].append(ts)
-            #     self.his_shortcs[self.short_idx].append(shortcs)
-            # if long_switch:
-            #     self.long_idx += 1
-            #     self.his_longts.append([])
-            #     self.his_longcs.append([])
-            # if short_switch:
-            #     self.short_idx += 1
-            #     self.his_shortts.append([])
-            #     self.his_shortcs.append([])
             self.his_ts.append(ts)
-            self.his_longcs.append(longcs)
-            self.his_shortcs.append(shortcs)
-            if switch:
+            self.his_longcs.append(long_stop)
+            self.his_shortcs.append(short_stop)
+            
+            if long_switch or short_switch:
                 self.switch_idx += 1
-                if long_switch:
-                    self.his_switch_ts.append(ts)
-                    self.his_switch_vs.append(longcs)
-                elif short_switch:
-                    self.his_switch_ts.append(ts)
-                    self.his_switch_vs.append(shortcs)
+                self.his_switch_ts.append(ts)
+                self.his_switch_vs.append(long_stop if long_switch else short_stop)
 
+        self.prev_close = close
         return long_switch, short_switch
-
-# # Example usage
-# indicator = ChandelierIndicator()
-#
-# # Feed bar data one at a time
-# bar = {'high': 100, 'low': 98, 'close': 99}
-# result = indicator.update(bar)
-# print(result)
