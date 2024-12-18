@@ -2,20 +2,20 @@ class cfg_cpt:  # Constants Configs
     import os
 
     period, n = 'm', 1  # bar period
-    start = 202306010000
-    end   = 202306100000
+    start = 202405010000
+    end   = 202405100000
     capital = 10000000
 
     # run_mode(1 in 3):
-    normal = False
+    normal = True
     train  = False
-    stats  = True
+    stats  = False
 
     # misc functions:
     analyze = True
     plot    = True
     snoop   = False
-    profile = True
+    profile = False
     panel   = False
     
     mode = '/um'  # spot, um, cm
@@ -43,6 +43,17 @@ class cfg_cpt:  # Constants Configs
     # indicators
     stats_result = './strategy/CPT_Statistics/stats'
     dump_ind = True if normal else False
+    plot_chandelier = True
+    plot_chandekroll = True
+    plot_parabolic_sar = True
+    plot_adaptive_supertrend = True
+    plot_lorentzian_classifier = True
+
+    plot_vwma_bands = False
+
+    plot_bi_shapes = False
+    plot_bsp = True
+
 
     FEE = 0.0015
     NO_FEE = 5

@@ -15,6 +15,7 @@ class VolumeWeightedBands:
                  enable_band5: bool = False):
         
         # Rolling window configuration
+        assert(window_size>=10)
         self.window_size = window_size
         
         # Price and volume history for rolling calculation
@@ -86,9 +87,16 @@ class VolumeWeightedBands:
         
         # Calculate price dispersion
         dispersion = self._calculate_rolling_dispersion(average)
+        disp_mult = 0.0
+        if dispersion and average:
+            disp_mult = abs(close-average)/dispersion
+            if disp_mult > 100:
+                print('wtf', average, disp_mult, dispersion)
+                disp_mult = 100
         
+        # print(average, disp_mult, dispersion)
         # Generate band results
-        result = (average, dispersion)
+        result = (average, disp_mult)
         # sum(self.price_history)/len(self.price_history)
         # for band_config in self.band_params:
         #     if len(band_config) == 3:  # Check if band is enabled

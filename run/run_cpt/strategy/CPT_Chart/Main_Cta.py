@@ -21,10 +21,15 @@ from Chan.KLine.KLine_List import CKLine_List
 from PA.PA_Pattern_Chart import conv_type
 from Util.UtilCpt import mkdir
 from Util.MemoryAnalyzer import MemoryAnalyzer
+
 from Util.BiLTSM_Pattern_Recog import PatternRecognizer
+
 from Math.Chandelier_Stop import ChandelierIndicator
+from Math.ChandeKroll_Stop import ChandeKrollStop
 from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
 from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
+from Math.LorentzianClassifier import LorentzianClassifier
+
 from Math.VolumeWeightedBands import VolumeWeightedBands
 from Math.Mini_Entry_Pattern import Mini_Entry_Pattern
 
@@ -139,8 +144,10 @@ class Main_CTA(BaseCtaStrategy):
 
         # indicators
         self.chandelier_stop: Dict[str, ChandelierIndicator] = {}
+        self.chandekroll_stop: Dict[str, ChandeKrollStop] = {}
         self.parabola_sar_stop: Dict[str, ParabolicSARIndicator] = {}
         self.adaptive_supertrend: Dict[str, AdaptiveSuperTrend] = {}
+        self.lorentzian_classifier: Dict[str, LorentzianClassifier] = {}
         self.volume_weighted_bands: Dict[str, VolumeWeightedBands] = {}
         self.mini_entry_pattern: Dict[str, Mini_Entry_Pattern] = {}
 
@@ -169,11 +176,11 @@ class Main_CTA(BaseCtaStrategy):
             self.markers[code] = []
 
             # Indicators
-            # conservative stop(use earlier)
-            self.chandelier_stop[code] = ChandelierIndicator(length=100, atr_period=2, mult=4)
-            # aggressive stop(use latter)
-            self.parabola_sar_stop[code] = ParabolicSARIndicator(acceleration=0.001, max_acceleration=0.01, initial_acceleration=0)
-            self.adaptive_supertrend[code] = AdaptiveSuperTrend(atr_len=100, factor=5, lookback=100)
+            self.chandelier_stop[code] = ChandelierIndicator(length=300, atr_period=2, mult=0.2)
+            self.chandekroll_stop[code] = ChandeKrollStop(atr_length=10, atr_coef=1, stop_len=9)
+            self.parabola_sar_stop[code] = ParabolicSARIndicator(acceleration=0.001, max_acceleration=0.005, initial_acceleration=0)
+            self.adaptive_supertrend[code] = AdaptiveSuperTrend(atr_len=100, factor=7, lookback=100)
+            self.lorentzian_classifier[code] = LorentzianClassifier()
             self.volume_weighted_bands[code] = VolumeWeightedBands(window_size=60*4)
             self.mini_entry_pattern[code] = Mini_Entry_Pattern(self.kl_datas[code][KL_TYPE.K_1M].bi_list)
 
@@ -241,11 +248,15 @@ class Main_CTA(BaseCtaStrategy):
 
             # update indicators
             self.c_long_switch, self.c_short_switch = self.chandelier_stop[code].update(self.high, self.low, self.close, self.ts)
+            self.k_long_switch, self.k_short_switch = self.chandekroll_stop[code].update(self.high, self.low, self.close, self.ts)
             self.p_long_switch, self.p_short_switch = self.parabola_sar_stop[code].update(self.high, self.low, self.ts)
             self.s_long_switch, self.s_short_switch = self.adaptive_supertrend[code].update(self.high, self.low, self.close, self.ts)
+            self.l_long_switch, self.l_short_switch = self.lorentzian_classifier[code].update(self.high, self.low, self.close, self.volume)
             self.vwap, self.dev = self.volume_weighted_bands[code].update(self.high, self.low, self.close, self.volume, self.ts)
 
             # update bsp
+            self.long_switch = self.c_long_switch
+            self.short_switch = self.c_short_switch
             if self.__train__:
                 self.ST_Train(context, code)
             else:
@@ -342,6 +353,7 @@ class Main_CTA(BaseCtaStrategy):
             for code in self.__codes__:
                 indicators = [
                     self.chandelier_stop[code],
+                    self.chandekroll_stop[code],
                     self.parabola_sar_stop[code],
                     self.adaptive_supertrend[code],
                     self.volume_weighted_bands[code],
@@ -424,8 +436,8 @@ class Main_CTA(BaseCtaStrategy):
         # ST_signals: [[signal_state, long_short, targets, m1_bi_index, entry_price, pullback, type], ...]
         # ST_trade: [exec_state, long_short, trade_price, targets, type]
         PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
-        bi_list_m1 = self.kl_datas[code][KL_TYPE.K_1M].PA_Core.bi_list
-        bi_list_m15 = self.kl_datas[code][KL_TYPE.K_15M].PA_Core.bi_list
+        bi_list_m1 = self.kl_datas[code][KL_TYPE.K_1M].bi_list
+        bi_list_m15 = self.kl_datas[code][KL_TYPE.K_15M].bi_list
         kl_list = self.kl_datas[code][self.lv_list[-1]]
         if len(bi_list_m15) < 3:  # make sure we have both sup and res
             return
@@ -510,8 +522,6 @@ class Main_CTA(BaseCtaStrategy):
                             0, long_short, self.close, targets, type]
                         self.ST_signals[code] = []  # clear all signals
                         break
-        if self.s_short_switch or self.s_long_switch:
-            print('switch long: ', self.s_long_switch, self.date, self.time)
         if self.ST_trade[code]:  # has ongoing trade
             # state =
             #   0: place order
@@ -537,12 +547,12 @@ class Main_CTA(BaseCtaStrategy):
                 if long_short:
                     # if break_even_high:
                     #     self.ST_trade[code][0] = 2
-                    if self.s_short_switch:
+                    if self.short_switch:
                         stop = True
                 elif not long_short:
                     # if break_even_low:
                     #     self.ST_trade[code][0] = 2
-                    if self.s_long_switch:
+                    if self.long_switch:
                         stop = True
                 if stop:
                     #self.trade_order(context, code, False,False, True, 'stop')  # clear
@@ -553,12 +563,12 @@ class Main_CTA(BaseCtaStrategy):
             #     if long_short:
             #         if not break_even_high:
             #             self.trade_order(context, code, False, False, True, 'even')  # clear
-            #         elif self.c_short_switch:
+            #         elif self.short_switch:
             #             stop = True
             #     elif not long_short:
             #         if not break_even_low:
             #             self.trade_order(context, code, False, False, True, 'even')  # clear
-            #         elif self.c_long_switch:
+            #         elif self.long_switch:
             #             stop = True
             #     if stop:
             #         self.trade_order(context, code, False, False, True, 'algo-tp')  # clear
@@ -614,11 +624,11 @@ class Main_CTA(BaseCtaStrategy):
                 dir = 0
                 if signal_state == 0:
                     if long_short:
-                        if self.s_short_switch:
+                        if self.short_switch:
                             stop = True
                             dir = 1
                     elif not long_short:
-                        if self.s_long_switch:
+                        if self.long_switch:
                             stop = True
                             dir = -1
                     if stop:
