@@ -646,20 +646,20 @@ class ChanPlotter:
                 self.traces.extend([
                     go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_vavg,
                                mode='lines',
-                               line=dict(color='orange', width=2), # dash='dot
+                               line=dict(color='black', width=4), # dash='dot
                                opacity=1, showlegend=False),
-                    go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_tavg,
-                               mode='lines',
-                               line=dict(color='blue', width=2), # dash='dot
-                               opacity=1, showlegend=False),
+                    # go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_tavg,
+                    #            mode='lines',
+                    #            line=dict(color='blue', width=2), # dash='dot
+                    #            opacity=1, showlegend=False),
                     go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1up,
                                mode='lines',
-                               line=dict(color='black', width=2), # dash='dot
-                               opacity=0.4, showlegend=False),
+                               line=dict(color='gray', width=4), # dash='dot
+                               opacity=1, showlegend=False),
                     go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1lo,
                                mode='lines',
-                               line=dict(color='black', width=2), # dash='dot
-                               opacity=0.4, showlegend=False),
+                               line=dict(color='gray', width=4), # dash='dot
+                               opacity=1, showlegend=False),
                 ])
             
             if cfg_cpt.plot_bi_shapes:

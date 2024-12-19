@@ -176,12 +176,15 @@ class Main_CTA(BaseCtaStrategy):
             self.markers[code] = []
 
             # Indicators
+            # 1M (short memory indicators, which would still work for 5hrs trend/patterns because of algo)
             self.chandelier_stop[code] = ChandelierIndicator(length=300, atr_period=2, mult=0.2)
             self.chandekroll_stop[code] = ChandeKrollStop(atr_length=10, atr_coef=1, stop_len=9)
             self.parabola_sar_stop[code] = ParabolicSARIndicator(acceleration=0.001, max_acceleration=0.005, initial_acceleration=0)
+            # 5M
             self.adaptive_supertrend[code] = AdaptiveSuperTrend(atr_len=100, factor=7, lookback=100)
             self.lorentzian_classifier[code] = LorentzianClassifier()
-            self.volume_weighted_bands[code] = VolumeWeightedBands(window_size=60*4)
+            # 15M
+            self.volume_weighted_bands[code] = VolumeWeightedBands(window_size=int(2000/15), window_size_atr=int(240/15)) # match with 2hrs median holding time(based on our research)
             self.mini_entry_pattern[code] = Mini_Entry_Pattern(self.kl_datas[code][KL_TYPE.K_1M].bi_list)
 
             # ST(Strategies): liquidity
@@ -237,7 +240,8 @@ class Main_CTA(BaseCtaStrategy):
             self.volume = np_bars.volumes[-1]
             # multi-level k bar generation
             klu_dict = self.KLineHandler[code].process_bar(np_bars)
-            self.ts = klu_dict[KL_TYPE.K_1M][-1].time.ts
+            K = K = klu_dict[KL_TYPE.K_1M][-1]
+            self.ts = K.time.ts
 
             # process Chan elements (generates Bi)
             self.chan_snapshot[code].trigger_load(klu_dict)
@@ -247,16 +251,28 @@ class Main_CTA(BaseCtaStrategy):
                 self.kl_datas[code][lv].PA_Core.parse_dynamic_bi_list()
 
             # update indicators
-            self.c_long_switch, self.c_short_switch = self.chandelier_stop[code].update(self.high, self.low, self.close, self.ts)
-            self.k_long_switch, self.k_short_switch = self.chandekroll_stop[code].update(self.high, self.low, self.close, self.ts)
-            self.p_long_switch, self.p_short_switch = self.parabola_sar_stop[code].update(self.high, self.low, self.ts)
-            self.s_long_switch, self.s_short_switch = self.adaptive_supertrend[code].update(self.high, self.low, self.close, self.ts)
-            self.l_long_switch, self.l_short_switch = self.lorentzian_classifier[code].update(self.high, self.low, self.close, self.volume)
-            self.vwap, self.dev = self.volume_weighted_bands[code].update(self.high, self.low, self.close, self.volume, self.ts)
-
+            self.c_long_switch, self.c_short_switch = self.chandelier_stop[code].update(K.high, K.low, K.close, self.ts)
+            self.k_long_switch, self.k_short_switch = self.chandekroll_stop[code].update(K.high, K.low, K.close, self.ts)
+            self.p_long_switch, self.p_short_switch = self.parabola_sar_stop[code].update(K.high, K.low, self.ts)
+            
+            if KL_TYPE.K_5M in klu_dict:
+                K = klu_dict[KL_TYPE.K_5M][-1]
+                self.s_long_switch, self.s_short_switch = self.adaptive_supertrend[code].update(K.high, K.low, K.close, self.ts,)
+                self.l_long_switch, self.l_short_switch = self.lorentzian_classifier[code].update(K.high, K.low, K.close, K.volume)
+                
+            if KL_TYPE.K_15M in klu_dict:
+                K = klu_dict[KL_TYPE.K_15M][-1]
+                [self.vwap, self.dev_mult, _, _] = self.volume_weighted_bands[code].update(K.high, K.low, K.close, K.volume, self.ts,)
+                
             # update bsp
             self.long_switch = self.c_long_switch
             self.short_switch = self.c_short_switch
+            
+            # indicator guard
+            if self.barnum < 2*24*60: # need 2 days of 1M data to prepare indicators
+                return
+            
+            # strategy analysis
             if self.__train__:
                 self.ST_Train(context, code)
             else:
@@ -429,9 +445,10 @@ class Main_CTA(BaseCtaStrategy):
             1M: entry pattern
         """
         # NOTE: we are doing reversal here
-        # when do you expect price to reverse at S&R regions?
-        # yes, when trend is not strong, market is ranging, which is what happens most of times
-        # thus we expect to see some mini-structures forming in lower level candles (e.g. 1M)
+        # when do you expect price to reverse?
+        # yes, when price deviate from MA and momentum vanishes
+        # better, if this happens around S&R regions
+        # entry? when we see some mini-structures forming in lower level candles (e.g. 1M)
 
         # ST_signals: [[signal_state, long_short, targets, m1_bi_index, entry_price, pullback, type], ...]
         # ST_trade: [exec_state, long_short, trade_price, targets, type]
@@ -462,7 +479,7 @@ class Main_CTA(BaseCtaStrategy):
                 if len(targets) > 0 and bi_list_m1[-1].is_sure:
                     # found, idx_list, type, entry_price, pullback = self.mini_entry_pattern[code].check_patterns(long_short)
                     long_short =  self.vwap > self.close
-                    elasticity =  abs(self.vwap - self.close)/self.dev
+                    elasticity =  self.dev_mult
                     sequence = np.array([(bi.get_klu_cnt(), bi.get_end_val()) for bi in bi_list_m1[-ML_Pattern_Len:]])
                     feature = np.array([
                         long_short,
@@ -590,7 +607,7 @@ class Main_CTA(BaseCtaStrategy):
         
         if match:
             long_short =  self.vwap > self.close
-            elasticity =  abs(self.vwap - self.close)/self.dev
+            elasticity =  self.dev_mult
             if long_short:
                 targets = upper_targets
             else:

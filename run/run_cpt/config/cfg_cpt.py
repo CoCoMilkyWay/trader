@@ -2,17 +2,17 @@ class cfg_cpt:  # Constants Configs
     import os
 
     period, n = 'm', 1  # bar period
-    start = 202405010000
-    end   = 202405100000
+    start = 202301010000
+    end   = 202506010000
     capital = 10000000
 
     # run_mode(1 in 3):
-    normal = True
+    normal = False
     train  = False
-    stats  = False
+    stats  = True
 
     # misc functions:
-    analyze = True
+    analyze = False
     plot    = True
     snoop   = False
     profile = False
@@ -37,24 +37,31 @@ class cfg_cpt:  # Constants Configs
     ASSET_FILE = script_dir + '/cpt_assets.json'
     WT_STORAGE_DIR = script_dir + '/../../storage'
 
-    # ML model
+    # ML model =========================================
     model_path = './models/BiLTSM.pkl'
 
-    # indicators
+    # indicators =========================================
     stats_result = './strategy/CPT_Statistics/stats'
     dump_ind = True if normal else False
     plot_chandelier = True
-    plot_chandekroll = True
-    plot_parabolic_sar = True
-    plot_adaptive_supertrend = True
-    plot_lorentzian_classifier = True
+    plot_chandekroll = False
+    plot_parabolic_sar = False
+    plot_adaptive_supertrend = False
+    plot_lorentzian_classifier = False
 
-    plot_vwma_bands = False
+    plot_vwma_bands = True
 
     plot_bi_shapes = False
     plot_bsp = True
 
+    # Stats Analysis =========================================
+    analyze_fourier = True
+    analyze_bi = True
+    analyze_vwma = True
+    analyze_longshort = True
 
+    analyze_n_month = 3
+
+    # Fees =========================================
     FEE = 0.0015
     NO_FEE = 5
-    

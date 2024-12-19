@@ -34,6 +34,7 @@ class IndicatorLSStats: # longshort
     params: dict
     code: str
     year: int
+    month: int
     
 @dataclass
 class IndicatorBiStats: # bi
@@ -50,7 +51,8 @@ class IndicatorBiStats: # bi
     lv: str
     code: str
     year: int
-    
+    month: int
+
 @dataclass
 class IndicatorVwmaStats: # vwma
     # vwma analysis
@@ -72,6 +74,7 @@ class IndicatorVwmaStats: # vwma
     params: dict
     code: str
     year: int
+    month: int
 
 class IndicatorAnalyzer:
     def __init__(self):
@@ -105,8 +108,9 @@ class IndicatorAnalyzer:
         """Convert parameters to short form text"""
         return ','.join(f"{self.param_acronyms.get(k, k)}:{v}" for k, v in params.items())
 
-    def load_data(self, data_dir: str) -> Dict[str,List]:
+    def load_data(self, data_dir: str) -> Dict:
         """Load and process all JSON files in the specified directory"""
+        ind_fourier = []
         ind_bi = []
         ind_vwma = []
         ind_longshort = []
@@ -115,26 +119,32 @@ class IndicatorAnalyzer:
         for file_path in json_files:
             split_names = Path(file_path).stem.split('_')
             year = int(split_names[0])
+            month = int(split_names[1])
             with open(file_path, 'r') as f:
                 data = json.load(f)
                 
             for code, code_data in data.items():
                 for indicator, indicator_data in code_data.items():
-                    if indicator == 'bi':
+                    if indicator == 'fourier':
+                        ind_fourier.append(indicator_data)
+                        ind_fourier[-1]['year'] = year
+                        ind_fourier[-1]['month'] = month
+                    elif indicator == 'bi':
                         for bi_lv, results in indicator_data.items():
                             ind_bi.append(IndicatorBiStats(
-                                delta_mean   =results['delta'][0],
-                                delta_std    =results['delta'][1]/SCALE_PROFIT,
-                                delta_median =results['delta'][4],
-                                period_mean  =results['period'][0],
-                                period_std   =results['period'][1]/SCALE_PROFIT,
-                                period_median=results['period'][4],
-                                delta_shape  =results['delta_shape'],
-                                period_shape =results['period_shape'],
-                                indicator    =indicator,
-                                lv           =results['lv'],
-                                code         =code,
-                                year         =year,
+                                delta_mean   = results['delta'][0],
+                                delta_std    = results['delta'][1]/SCALE_PROFIT,
+                                delta_median = results['delta'][4],
+                                period_mean  = results['period'][0],
+                                period_std   = results['period'][1]/SCALE_PROFIT,
+                                period_median= results['period'][4],
+                                delta_shape  = results['delta_shape'],
+                                period_shape = results['period_shape'],
+                                indicator    = indicator,
+                                lv           = results['lv'],
+                                code         = code,
+                                year         = year,
+                                month        = month,
                                 ))
                     elif indicator == 'vwma':
                         for config_id, results in indicator_data.items():
@@ -157,6 +167,7 @@ class IndicatorAnalyzer:
                                 params              = results['params'],
                                 code                = code,
                                 year                = year,
+                                month               = month,
                                 ))
                     else:
                         if indicator == 'lorentzian':
@@ -164,20 +175,22 @@ class IndicatorAnalyzer:
                             continue
                         for config_id, results in indicator_data.items():
                             ind_longshort.append(IndicatorLSStats(
-                                profit_mean  =(results['long_profits'][0] + results['short_profits'][0]) * 0.5,
-                                profit_std   =(results['long_profits'][1] + results['short_profits'][1]) * 0.5/SCALE_PROFIT,
-                                profit_median=(results['long_profits'][4] + results['short_profits'][4]) * 0.5,
-                                hold_mean    =(results['long_holds'][0] + results['short_holds'][0]) * 0.5 / 3600,
-                                hold_std     =(results['long_holds'][1] + results['short_holds'][1]) * 0.5 / 3600/SCALE_HOLD,
-                                hold_median  =(results['long_holds'][4] + results['short_holds'][4]) * 0.5 / 3600,
-                                profit_shape =(results['profit_shape']),
-                                hold_shape   =(results['hold_shape']),
-                                indicator    =indicator,
-                                params       =results['params'],
-                                code         =code,
-                                year         =year,
+                                profit_mean  = (results['long_profits'][0] + results['short_profits'][0]) * 0.5,
+                                profit_std   = (results['long_profits'][1] + results['short_profits'][1]) * 0.5/SCALE_PROFIT,
+                                profit_median= (results['long_profits'][4] + results['short_profits'][4]) * 0.5,
+                                hold_mean    = (results['long_holds'][0] + results['short_holds'][0]) * 0.5 / 3600,
+                                hold_std     = (results['long_holds'][1] + results['short_holds'][1]) * 0.5 / 3600/SCALE_HOLD,
+                                hold_median  = (results['long_holds'][4] + results['short_holds'][4]) * 0.5 / 3600,
+                                profit_shape = (results['profit_shape']),
+                                hold_shape   = (results['hold_shape']),
+                                indicator    = indicator,
+                                params       = results['params'],
+                                code         = code,
+                                year         = year,
+                                month        = month,
                                 ))
         return {
+            'fourier': ind_fourier,
             'bi': ind_bi,
             'vwma': ind_vwma,
             'longshort': ind_longshort,
@@ -201,22 +214,54 @@ class IndicatorAnalyzer:
             'yaxis': dict(showgrid=True, gridwidth=1, gridcolor='LightGray', zeroline=True)
         }
 
+    def adjust_color_for_date(self, base_color: str, year: int, month: int) -> str:
+        """Adjust color based on date - earlier dates are lighter"""
+        # Convert hex to RGB
+        r = int(base_color[1:3], 16)
+        g = int(base_color[3:5], 16)
+        b = int(base_color[5:7], 16)
+        
+        # Calculate date factor (assume data range is roughly 2020-2024)
+        # Earlier dates will have lower factors
+        min_year = 2023
+        max_year = 2024
+        date_factor = (year - min_year) * 12 + month
+        max_factor = (max_year - min_year) * 12 + 12  # Maximum possible date
+        min = 0.1
+        max = 1
+        opacity = min + ((max-min) * date_factor / max_factor)  # Range from 0.3 to 1.0
+        
+        # Adjust RGB values
+        r = int(255 - (255 - r) * opacity)
+        g = int(255 - (255 - g) * opacity)
+        b = int(255 - (255 - b) * opacity)
+        
+        return f'#{r:02x}{g:02x}{b:02x}'
+
     def plot_performance(self, output_path: str = ''):
-        n = 3
+        n = 4
+        # masks = [cfg_cpt.analyze_longshort, cfg_cpt.analyze_bi, cfg_cpt.analyze_vwma, cfg_cpt.analyze_fourier]
+        
         stats_list = self.load_data(cfg_cpt.stats_result)
         fig = make_subplots(rows=n, cols=1, subplot_titles=(
             "Take-Profit/Stop-Loss Method Analysis",
             "Chan-Bi Analysis - Period vs (%)delta",
-            "VWMA Analysis - Period vs Max Deviation"
+            "VWMA Analysis - Period vs Max Deviation",
+            "Fourier Transform Analysis - Period vs Amplitude",
             ),
             vertical_spacing=0.08,
         )
-
+        
         # Create all three visualizations
-        fig = self.plot_longshort_performance(fig, stats_list['longshort'])
-        fig = self.plot_bi_performance(fig, stats_list['bi'])
-        fig = self.plot_vwma_performance(fig, stats_list['vwma'])
-
+        if cfg_cpt.analyze_longshort:
+            fig = self.plot_longshort_performance(fig, stats_list['longshort'])
+        if cfg_cpt.analyze_bi:
+            fig = self.plot_bi_performance(fig, stats_list['bi'])
+        if cfg_cpt.analyze_vwma:
+            fig = self.plot_vwma_performance(fig, stats_list['vwma'])
+        if cfg_cpt.analyze_fourier:
+            fig = self.plot_fourier_performance(fig, stats_list['fourier'])
+        
         # Create legend positions in a cleaner way
         legend_positions = {
             f'legend{i+1}': dict(
@@ -224,7 +269,7 @@ class IndicatorAnalyzer:
                 x=1.05,
                 xanchor='left',
                 yanchor=['top', 'middle', 'bottom'][i]
-            ) for i in range(n)
+            ) for i in range(n) if i < 3
         }
         
         # Update layout with legend positions
@@ -233,7 +278,7 @@ class IndicatorAnalyzer:
             **legend_positions,
             showlegend=True
         )
-
+        
         if output_path:
             fig.write_html(output_path)
         fig.show()
@@ -241,78 +286,7 @@ class IndicatorAnalyzer:
     def plot_longshort_performance(self, fig:go.Figure, stats_list: List[IndicatorLSStats]):
         print('Plotting Longshort Perf...')
         row = 1
-        def get_cluster_points(stats_list: List[IndicatorLSStats], eps=0.3, min_samples=2):
-            """Cluster points based on profit and hold time medians, separately for each indicator"""
-            # Get unique indicators
-            indicators = set(stat.indicator for stat in stats_list)
-
-            # Initialize labels array with -1 (noise)
-            all_labels = np.array([-1] * len(stats_list))
-            current_label = 0
-
-            # Process each indicator separately
-            for indicator in indicators:
-                # Get indices and points for this indicator
-                indicator_indices = [i for i, stat in enumerate(stats_list) if stat.indicator == indicator]
-                if not indicator_indices:
-                    continue
-
-                indicator_points = np.array([[stats_list[i].profit_median, stats_list[i].hold_median] 
-                                           for i in indicator_indices])
-
-                # Scale points for this indicator
-                scaler = StandardScaler()
-                points_scaled = scaler.fit_transform(indicator_points)
-
-                # Perform clustering for this indicator
-                clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(points_scaled)
-
-                # Update labels, offsetting by current_label to keep them unique across indicators
-                valid_labels = clustering.labels_[clustering.labels_ != -1]
-                if len(valid_labels) > 0:
-                    clustering.labels_[clustering.labels_ != -1] += current_label
-                    current_label = max(clustering.labels_) + 1
-
-                # Assign labels to main array
-                all_labels[indicator_indices] = clustering.labels_
-
-            return all_labels, None  # Return None for scaler as it's not used anymore
-
-        def get_cluster_info(stats_list: List[IndicatorLSStats], cluster_labels: np.ndarray, 
-                            cluster_id: int) -> str:
-            """Get summary info for a cluster"""
-            cluster_stats = [s for s, l in zip(stats_list, cluster_labels) if l == cluster_id]
-
-            # Ensure all stats in cluster are from the same indicator
-            indicators = set(stat.indicator for stat in cluster_stats)
-            if len(indicators) > 1:
-                print(f"Warning: Cluster {cluster_id} contains multiple indicators: {indicators}")
-                return "Error: Mixed indicators"
-
-            # Get unique parameter combinations
-            param_ranges = {}
-            for stat in cluster_stats:
-                for param, value in stat.params.items():
-                    if param not in param_ranges:
-                        param_ranges[param] = set()
-                    param_ranges[param].add(value)
-
-            # Create summary text
-            param_text = []
-            for param, values in param_ranges.items():
-                acronym = self.param_acronyms.get(param, param)
-                if len(values) == 1:
-                    param_text.append(f"{acronym}:{next(iter(values))}")
-                else:
-                    param_text.append(f"{acronym}:{min(values)}-{max(values)}")
-
-            return f"n={len(cluster_stats)}\n" + "\n".join(param_text)
-
-        # Cluster points
-        cluster_labels, scaler = get_cluster_points(stats_list, eps=0.3, min_samples=2)
-        n_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
-        print(f"Number of clusters: {n_clusters}")
-
+        
         # Add grouped legend entries
         # First group: Point types (Mean/Median)
         fig.add_trace(go.Scatter(
@@ -351,7 +325,8 @@ class IndicatorAnalyzer:
         # Plot ellipses and points
         for stat in stats_list:
             base_color = self.colors[stat.indicator]
-
+            adjusted_color = self.adjust_color_for_date(base_color, stat.year, stat.month)
+            
             # Add ellipse
             x, y = self.create_ellipse_points(
                 stat.profit_mean, stat.hold_mean,
@@ -360,8 +335,8 @@ class IndicatorAnalyzer:
             fig.add_trace(go.Scatter(
                 x=x, y=y,
                 fill="toself",
-                fillcolor=f'rgba{tuple(list(int(base_color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4)) + [0.1])}',
-                line=dict(color=base_color, width=0.5),
+                fillcolor=f'rgba{tuple(list(int(adjusted_color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4)) + [0.1])}',
+                line=dict(color=adjusted_color, width=0.5),
                 showlegend=False,
                 hoverinfo="skip"
                 ), row=row, col=1)
@@ -371,7 +346,7 @@ class IndicatorAnalyzer:
                 x=[stat.profit_mean, stat.profit_median],
                 y=[stat.hold_mean, stat.hold_median],
                 mode='lines',
-                line=dict(color=base_color, width=0.5, dash='dot'),
+                line=dict(color=adjusted_color, width=0.5, dash='dot'),
                 showlegend=False,
                 hoverinfo="skip"
                 ), row=row, col=1)
@@ -384,12 +359,12 @@ class IndicatorAnalyzer:
                 marker=dict(
                     symbol='diamond',
                     size=15,
-                    color=base_color,
+                    color=adjusted_color,
                     opacity=0.7,
-                    line=dict(color=base_color, width=1)
+                    line=dict(color=adjusted_color, width=1)
                 ),
                 showlegend=False,
-                hovertext=f"Mean<br>Params:{stat.params}<br>Profit:{stat.profit_mean:.2f}%<br>Hold:{stat.hold_mean:.2f}h%<br>Shapes:{stat.profit_shape}/{stat.hold_shape}",
+                hovertext=f"Mean<br>Params:{stat.params}<br>{stat.year}-{stat.month}<br>Profit:{stat.profit_mean:.2f}%<br>Hold:{stat.hold_mean:.2f}h%<br>Shapes:{stat.profit_shape}/{stat.hold_shape}",
                 hoverinfo="text"
                 ), row=row, col=1)
 
@@ -401,58 +376,15 @@ class IndicatorAnalyzer:
                 marker=dict(
                     symbol='circle',
                     size=15,
-                    color=base_color,
+                    color=adjusted_color,
                     opacity=0.7,
-                    line=dict(color=base_color, width=1)
+                    line=dict(color=adjusted_color, width=1)
                 ),
                 showlegend=False,
-                hovertext=f"Median<br>Params:{stat.params}<br>Profit:{stat.profit_median:.2f}%<br>Hold:{stat.hold_median:.2f}h",
+                hovertext=f"Median<br>Params:{stat.params}<br>{stat.year}-{stat.month}<br>Profit:{stat.profit_median:.2f}%<br>Hold:{stat.hold_median:.2f}h",
                 hoverinfo="text"
                 ), row=row, col=1)
-
-        # Add cluster labels
-        for i, cluster_id in enumerate(range(n_clusters)):
-            mask = cluster_labels == cluster_id
-            if not any(mask):
-                continue
             
-            cluster_points = [(s.profit_median, s.hold_median) for s, m in zip(stats_list, mask) if m]
-            cluster_center = np.mean(cluster_points, axis=0)
-    
-            indicator = next(s.indicator for s, m in zip(stats_list, mask) if m)
-            base_color = self.colors[indicator]
-    
-            # Calculate offset direction based on cluster position
-            # This creates a more distributed annotation layout
-            angle = (i * 90) % 360  # Rotate around 4 quadrants
-            offset_x = 40 * np.cos(np.radians(angle))
-            offset_y = 40 * np.sin(np.radians(angle))
-    
-            cluster_info = get_cluster_info(stats_list, cluster_labels, cluster_id)
-            # fig.add_annotation(
-            #     x=cluster_center[0],
-            #     y=cluster_center[1],
-            #     text=cluster_info,
-            #     showarrow=True,
-            #     arrowhead=2,
-            #     arrowsize=1,
-            #     arrowwidth=1,
-            #     arrowcolor=base_color,
-            #     font=dict(size=12, color=base_color),
-            #     bgcolor='rgba(255,255,255,0.8)',
-            #     bordercolor=base_color,
-            #     borderwidth=1,
-            #     borderpad=4,
-            #     ax=offset_x,
-            #     ay=offset_y,
-            #     xref='x',
-            #     yref='y',
-            #     # Add annotation positioning properties
-            #     xanchor='center',    # Center the annotation box
-            #     yanchor='middle',    # Center the annotation box
-            #     standoff=15,         # Minimum distance between arrow and box
-            #     row=row, col=1)
-
         # Update layout
         fig.update_xaxes(title_text="Profit (%)", row=row, col=1)
         fig.update_yaxes(title_text="Hold Time (hours)", row=row, col=1)
@@ -523,11 +455,11 @@ class IndicatorAnalyzer:
                 fill="toself",
                 fillcolor=f'rgba{tuple(list(int(base_color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4)) + [0.1])}',
                 line=dict(color=base_color, width=0.5),
-                name=stat.lv,
-                showlegend=True,
-                legend=f'legend{row}',
-                legendgroup=f'levels_{row}',
-                legendgrouptitle_text="Levels"
+                name=f"{stat.lv}",
+                showlegend=False,
+                # legend=f'legend{row}',
+                # legendgroup=f'levels_{row}',
+                # legendgrouptitle_text="Levels"
                 ), row=row, col=1)
             
             # Add connection line
@@ -546,7 +478,7 @@ class IndicatorAnalyzer:
                 mode='markers',
                 marker=dict(symbol='diamond', size=15, color=base_color),
                 showlegend=False,
-                hovertext=f"Mean<br>Level:{code}<br>Delta:{delta_mean:.2f}%<br>Period:{period_mean:.2f}h<br>Shapes:{delta_shape}/{period_shape}",
+                hovertext=f"Mean<br>Code:{code}<br>Level:{stat.lv}<br>{stat.year}-{stat.month}<br>Delta:{delta_mean:.2f}%<br>Period:{period_mean:.2f}h<br>Shapes:{delta_shape}/{period_shape}",
                 hoverinfo="text"
                 ), row=row, col=1)
             
@@ -557,7 +489,7 @@ class IndicatorAnalyzer:
                 mode='markers',
                 marker=dict(symbol='circle', size=15, color=base_color),
                 showlegend=False,
-                hovertext=f"Median<br>Level:{code}<br>Delta:{delta_std:.2f}%<br>Period:{period_std:.2f}h",
+                hovertext=f"Median<br>Code:{code}<br>Level:{stat.lv}<br>{stat.year}-{stat.month}<br>Delta:{delta_std:.2f}%<br>Period:{period_std:.2f}h",
                 hoverinfo="text"
                 ), row=row, col=1)
             
@@ -570,7 +502,7 @@ class IndicatorAnalyzer:
         print('Plotting VWMA Perf...')
         row = 3
         def add_vwma_traces(fig, period_mean, dev_mean, period_std, dev_std,
-                            period_median, dev_median, color, window_size, position):
+                            period_median, dev_median, color, window_size, window_size_atr, position, year, month):
             # Add ellipse
             x, y = self.create_ellipse_points(dev_mean, period_mean, dev_std, period_std)
             fig.add_trace(go.Scatter(
@@ -578,12 +510,12 @@ class IndicatorAnalyzer:
                 fill="toself",
                 fillcolor=f'rgba{tuple(list(int(color.lstrip("#")[i:i+2], 16) for i in (0, 2, 4)) + [0.1])}',
                 line=dict(color=color, width=0.5),
-                name=f'{position}:{window_size}',
-                showlegend=True,
-                legend=f'legend{row}',
-                legendgroup=f'window_size_{row}',
-                legendgrouptitle_text="window_size",
-                hoverinfo="skip"
+                name=f'{position}:{window_size}-{window_size_atr}({year}/{month})',
+                showlegend=False,
+                # legend=f'legend{row}',
+                # legendgroup=f'window_size_{row}',
+                # legendgrouptitle_text="window_size",
+                # hoverinfo="skip"
                 ), row=row, col=1)
             
             # Add connection line
@@ -602,7 +534,7 @@ class IndicatorAnalyzer:
                 mode='markers',
                 marker=dict(symbol='diamond', size=15, color=color),
                 showlegend=False,
-                hovertext=f"Mean<br>Window:{window_size}<br>Position:{position}<br>Dev:{dev_mean:.2f}<br>Period:{period_mean:.2f}h",
+                hovertext=f"Mean<br>Window:{window_size}<br>Window_Atr:{window_size_atr}<br>{stat.year}-{stat.month}<br>Position:{position}<br>Dev:{dev_mean:.2f}<br>Period:{period_mean:.2f}h",
                 hoverinfo="text"
                 ), row=row, col=1)
 
@@ -612,7 +544,7 @@ class IndicatorAnalyzer:
                 mode='markers',
                 marker=dict(symbol='circle', size=15, color=color),
                 showlegend=False,
-                hovertext=f"Median<br>Window:{window_size}<br>Position:{position}<br>Dev:{dev_median:.2f}<br>Period:{period_median:.2f}h",
+                hovertext=f"Median<br>Window:{window_size}<br>Window_Atr:{window_size_atr}<br>{stat.year}-{stat.month}<br>Position:{position}<br>Dev:{dev_median:.2f}<br>Period:{period_median:.2f}h",
                 hoverinfo="text"
                 ), row=row, col=1)
             return fig
@@ -631,6 +563,7 @@ class IndicatorAnalyzer:
         
         for stat in stats_list:
             window_size = stat.params['window_size']
+            window_size_atr = stat.params['window_size_atr']
             base_color = window_colors[window_size]
             
             # Plot long position data
@@ -639,7 +572,7 @@ class IndicatorAnalyzer:
                 stat.period_long_mean, stat.max_dev_long_mean,
                 stat.period_long_std, stat.max_dev_long_std,
                 stat.period_long_median, stat.max_dev_long_median,
-                base_color, window_size, 'Long')
+                base_color, window_size, window_size_atr, 'Long', stat.year, stat.month)
             
             # Plot short position data
             fig = add_vwma_traces(
@@ -647,10 +580,71 @@ class IndicatorAnalyzer:
                 stat.period_short_mean, stat.max_dev_short_mean,
                 stat.period_short_std, stat.max_dev_short_std,
                 stat.period_short_median, stat.max_dev_short_median,
-                base_color, window_size, 'Short')
+                base_color, window_size, window_size_atr, 'Short', stat.year, stat.month)
             
         fig.update_xaxes(title_text="Max Deviation", row=row, col=1)
         fig.update_yaxes(title_text="Period (hours)", row=row, col=1)
+        return fig
+
+    def plot_fourier_performance(self, fig: go.Figure, stats_list: List[Dict]):
+        """Plot Fourier transform analysis results"""
+        print('Plotting Fourier Perf...')
+        row = 4  # Add as fourth plot
+        
+        # Add traces for each code's Fourier analysis
+        for stat in stats_list:
+            # Get Fourier data
+            periods = np.array(stat['periods'])
+            amplitude = np.array(stat['direct_dft_amplitude'])
+            amplitude_smoothed = np.array(stat['direct_dft_amplitude_smoothed'])
+            
+            # Add trace
+            fig.add_trace(
+                go.Scatter(
+                    x=periods,
+                    y=amplitude,
+                    mode='lines',
+                    line=dict(width=1),
+                    opacity=0.1,
+                    showlegend=False,
+                    # name=f"{stat['year']}_{stat['month']}",
+                    # legend=f'legend{row}',
+                    # legendgroup=f'codes_{row}',
+                    # legendgrouptitle_text="Symbols",
+                    hovertext=f"<br>{stat['year']}-{stat['month']}-dft",
+                    hoverinfo="text",
+                ), row=row, col=1
+            )
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=periods,
+                    y=amplitude_smoothed,
+                    mode='lines',
+                    line=dict(width=2),
+                    opacity=1,
+                    showlegend=False,
+                    # name=f"{stat['year']}_{stat['month']}",
+                    # legend=f'legend{row}',
+                    # legendgroup=f'codes_{row}',
+                    # legendgrouptitle_text="Symbols",
+                    hovertext=f"<br>{stat['year']}-{stat['month']}-smoothed",
+                    hoverinfo="text",
+                ), row=row, col=1
+            )
+        
+        # Update axes
+        fig.update_xaxes(
+            title_text="Period (hours)",
+            # type='log',  # Logarithmic scale for better period visualization
+            row=row, col=1
+        )
+        fig.update_yaxes(
+            title_text="Amplitude",
+            # type='log',  # Logarithmic scale for amplitude
+            row=row, col=1
+        )
+        
         return fig
 
 def distribution_info(data:List[float]):
