@@ -22,6 +22,7 @@ class VolumeWeightedBands:
             window_size_atr = window_size
         self.window_size = window_size
         self.window_size_atr = window_size_atr
+        self.min_rate = cfg_cpt.FEE 
         
         # Price and volume history for rolling calculation
         self.price_history = []
@@ -128,9 +129,10 @@ class VolumeWeightedBands:
         
         # Calculate ATR-based dispersion
         dispersion = self._calculate_atr()
-        if abs(dispersion)/average < 0.001: # avoid bad values
-            dispersion = 0.0
-            disp_mult = 0.0
+        min_dispersion = self.min_rate * average
+        if abs(dispersion)< min_dispersion: # avoid bad values
+            dispersion = min_dispersion
+            disp_mult = 1
         else:
             disp_mult = abs(close-average)/dispersion
         

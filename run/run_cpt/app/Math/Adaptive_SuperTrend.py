@@ -9,6 +9,76 @@ Lookback Period:
     Provides enough data for meaningful clustering
     Recent enough to be relevant to current market conditions
 """
+
+# Price
+#   ^                    Adaptive SuperTrend Components
+#   |    
+#   |    Upper Band         ATR Volatility Clusters
+#   |    final_upper ----→ +-----------------+     High Vol (×1.5)
+#   |                      |      Band       |     ••••••••
+#   |           ×factor    |     Width      |     Med Vol (×1.0)
+#   |    Price    ×ATR     |  adaptive_factor|     --------
+#   |    Action            |      ×ATR      |     Low Vol (×0.75)
+#   |                      |                |     ········
+#   |              •••••••••••••••••••••••••••••••••         
+#   |              |       |                |      |  ↑
+#   |        Close •       |                |      |  | Band Width
+#   |              |       |    Neutral     |      |  | = factor × 
+#   |              |       |     Zone       |      |  |   adaptive_factor ×
+#   |              • Mid   |                |      |  |   ATR
+#   |            (H+L)/2   |                |      |  ↓
+#   |              |       |                |      |
+#   |              •••••••••••••••••••••••••••••••• 
+#   |                      |                |
+#   |    Lower Band       +-----------------+
+#   |    final_lower --→
+#   |              |<-------------------->|
+#   |                   ATR Length (10)
+#   |              
+#   |              |<--------------------------------->|
+#   |                      Lookback (200)
+#   +-------------------------------------------------> Time
+#                                                     
+# 
+# SuperTrend State Changes:
+# ------------------------
+# Direction = 1 (Bullish)   Direction = -1 (Bearish)
+# SuperTrend = final_lower  SuperTrend = final_upper
+# 
+# Volatility Regime Detection:
+# ---------------------------
+# 1. Collect ATR history in lookback window
+# 2. Cluster ATR values into 3 groups using k-means
+# 3. Assign multipliers based on cluster:
+#    High Vol   → factor × 1.5
+#    Medium Vol → factor × 1.0
+#    Low Vol    → factor × 0.75
+# 
+# Band Calculation:
+# ----------------
+# mid = (high + low) / 2
+# band_offset = factor × cluster_factor × ATR
+# upper = mid + band_offset
+# lower = mid - band_offset
+# 
+# Final Band Logic:
+# ----------------
+# final_upper = min(upper, prev_upper) if close ≤ prev_upper
+#              else upper
+# 
+# final_lower = max(lower, prev_lower) if close ≥ prev_lower
+#              else lower
+# 
+# Signal Generation:
+# ----------------
+# Long Signal:  Direction changes from -1 to 1
+#              (Price crosses above SuperTrend)
+#              → Recalculate volatility cluster
+# 
+# Short Signal: Direction changes from 1 to -1
+#              (Price crosses below SuperTrend)
+#              → Recalculate volatility cluster
+
 from typing import Tuple, List
 from collections import deque
 from config.cfg_cpt import cfg_cpt
@@ -19,10 +89,9 @@ class AdaptiveSuperTrend:
                  'atr_history', 'centroids', 'current_cluster', 'is_initialized',
                  'his_ts', 'his_val', '_cluster_factors')
 
-    def __init__(self, atr_len=10, factor=3, lookback=200):
+    def __init__(self, atr_len=50, factor=3):
         self.atr_len = atr_len
         self.factor = factor
-        self.lookback = lookback
         
         # ATR state
         self.prev_close = 0.0
@@ -35,11 +104,11 @@ class AdaptiveSuperTrend:
         self.prev_lower = 0.0
         
         # Volatility state - only use deque for atr_history
-        self.atr_history = deque(maxlen=lookback)
+        self.atr_history = deque(maxlen=self.atr_len)
         self.centroids = [0.0, 0.0, 0.0]  # Fixed size of 3
         self.current_cluster = 1  # Start with medium volatility
         
-        # Pre-calculate factors
+        # Pre-calculate factors (magical numbers :< try have some research on atr distribution)
         self._cluster_factors = (1.5, 1.0, 0.75)  # Fixed size tuple of 3
         
         # Init state flag

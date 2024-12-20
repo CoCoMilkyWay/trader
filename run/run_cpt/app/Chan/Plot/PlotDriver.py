@@ -598,15 +598,15 @@ class ChanPlotter:
                 self.traces.extend([
                     go.Scatter(x=ind_c.his_ts, y=ind_c.his_longcs,
                             mode='lines',
-                            line=dict(color='red', width=1), # dash='dot'
+                            line=dict(color='blue', width=1), # dash='dot'
                             opacity=0.6, showlegend=False),
                     go.Scatter(x=ind_c.his_ts, y=ind_c.his_shortcs,
                             mode='lines',
-                            line=dict(color='blue', width=1), # dash='dot'
+                            line=dict(color='red', width=1), # dash='dot'
                             opacity=0.6, showlegend=False),
                     go.Scatter(x=ind_c.his_switch_ts, y=ind_c.his_switch_vs,
                             mode='markers',
-                            marker=dict(color='black', size=2), # dash='dot'
+                            marker=dict(color='black', size=6), # dash='dot'
                             opacity=1, showlegend=False),
                 ])
             
@@ -646,7 +646,7 @@ class ChanPlotter:
                 self.traces.extend([
                     go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_vavg,
                                mode='lines',
-                               line=dict(color='black', width=4), # dash='dot
+                               line=dict(color='black', width=2), # dash='dot
                                opacity=1, showlegend=False),
                     # go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_tavg,
                     #            mode='lines',
@@ -654,12 +654,17 @@ class ChanPlotter:
                     #            opacity=1, showlegend=False),
                     go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1up,
                                mode='lines',
-                               line=dict(color='gray', width=4), # dash='dot
-                               opacity=1, showlegend=False),
+                               line=dict(color='gray', width=1), # dash='dot
+                               opacity=0.3,
+                               fill=None,
+                               showlegend=False),
                     go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1lo,
                                mode='lines',
-                               line=dict(color='gray', width=4), # dash='dot
-                               opacity=1, showlegend=False),
+                               line=dict(color='gray', width=1), # dash='dot
+                               opacity=0.3,
+                               fill='tonexty',  # Fill to the trace before this one
+                               fillcolor='rgba(128, 128, 128, 0.2)',  # Light gray with transparency
+                               showlegend=False),
                 ])
             
             if cfg_cpt.plot_bi_shapes:
@@ -696,7 +701,7 @@ class ChanPlotter:
             
             if cfg_cpt.plot_bsp:
                 for i, txt in enumerate(ind_text):
-                    if i%1==0:
+                    if i%10==0:
 
                         if txt[0]:
                             color = 'yellow'

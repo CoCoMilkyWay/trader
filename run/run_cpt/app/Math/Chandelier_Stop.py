@@ -1,6 +1,54 @@
 from typing import Tuple, List
 from config.cfg_cpt import cfg_cpt
 
+# Price
+#   ^
+#   |                   Chandelier Exit Parameters Visualization
+#   |    
+#   |    shortcs -----> +---------------+  ← mult * ATR
+#   |                   |               |
+#   |                   |   Sell Zone   |
+#   |                   |               |     length (22 bars) 
+#   |    Price     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#   |    Action    |    |               |    |
+#   |              |    |               |    |
+#   |              |    |   Neutral     |    |
+#   |              |    |     Zone      |    |
+#   |              |    |               |    |
+#   |              |    |               |    |
+#   |    longcs ---+----+---------------+----+
+#   |              |         ← mult * ATR
+#   |              |
+#   |              |     Buy Zone
+#   |              |
+#   |              |
+#   |              |<------------------->|
+#   |                   ATR Period
+#   |                    (22 bars)
+#   +-------------------------------------------------> Time
+#                                                     
+# 
+# Parameters Explanation:
+# ----------------------
+# length    = 22  → Lookback period for highest/lowest calculation
+# atr_period = 22 → Period for Average True Range calculation
+# mult      = 3   → Multiplier for stop distance
+# 
+# Key Components:
+# --------------
+# shortcs: Short stop = Lowest(length) + mult * ATR
+# longcs:  Long stop  = Highest(length) - mult * ATR
+# 
+# Stop Behavior:
+# -------------
+# ↑ shortcs trails upward with rising prices (trailing stop)
+# ↓ longcs trails downward with falling prices (trailing stop)
+# 
+# Signals:
+# --------
+# Long Entry:  Price crosses above shortcs
+# Short Entry: Price crosses below longcs
+
 class ChandelierIndicator:
     def __init__(self, length:int=22, atr_period:int=22, mult:float=3):
         self.length = length
@@ -66,8 +114,8 @@ class ChandelierIndicator:
         lowest = min(self.lows[-self.length:])
         highest = max(self.highs[-self.length:])
         
-        short_stop = lowest + self.mult * atr
-        long_stop = highest - self.mult * atr
+        short_stop = highest + self.mult * atr
+        long_stop = lowest - self.mult * atr
 
         # Calculate final stops with memory (trailing stops)
         shortcs = short_stop if close > self.prev_shortcs else min(short_stop, self.prev_shortcs)

@@ -3,13 +3,13 @@ class cfg_cpt:  # Constants Configs
 
     period, n = 'm', 1  # bar period
     start = 202301010000
-    end   = 202506010000
+    end   = 202301100000
     capital = 10000000
 
     # run_mode(1 in 3):
-    normal = False
+    normal = True
     train  = False
-    stats  = True
+    stats  = False
 
     # misc functions:
     analyze = False
@@ -43,10 +43,10 @@ class cfg_cpt:  # Constants Configs
     # indicators =========================================
     stats_result = './strategy/CPT_Statistics/stats'
     dump_ind = True if normal else False
-    plot_chandelier = True
+    plot_chandelier = False
     plot_chandekroll = False
     plot_parabolic_sar = False
-    plot_adaptive_supertrend = False
+    plot_adaptive_supertrend = True
     plot_lorentzian_classifier = False
 
     plot_vwma_bands = True

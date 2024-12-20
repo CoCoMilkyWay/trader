@@ -45,6 +45,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../app"))
 red = "\033[31m"
 green = "\033[32m"
 yellow = "\033[33m"
+light_red = "\033[38;2;255;200;200m"  # Very light red
+light_green = "\033[38;2;200;255;200m"  # Very light green
 default = "\033[0m"
 
 CHECK_SYNC = True
@@ -151,6 +153,9 @@ class Main_CTA(BaseCtaStrategy):
         self.volume_weighted_bands: Dict[str, VolumeWeightedBands] = {}
         self.mini_entry_pattern: Dict[str, Mini_Entry_Pattern] = {}
 
+        self.s_long_switch  = False
+        self.s_short_switch = False
+
         # debug
         if cfg_cpt.dump_ind:
             self.ind_ts = []
@@ -177,14 +182,14 @@ class Main_CTA(BaseCtaStrategy):
 
             # Indicators
             # 1M (short memory indicators, which would still work for 5hrs trend/patterns because of algo)
-            self.chandelier_stop[code] = ChandelierIndicator(length=300, atr_period=2, mult=0.2)
+            self.chandelier_stop[code] = ChandelierIndicator(length=200, atr_period=10, mult=2)
             self.chandekroll_stop[code] = ChandeKrollStop(atr_length=10, atr_coef=1, stop_len=9)
             self.parabola_sar_stop[code] = ParabolicSARIndicator(acceleration=0.001, max_acceleration=0.005, initial_acceleration=0)
             # 5M
-            self.adaptive_supertrend[code] = AdaptiveSuperTrend(atr_len=100, factor=7, lookback=100)
+            self.adaptive_supertrend[code] = AdaptiveSuperTrend(atr_len=100, factor=3)
             self.lorentzian_classifier[code] = LorentzianClassifier()
             # 15M
-            self.volume_weighted_bands[code] = VolumeWeightedBands(window_size=int(2000/15), window_size_atr=int(240/15)) # match with 2hrs median holding time(based on our research)
+            self.volume_weighted_bands[code] = VolumeWeightedBands(window_size=int(3000/15), window_size_atr=int(300/15)) # match with 2hrs median holding time(based on our research)
             self.mini_entry_pattern[code] = Mini_Entry_Pattern(self.kl_datas[code][KL_TYPE.K_1M].bi_list)
 
             # ST(Strategies): liquidity
@@ -257,22 +262,22 @@ class Main_CTA(BaseCtaStrategy):
             
             if KL_TYPE.K_5M in klu_dict:
                 K = klu_dict[KL_TYPE.K_5M][-1]
-                self.s_long_switch, self.s_short_switch = self.adaptive_supertrend[code].update(K.high, K.low, K.close, self.ts,)
+                self.s_long_switch, self.s_short_switch = self.adaptive_supertrend[code].update(K.high, K.low, K.close, self.ts)
                 self.l_long_switch, self.l_short_switch = self.lorentzian_classifier[code].update(K.high, K.low, K.close, K.volume)
                 
             if KL_TYPE.K_15M in klu_dict:
                 K = klu_dict[KL_TYPE.K_15M][-1]
-                [self.vwap, self.dev_mult, _, _] = self.volume_weighted_bands[code].update(K.high, K.low, K.close, K.volume, self.ts,)
+                [self.vwap, self.dev_mult, _, _] = self.volume_weighted_bands[code].update(K.high, K.low, K.close, K.volume, self.ts)
                 
             # update bsp
-            self.long_switch = self.c_long_switch
-            self.short_switch = self.c_short_switch
+            self.long_switch    = self.s_long_switch
+            self.short_switch   = self.s_short_switch
             
             # indicator guard
-            if self.barnum < 2*24*60: # need 2 days of 1M data to prepare indicators
+            if self.barnum < 1*24*60: # need 1 day(s) of 1M data to prepare indicators
                 return
             
-            # strategy analysis
+            # strategy
             if self.__train__:
                 self.ST_Train(context, code)
             else:
@@ -337,6 +342,10 @@ class Main_CTA(BaseCtaStrategy):
             color = green
         elif pnl < -0.01:
             color = red
+        elif pnl > cfg_cpt.FEE:
+            color = light_green
+        elif pnl < -cfg_cpt.FEE:
+            color = light_red
         else:
             color = default
         return pnl, color
@@ -361,6 +370,7 @@ class Main_CTA(BaseCtaStrategy):
             for obj in list(chan.kl_datas.items()):
                 size = MemoryAnalyzer().get_deep_size(obj)
                 print(f'{size/1000/1000:3.2f}MB: {obj}')
+                
         if self.__plot__:
             from Chan.Plot.PlotDriver import ChanPlotter
             from Util.plot.plot_fee_grid import plot_fee_grid

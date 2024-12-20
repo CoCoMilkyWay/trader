@@ -100,7 +100,6 @@ class IndicatorAnalyzer:
             'initial_acceleration': 'IACC',
             'atr_len': 'AL',
             'factor': 'F',
-            'lookback': 'LB',
             'kernel_lookback': 'KLB',
         }
 
@@ -227,9 +226,9 @@ class IndicatorAnalyzer:
         max_year = 2024
         date_factor = (year - min_year) * 12 + month
         max_factor = (max_year - min_year) * 12 + 12  # Maximum possible date
-        min = 0.1
+        min = 0.8
         max = 1
-        opacity = min + ((max-min) * date_factor / max_factor)  # Range from 0.3 to 1.0
+        opacity = min + ((max-min) * date_factor / max_factor)
         
         # Adjust RGB values
         r = int(255 - (255 - r) * opacity)

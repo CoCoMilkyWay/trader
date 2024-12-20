@@ -89,9 +89,9 @@ class Main_Stats(BaseCtaStrategy):
             # TP/SL indicators (TP/SL Analysis)
             'chandelier': [
                 {'length': l, 'atr_period': a, 'mult': m}
-                for l in [100, 200]
-                for a in [1, 4, 8]
-                for m in [0.2, 0.4, 0.8, 1]
+                for l in [50, 100, 200]
+                for a in [4, 8, 16, 32]
+                for m in [1, 2, 4, 8, 16]
             ],
             'chandekroll': [
                 {'atr_length': l, 'atr_coef': a, 'stop_len': m}
@@ -106,10 +106,9 @@ class Main_Stats(BaseCtaStrategy):
                 for n in [0, 5]
             ],
             'supertrend': [
-                {'atr_len': a, 'factor': f, 'lookback': l}
+                {'atr_len': a, 'factor': f}
                 for a in [50, 100]
-                for f in [1, 2, 3, 4]
-                for l in [50, 100]
+                for f in [1, 1.5, 2, 2.5, 3]
             ],
             'lorentzian': [
                 {'kernel_lookback': n}
