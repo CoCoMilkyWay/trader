@@ -259,15 +259,18 @@ class Main_CTA(BaseCtaStrategy):
             self.c_long_switch, self.c_short_switch = self.chandelier_stop[code].update(K.high, K.low, K.close, self.ts)
             self.k_long_switch, self.k_short_switch = self.chandekroll_stop[code].update(K.high, K.low, K.close, self.ts)
             self.p_long_switch, self.p_short_switch = self.parabola_sar_stop[code].update(K.high, K.low, self.ts)
-            
+            self.l_long_switch, self.l_short_switch = self.lorentzian_classifier[code].update(K.high, K.low, K.close, K.volume)
+
             if KL_TYPE.K_5M in klu_dict:
                 K = klu_dict[KL_TYPE.K_5M][-1]
                 self.s_long_switch, self.s_short_switch = self.adaptive_supertrend[code].update(K.high, K.low, K.close, self.ts)
-                self.l_long_switch, self.l_short_switch = self.lorentzian_classifier[code].update(K.high, K.low, K.close, K.volume)
                 
             if KL_TYPE.K_15M in klu_dict:
                 K = klu_dict[KL_TYPE.K_15M][-1]
                 [self.vwap, self.dev_mult, _, _] = self.volume_weighted_bands[code].update(K.high, K.low, K.close, K.volume, self.ts)
+                
+            if self.barnum == 2000:
+                self.lorentzian_classifier[code].plot_feature_spaces()
                 
             # update bsp
             self.long_switch    = self.s_long_switch

@@ -115,7 +115,7 @@ class Main_Stats(BaseCtaStrategy):
                 for n in [8]
             ],
         }
-        
+
         # check if results already exist
         self.json_files = glob.glob(f"{cfg_cpt.stats_result}/*.json")
         

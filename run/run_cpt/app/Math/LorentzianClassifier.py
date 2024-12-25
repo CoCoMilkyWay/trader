@@ -202,7 +202,7 @@ class LorentzianClassifier:
         ):
         
         # # TODO:
-        lookback = 100
+        # lookback = 100
         
         self.lookback = lookback
         self.neighbors_count = neighbors_count
@@ -566,7 +566,7 @@ class LorentzianClassifier:
         for i in range(0, size, 4):
             d = self._get_lorentzian_distance(i)
             # Accept patterns that exceed our diversity threshold
-            if d > self.last_distance:  # Changed from >= to > to avoid duplicates
+            if d > self.last_distance:  # > to avoid duplicates
                 next_idx = min(i+4, len(self.closes)-1)
                 label = 1 if self.closes[next_idx] > self.closes[i] else -1
                 patterns.append((d, label))
@@ -594,6 +594,119 @@ class LorentzianClassifier:
         
         if len(self.closes) < 20:
             return False, False
+
+        # ┌────────────┬────────────────────┬────────────────────┬────────────────────┬────────────────────┐
+        # │ ASPECT     │ RSI                │ WAVE TREND         │ CCI                │ ADX                │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ INPUT      │ Close prices       │ HLC3 (avg prices)  │ HLC3 (typical      │ High, Low, Close   │
+        # │            │                    │                    │ price)             │                    │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ FORMULA    │ 100 - (100/(1+RS)) │ CI = (HLC3-EMA1)   │ (TP-SMA)/(0.015    │ 100*|+DI--DI|      │
+        # │ CORE       │ RS = AvgGain/      │ /(0.015*D)         │ *MeanDev)          │ /(+DI++DI)         │
+        # │            │ AvgLoss            │                    │                    │                    │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ SMOOTHING  │ Simple average     │ Double EMA         │ Simple moving      │ Wilder's           │
+        # │ METHOD     │ of gains/losses    │ (n1 then n2)       │ average            │ smoothing          │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ DEFAULT    │ 14 periods         │ n1=10, n2=11       │ 20 periods         │ 14 periods         │
+        # │ PERIODS    │                    │                    │                    │                    │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ OUTPUT     │ 0-100 bounded      │ Unbounded          │ Unbounded          │ 0-100 bounded      │
+        # │ RANGE      │                    │                    │                    │                    │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ MEASURES   │ Momentum/          │ Price deviation    │ Price deviation    │ Trend              │
+        # │            │ Price velocity     │ from average       │ from average       │ strength           │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ UNIQUE     │ - Uses up/down     │ - Double smoothing │ - Uses mean        │ - Combines         │
+        # │ FEATURES   │   movements        │ - Channel based    │   deviation        │   directional      │
+        # │            │ - Mean reversion   │ - Derived from     │ - More volatile    │   movement         │
+        # │            │   principle        │   CCI              │   than WT          │ - Trend strength   │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ COMMON     │ - Whipsaws in      │ - Unbounded        │ - Unbounded        │ - Lags due to      │
+        # │ ISSUES     │   sideways mkts    │   extremes         │   values           │   double smooth    │
+        # │            │ - Lag in trends    │ - Multiple EMAs    │ - Sensitive to     │ - Complex calc     │
+        # │            │                    │   create lag       │   outliers         │                    │
+        # ├────────────┼────────────────────┼────────────────────┼────────────────────┼────────────────────┤
+        # │ BEST       │ Momentum           │ Trend reversal     │ Overbought/        │ Trend strength     │
+        # │ USE CASE   │ reversals          │ identification     │ oversold           │ confirmation       │
+        # └────────────┴────────────────────┴────────────────────┴────────────────────┴────────────────────┘
+        # 
+        # ┌────────────────────┬────────────────────────────┬────────────────────────────┐
+        # │ INDICATOR TYPE     │ KEY MEASUREMENT            │ UNIQUENESS                 │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ VOLUME-BASED       │                            │                            │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ OBV                │ Volume flow                │ Cumulative volume +/-      │
+        # │ (On Balance Vol)   │ Accumulation/Distribution  │ Independent of price calc  │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ MFI                │ Money flow                 │ Volume-weighted RSI        │
+        # │ (Money Flow Index) │ Volume + Price direction   │ Better for large moves     │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ VOLATILITY-BASED   │                            │                            │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ ATR                │ Average True Range         │ Pure volatility measure    │
+        # │                    │ Volatility measurement     │ Direction agnostic         │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ Bollinger %B       │ Statistical volatility     │ Standard deviation based   │
+        # │                    │ Mean reversion potential   │ Adapts to volatility       │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ PATTERN-BASED      │                            │                            │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ Ichimoku           │ Multiple timeframe trend   │ Forward-looking spans      │
+        # │ Cloud              │ Support/Resistance levels  │ Time-displacement based    │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ Pivot Points       │ Support/Resistance         │ Based on previous period   │
+        # │                    │ Price structure            │ levels, not current price  │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ CYCLE-BASED        │                            │                            │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ Stochastic         │ Price position within      │ Range-bound effectiveness  │
+        # │ RSI                │ recent high/low range      │ Combines momentum & range  │
+        # ├────────────────────┼────────────────────────────┼────────────────────────────┤
+        # │ Williams %R        │ Price position relative    │ Leading indicator vs       │
+        # │                    │ to high/low range          │ lagging like RSI           │
+        # └────────────────────┴────────────────────────────┴────────────────────────────┘
+        # 
+        # RECOMMENDED COMBINATIONS:
+        # 
+        # 1. Volume + Momentum:
+        #    - WaveTrend/RSI + MFI
+        #    - Different source data (price vs volume)
+        #    - Confirms moves with volume validation
+        # 
+        # 2. Volatility + Trend:
+        #    - WaveTrend + ATR
+        #    - Identifies both direction and magnitude
+        #    - ATR helps with position sizing
+        # 
+        # 3. Pattern + Momentum:
+        #    - WaveTrend + Ichimoku
+        #    - Short-term signals + longer timeframe context
+        #    - Different calculation methods
+        # 
+        # 4. Multiple Timeframes:
+        #    - Wave3D (faster settings)
+        #    - Ichimoku (medium timeframe)
+        #    - Pivot Points (longer timeframe)
+        # 
+        # KEY ASPECTS TO CONSIDER:
+        # 1. Data Source Independence:
+        #    - Price-based (WaveTrend)
+        #    - Volume-based (MFI/OBV)
+        #    - Volatility-based (ATR)
+        #    - Time-based (Ichimoku)
+        # 
+        # 2. Calculation Method Differences:
+        #    - Moving averages (WaveTrend)
+        #    - Cumulative (OBV)
+        #    - Statistical (Bollinger)
+        #    - Range-based (Williams %R)
+        # 
+        # 3. Timeframe Perspectives:
+        #    - Immediate (WaveTrend)
+        #    - Short-term (ATR)
+        #    - Medium-term (Ichimoku)
+        #    - Long-term (Pivots)
 
         # Calculate features
         rsi14 = self._calculate_rsi(14, 1)
@@ -744,3 +857,193 @@ class LorentzianClassifier:
         # if is_new_buy_signal or is_new_sell_signal:
         #     print(is_new_buy_signal, is_new_sell_signal)
         return is_new_buy_signal, is_new_sell_signal
+    
+    def plot_feature_spaces(self, use_synthetic: bool = False, n_synthetic: int = 1000) -> None:
+        """Plot feature distributions in both spaces with consistent color mapping
+        
+        Args:
+            use_synthetic: If True, generate synthetic spherical data instead of using real features
+            n_synthetic: Number of synthetic points to generate if use_synthetic is True
+        """
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        
+        if use_synthetic:
+            # Generate synthetic spherical data
+            theta = np.random.uniform(0, 2*np.pi, n_synthetic)
+            phi = np.random.uniform(0, np.pi, n_synthetic)
+            r = np.random.normal(1, 1, n_synthetic)  # Slight variation in radius
+            
+            f1_vals = r * np.sin(phi) * np.cos(theta)  # x = r sin(φ)cos(θ)
+            f2_vals = r * np.sin(phi) * np.sin(theta)  # y = r sin(φ)sin(θ)
+            f3_vals = r * np.cos(phi)                  # z = r cos(φ)
+            
+            # Center and scale
+            f1_vals = 50 + 25 * f1_vals  # Center at 50, scale by 25 for RSI-like range
+            f2_vals = 25 * f2_vals       # Center at 0, scale by 25 for WT-like range
+            f3_vals = 25 * f3_vals       # Center at 0, scale by 25 for CCI-like range
+            
+        else:
+            if len(self.f1_array) < 3:
+                print("Not enough data points to plot")
+                return
+                
+            # Get real feature values
+            f1_vals = np.array(list(self.f1_array)[-self.lookback:])  # RSI
+            f2_vals = np.array(list(self.f2_array)[-self.lookback:])  # WT
+            f3_vals = np.array(list(self.f3_array)[-self.lookback:])  # CCI
+        
+        # Calculate Euclidean distances from center point
+        center = np.array([np.mean(f1_vals), np.mean(f2_vals), np.mean(f3_vals)])
+        points = np.column_stack((f1_vals, f2_vals, f3_vals))
+        euclidean_distances = np.sqrt(np.sum((points - center)**2, axis=1))
+        
+        # Create color mapping based on Euclidean distance quantiles
+        quantiles = np.percentile(euclidean_distances, [20, 40, 60, 80])
+        colors = np.zeros_like(euclidean_distances, dtype=int)
+        
+        for i in range(4):
+            colors[euclidean_distances > quantiles[i]] = i + 1
+        
+        # Color scheme for the 5 classes
+        color_scale = ['#440154', '#3B528B', '#21908C', '#5DC863', '#FDE725']  # Viridis
+        point_colors = [color_scale[c] for c in colors]
+        
+        # Calculate axis ranges for scaling the reference arrows
+        f1_range = np.ptp(f1_vals) * 0.2  # 20% of range
+        f2_range = np.ptp(f2_vals) * 0.2
+        f3_range = np.ptp(f3_vals) * 0.2
+        
+        # Create subplot figure
+        fig = make_subplots(
+            rows=1, cols=2,
+            specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
+            subplot_titles=('Neighborhood in Euclidean Space', 
+                           'Neighborhood in Lorentzian Space')
+        )
+        
+        # Add traces for Euclidean space
+        # Points
+        fig.add_trace(
+            go.Scatter3d(
+                x=f1_vals,
+                y=f2_vals,
+                z=f3_vals,
+                mode='markers',
+                marker=dict(
+                    size=4,
+                    color=point_colors,
+                    opacity=0.8
+                ),
+                text=[f'Point {i}<br>Distance: {d:.2f}' 
+                      for i, d in enumerate(euclidean_distances)],
+                hoverinfo='text',
+                name='Points'
+            ),
+            row=1, col=1
+        )
+        
+        # Add coordinate system arrows for Euclidean space
+        arrow_length = min(f1_range, f2_range, f3_range)
+        
+        # X axis arrow (red)
+        fig.add_trace(go.Scatter3d(x=[center[0], center[0] + arrow_length], 
+                                  y=[center[1], center[1]], 
+                                  z=[center[2], center[2]],
+                                  mode='lines',
+                                  line=dict(color='red', width=4),
+                                  name='X axis'), row=1, col=1)
+        
+        # Y axis arrow (green)
+        fig.add_trace(go.Scatter3d(x=[center[0], center[0]], 
+                                  y=[center[1], center[1] + arrow_length], 
+                                  z=[center[2], center[2]],
+                                  mode='lines',
+                                  line=dict(color='green', width=4),
+                                  name='Y axis'), row=1, col=1)
+        
+        # Z axis arrow (blue)
+        fig.add_trace(go.Scatter3d(x=[center[0], center[0]], 
+                                  y=[center[1], center[1]], 
+                                  z=[center[2], center[2] + arrow_length],
+                                  mode='lines',
+                                  line=dict(color='blue', width=4),
+                                  name='Z axis'), row=1, col=1)
+        
+        # Calculate Lorentzian coordinates
+        l1_vals = np.log1p(np.abs(f1_vals - center[0]))
+        l2_vals = np.log1p(np.abs(f2_vals - center[1]))
+        l3_vals = np.log1p(np.abs(f3_vals - center[2]))
+        
+        # Add traces for Lorentzian space
+        # Points
+        fig.add_trace(
+            go.Scatter3d(
+                x=l1_vals,
+                y=l2_vals,
+                z=l3_vals,
+                mode='markers',
+                marker=dict(
+                    size=4,
+                    color=point_colors,
+                    opacity=0.8
+                ),
+                text=[f'Point {i}<br>Distance: {d:.2f}' 
+                      for i, d in enumerate(euclidean_distances)],
+                hoverinfo='text',
+                showlegend=False
+            ),
+            row=1, col=2
+        )
+        
+        # Add coordinate system arrows for Lorentzian space
+        l_arrow_length = min(np.ptp(l1_vals), np.ptp(l2_vals), np.ptp(l3_vals)) * 0.2
+        
+        # X axis arrow (red)
+        fig.add_trace(go.Scatter3d(x=[0, l_arrow_length], 
+                                  y=[0, 0], 
+                                  z=[0, 0],
+                                  mode='lines',
+                                  line=dict(color='red', width=4),
+                                  showlegend=False), row=1, col=2)
+        
+        # Y axis arrow (green)
+        fig.add_trace(go.Scatter3d(x=[0, 0], 
+                                  y=[0, l_arrow_length], 
+                                  z=[0, 0],
+                                  mode='lines',
+                                  line=dict(color='green', width=4),
+                                  showlegend=False), row=1, col=2)
+        
+        # Z axis arrow (blue)
+        fig.add_trace(go.Scatter3d(x=[0, 0], 
+                                  y=[0, 0], 
+                                  z=[0, l_arrow_length],
+                                  mode='lines',
+                                  line=dict(color='blue', width=4),
+                                  showlegend=False), row=1, col=2)
+        
+        # Update layout
+        fig.update_layout(
+            height=800,
+            showlegend=True,
+            scene1=dict(
+                xaxis_title='RSI' if not use_synthetic else 'X',
+                yaxis_title='WT' if not use_synthetic else 'Y',
+                zaxis_title='CCI' if not use_synthetic else 'Z',
+                camera=dict(
+                    eye=dict(x=1.5, y=1.5, z=1.5)
+                )
+            ),
+            scene2=dict(
+                xaxis_title='log(1+|RSI|)' if not use_synthetic else 'log(1+|X|)',
+                yaxis_title='log(1+|WT|)' if not use_synthetic else 'log(1+|Y|)',
+                zaxis_title='log(1+|CCI|)' if not use_synthetic else 'log(1+|Z|)',
+                camera=dict(
+                    eye=dict(x=1.5, y=1.5, z=1.5)
+                )
+            )
+        )
+        
+        # Show the plot
+        fig.show()
