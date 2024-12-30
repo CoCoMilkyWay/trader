@@ -3,19 +3,19 @@ class cfg_cpt:  # Constants Configs
 
     period, n = 'm', 1  # bar period
     start = 202301010000
-    end   = 202301100000
+    end   = 202302010000
     capital = 10000000
 
     # run_mode(1 in 3):
-    normal = True
-    train  = False
+    train  = True
     stats  = False
-
+    normal = True if not train and not stats else False
+    
     # misc functions:
     analyze = False
     plot    = True
     snoop   = False
-    profile = False
+    profile = True
     panel   = False
     
     mode = '/um'  # spot, um, cm

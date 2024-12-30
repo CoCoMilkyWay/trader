@@ -17,7 +17,8 @@ from wtpy import WtBtEngine, EngineType, WtDtServo
 
 from Util.UtilCpt import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
 from config.cfg_cpt import cfg_cpt
-from strategy.CPT_Chart.Main_CTA import Main_CTA
+from strategy.CPT_Chart.Main_Cta import Main_Cta
+from strategy.CPT_Train.Main_Train import Main_Train
 from strategy.CPT_Statistics.Main_Stats import Main_Stats
 
 normal = cfg_cpt.normal
@@ -60,10 +61,11 @@ def run_bt():
     
     if run:
         if stats:
-            straInfo = Main_Stats(name=str_name, codes=wt_assets,
-                                period=period_str)
+            straInfo = Main_Stats(name=str_name, codes=wt_assets,period=period_str)
+        elif train:
+            straInfo = Main_Train(name=str_name, codes=wt_assets,period=period_str)
         else:
-            straInfo = Main_CTA(name=str_name, codes=wt_assets,
+            straInfo = Main_Cta(name=str_name, codes=wt_assets,
                                 period=period_str, capital=cfg_cpt.capital, plot=plot, train=train)
         engine.set_cta_strategy(straInfo, slippage=0)
         print('Running Backtest ...')

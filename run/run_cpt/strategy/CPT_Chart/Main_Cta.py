@@ -93,7 +93,7 @@ Anchored VWAP
 
 ML_Pattern_Len = 10
 
-class Main_CTA(BaseCtaStrategy):
+class Main_Cta(BaseCtaStrategy):
     def __init__(self, name: str, codes: List[str], period: str, capital: float, plot:bool, train:bool):
         BaseCtaStrategy.__init__(self, name)
         self.__period__ = period
