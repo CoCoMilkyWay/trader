@@ -1,5 +1,5 @@
 import array
-
+import math
 class squeeze:
     def __init__(self,
                  closes: array.array,
@@ -18,7 +18,7 @@ class squeeze:
         
         # Initialize arrays for output values
         self.momentum = array.array('d', [])        # Momentum value
-        self.squeeze_rating = array.array('b', [])  # Rating value (0-3)
+        self.squeeze_rating = array.array('d', [])  # Rating value (0-3)
         self.data_points = 0
         
     def calculate_linreg(self, values: list) -> float:
@@ -39,7 +39,7 @@ class squeeze:
             
         return numerator / denominator
         
-    def calculate_squeeze_rating(self, bb_width: float, kc_width: float) -> int:
+    def calculate_squeeze_rating(self, bb_width: float, kc_width: float) -> float:
         """
         Calculate squeeze rating (0-3):
         0 = No squeeze (BB width > KC width)
@@ -47,17 +47,21 @@ class squeeze:
         2 = Moderate squeeze (BB width <= 75% but > 50% of KC width)
         3 = Tight squeeze (BB width <= 50% of KC width)
         """
-        if bb_width > kc_width:
-            return 0
+        # if bb_width > kc_width:
+        #     return 1
         
         bb_kc_ratio = bb_width / kc_width
-        if bb_kc_ratio > 0.75:
-            return 1
-        elif bb_kc_ratio > 0.50:
-            return 2
-        else:
-            return 3
         
+        # if bb_kc_ratio > 0.75:
+        #     return 1
+        # elif bb_kc_ratio > 0.50:
+        #     return 2
+        # else:
+        #     return 3
+        
+        # easier for NN to learn for more even distribution
+        return math.log1p(bb_kc_ratio)
+    
     def update(self):
         """
         Calculate Squeeze Momentum and Rating:

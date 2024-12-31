@@ -1,4 +1,5 @@
 import array
+import math
 class candlestrength:
     """
     Analyze candlestick strength based on body position within true range.
@@ -103,8 +104,8 @@ class candlestrength:
         if len(self.atr) > 1:
             atr = self.atr[-2] + 1e-8
             av = self.av[-2] + 1
-            tr_mult = true_range / atr
-            v_mult = self.volumes[-1] / av
+            tr_mult = math.log1p(true_range / atr)
+            v_mult = math.log1p(self.volumes[-1] / av)
         self.strength.append(strength)
         self.tr_mult.append(tr_mult)
         self.v_mult.append(v_mult)

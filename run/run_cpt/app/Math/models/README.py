@@ -1,4 +1,30 @@
 """
+prompt to generate ML class:
+
+this task is huge, take it slowly, and dedicate, try put in single class, unless there are benefit to split
+provide a generalized pytorch model class which able to:
+    0.generalized: able to use most NN and ensemble methods, regression/classification, multi input/output
+    1.scalar: able to choose scalar scheme for each feature
+    2.checking: make sure data are fit for NN/ensemble algo to effectively learn after scaling:
+        e.g. bound/distribution(type/tail-heaviness)/Mean/Variance/Skewness/Kurtosis/Outliers/Cardinality/inter-correlation/
+        generate a report(json and console print it) to assess the dataset quality(for each feature and label) after scaling, different for NN and ensemble methods(because they have different focus)
+        show which check failed for which feature failed for which model
+    3.split: able to choose dozen different splitting schemes(into train/val/test)
+        enable cross validation by default(different k-fold/timeseries split schemes)
+        auto-choosing the best hyperparameter over iterations, provided tested not overfit
+        show cross validation report after train/tune
+    4.train: for multiple labels, this would be a multi-output model
+        also able to monitor training progress as training continues(showing major metrics)
+    5.predict: different to training from a large dataset, this model should be able to perform fast single step predict on-fly from a feature list generate for current time
+        thus should also support pre-compile before single-step-inference
+        no need for batch mode as this is real-time application, only single-step needed
+        able to load/compile multiple trained models of different types to do predict on the same features list single-steppedly at the same time
+    6.persist: save and load
+    7.show comment to above configurable items to help user make decision of what to use
+"""
+
+
+"""
 +---------------------------------+-------------------------------------------------------------+-------------------------------------------------------------+
 | Model                           | Pros                                                        | Cons                                                        |
 +---------------------------------+-------------------------------------------------------------+-------------------------------------------------------------+

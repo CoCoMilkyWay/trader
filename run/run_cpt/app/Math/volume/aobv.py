@@ -1,4 +1,5 @@
 import array
+import math
 from collections import deque
 
 class aobv:
@@ -65,7 +66,9 @@ class aobv:
         self.previous_smooth = smooth_value
 
         # Calculate and store histogram
-        histogram = aobv_value - smooth_value
+        sign = 1 if aobv_value > smooth_value else -1
+        diff = math.log1p(abs(aobv_value - smooth_value))
+        histogram = sign * diff
         self.histogram.append(histogram)
 
         # Maintain fixed length

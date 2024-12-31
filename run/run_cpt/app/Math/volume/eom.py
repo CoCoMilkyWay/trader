@@ -62,6 +62,9 @@ class eom:
         window = list(self.emv[-self.period+1:]) + [raw_emv] if len(self.emv) else [raw_emv]
         smoothed_emv = sum(window) / len(window)
         
+        # evm value is drastically unbounded, normalize it locally
+        self.emv_osc = [(smoothed_emv-min(window))/(max(window)-min(window))] if len(self.emv) else [0.0] # put in list for index access
+        
         # Update values
         self.emv.append(float(smoothed_emv))
         self.previous_mid = current_mid

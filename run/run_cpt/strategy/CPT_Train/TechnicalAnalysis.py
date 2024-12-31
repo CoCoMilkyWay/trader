@@ -42,12 +42,10 @@ from Math.volume.aobv import aobv
 from Math.volume.avwap import avwap
 from Math.volume.eom import eom
 
-# Define indicator categories and their outputs
-@dataclass
-class IndicatorSpec:
-    name: str
-    category: str
-    outputs: list[str]  # List of output field names
+from Math.models.pytorch_model import \
+    ScalingMethod, SplitMethod, \
+    DataCheckResult, ModelType, GeneralizedModel, \
+    CNN, Recurrent, Transformer, Ensemble
 
 class TechnicalAnalysis:
     
@@ -82,6 +80,17 @@ class TechnicalAnalysis:
         self.closes = [array.array('d', [0.0]) for _ in range(n_levels)]
         self.volumes = [array.array('L', [0]) for _ in range(n_levels)]
         self.timestamp = 0.0
+        
+        # Reusable bar dict template
+        self._bar_template = {
+            DATA_FIELD.FIELD_TIME: CTime(1990,1,1,0,0),
+            DATA_FIELD.FIELD_OPEN: 0.0,
+            DATA_FIELD.FIELD_HIGH: 0.0,
+            DATA_FIELD.FIELD_LOW: 0.0,
+            DATA_FIELD.FIELD_CLOSE: 0.0,
+            DATA_FIELD.FIELD_VOLUME: 0
+        }
+        self.init = False
         
         # ================== indicators ===========================
         # 0:1M, 1:5M, 2:15M, ...
@@ -144,86 +153,77 @@ class TechnicalAnalysis:
             'ema20': {'instance': self.ema20, 'features': []},
             'ema26': {'instance': self.ema26, 'features': []},
             'vema10': {'instance': self.vema10, 'features': []},
-
-            # Volatility indicators
-            'stddev20': {'instance': self.stddev20, 'features': [('stddev', -1)]},
-            'atr10': {'instance': self.atr10, 'features': [('atr', -1)]},
-            'massi25': {'instance': self.massi25, 'features': [('mass_index', -1)]},
-            'rvi10': {'instance': self.rvi10, 'features': [('rvi', -1)]},
-            'gk10': {'instance': self.gk10, 'features': [('volatility', -1)]},
-            'bband20': {'instance': self.bband20, 'features': []},  # Used by squeeze20
-            'donchian20': {'instance': self.donchian20, 'features': []},
-            'keltner20': {'instance': self.keltner20, 'features': []},  # Used by squeeze20
-
-            # Performance indicators
+            # # Volatility indicators
+            # 'stddev20': {'instance': self.stddev20, 'features': [('stddev', -1)],'Scaler': ScalingMethod.STANDARD,},
+            # 'atr10': {'instance': self.atr10, 'features': [('atr', -1)], 'Scaler': ScalingMethod.ROBUST,},
+            # 'massi25': {'instance': self.massi25, 'features': [('mass_index', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'rvi10': {'instance': self.rvi10, 'features': [('rvi', -1)], 'Scaler': ScalingMethod.ROBUST,},
+            # 'gk10': {'instance': self.gk10, 'features': [('volatility', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'bband20': {'instance': self.bband20, 'features': []},  # Used by squeeze20
+            # 'donchian20': {'instance': self.donchian20, 'features': []},
+            # 'keltner20': {'instance': self.keltner20, 'features': []},  # Used by squeeze20
+            # # Performance indicators
             'logreturn': {
                 'instance': self.logreturn,
                 'features': [('log_returns', -1), ('log_returns', -2), ('log_returns', -3),
-                            ('log_returns', -4), ('log_returns', -5)]
+                            ('log_returns', -4), ('log_returns', -5)], 
+                'Scaler': ScalingMethod.ROBUST,
             },
-            'candlestrength': {
-                'instance': self.candlestrength,
-                'features': [('strength', -1), ('strength', -2), ('strength', -3),
-                            ('strength', -4), ('strength', -5),
-                            ('tr_mult', -1), ('tr_mult', -2), ('tr_mult', -3),
-                            ('tr_mult', -4), ('tr_mult', -5),
-                            ('v_mult', -1), ('v_mult', -2), ('v_mult', -3),
-                            ('v_mult', -4), ('v_mult', -5)]
-            },
-            'timely': {
-                'instance': self.timely,
-                'features': [('month_of_year', None), ('day_of_week', None), ('hour_of_day', None)]
-            },
-
-            # Momentum indicators
-            'rsi14': {'instance': self.rsi14, 'features': [('rsi', -1)]},
-            'stoch_rsi14': {'instance': self.stoch_rsi14, 'features': [('histogram', -1)]},
-            'macd': {'instance': self.macd, 'features': [('histogram', -1)]},
-            'cci20': {'instance': self.cci20, 'features': [('cci', -1)]},
-            'tsi_trend20': {'instance': self.tsi_trend20, 'features': [('tsi', -1)]},
-            'tsi_true25': {'instance': self.tsi_true25, 'features': [('tsi', -1)]},
-            'roc10': {'instance': self.roc10, 'features': []},  # Used by kst
-            'roc15': {'instance': self.roc15, 'features': [('roc', -1)]},  # Direct feature + used by kst
-            'roc20': {'instance': self.roc20, 'features': []},  # Used by kst
-            'roc30': {'instance': self.roc30, 'features': []},  # Used by kst
-            'fisher9': {'instance': self.fisher9, 'features': [('fisher', -1)]},
-            'cmo9': {'instance': self.cmo9, 'features': [('cmo', -1)]},
-            'adx14': {'instance': self.adx14, 'features': [('adx', -1)]},
-            'squeeze20': {
-                'instance': self.squeeze20,
-                'features': [('squeeze_rating', -1), ('momentum', -1)]
-            },
-            'uo': {'instance': self.uo, 'features': [('uo', -1)]},
-            'kst': {'instance': self.kst, 'features': [('histogram', -1)]},
-            'william_r14': {'instance': self.william_r14, 'features': [('wpr', -1)]},
-            'william_r50': {'instance': self.william_r50, 'features': [('wpr', -1)]},
-            'william_r200': {'instance': self.william_r200, 'features': [('wpr', -1)]},
-
-            # Volume indicators
-            'aobv': {'instance': self.aobv, 'features': [('histogram', -1)]},
-            'avwap': {'instance': self.avwap, 'features': [('deviation', -1)]},
-            'eom': {'instance': self.eom, 'features': [('emv', -1)]}
+            # 'candlestrength': {
+            #     'instance': self.candlestrength,
+            #     'features': [('strength', -1), ('strength', -2), ('strength', -3),
+            #                 ('strength', -4), ('strength', -5),
+            #                 ('tr_mult', -1), ('tr_mult', -2), ('tr_mult', -3),
+            #                 ('tr_mult', -4), ('tr_mult', -5),
+            #                 ('v_mult', -1), ('v_mult', -2), ('v_mult', -3),
+            #                 ('v_mult', -4), ('v_mult', -5)], 
+            #     'Scaler': ScalingMethod.ROBUST,
+            # },
+            # 'timely': {
+            #     'instance': self.timely,
+            #     'features': [('month_of_year', None), ('day_of_week', None), ('hour_of_day', None)], 
+            #     'Scaler': ScalingMethod.STANDARD,
+            # },
+            # # Momentum indicators
+            'rsi14': {'instance': self.rsi14, 'features': [('rsi', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'stoch_rsi14': {'instance': self.stoch_rsi14, 'features': [('histogram', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            'macd': {'instance': self.macd, 'features': [('histogram', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'cci20': {'instance': self.cci20, 'features': [('cci', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'tsi_trend20': {'instance': self.tsi_trend20, 'features': [('tsi', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'tsi_true25': {'instance': self.tsi_true25, 'features': [('tsi', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'roc10': {'instance': self.roc10, 'features': []},  # Used by kst
+            # 'roc15': {'instance': self.roc15, 'features': [('roc', -1)], 'Scaler': ScalingMethod.STANDARD,},  # Direct feature + used by kst
+            # 'roc20': {'instance': self.roc20, 'features': []},  # Used by kst
+            # 'roc30': {'instance': self.roc30, 'features': []},  # Used by kst
+            # 'fisher9': {'instance': self.fisher9, 'features': [('fisher', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'cmo9': {'instance': self.cmo9, 'features': [('cmo', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'adx14': {'instance': self.adx14, 'features': [('adx', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'squeeze20': {
+            #     'instance': self.squeeze20,
+            #     'features': [('squeeze_rating', -1), ('momentum', -1)], 
+            #     'Scaler': ScalingMethod.STANDARD,
+            # },
+            # 'uo': {'instance': self.uo, 'features': [('uo', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'kst': {'instance': self.kst, 'features': [('histogram', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'william_r14': {'instance': self.william_r14, 'features': [('wpr', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'william_r50': {'instance': self.william_r50, 'features': [('wpr', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'william_r200': {'instance': self.william_r200, 'features': [('wpr', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # # Volume indicators
+            # 'aobv': {'instance': self.aobv, 'features': [('histogram', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'avwap': {'instance': self.avwap, 'features': [('deviation', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            # 'eom': {'instance': self.eom, 'features': [('emv_osc', -1)], 'Scaler': ScalingMethod.STANDARD,}
         }
         # Count total features and create array
         self.n_features = sum(len(spec['features']) for spec in self.feature_specs.values())
+        self.n_labels = 5
+        self.n_cols = self.n_features + self.n_labels
         self.current_row = 0
         if self._train:
-            self.features_history = np.zeros((1_000_000, self.n_features), dtype=np.float32)
+            self.features_history = np.zeros((1_000_000, self.n_cols), dtype=np.float32)
         else:
             self.features = np.zeros(self.n_features, dtype=np.float32)
 
         # =========================================================
-        
-        # Reusable bar dict template
-        self._bar_template = {
-            DATA_FIELD.FIELD_TIME: CTime(1990,1,1,0,0),
-            DATA_FIELD.FIELD_OPEN: 0.0,
-            DATA_FIELD.FIELD_HIGH: 0.0,
-            DATA_FIELD.FIELD_LOW: 0.0,
-            DATA_FIELD.FIELD_CLOSE: 0.0,
-            DATA_FIELD.FIELD_VOLUME: 0
-        }
-        self.init = False
         
     def analyze(self, np_bars: WtNpKline):
         # if not isinstance(np_bars, WtNpKline):
@@ -244,13 +244,14 @@ class TechnicalAnalysis:
             else:
                 self.init = True
                 
-        if self._train:
+        if self._train: # training dataset size go over reserved space
             if self.current_row >= len(self.features_history):
                 new_array = np.zeros((len(self.features_history) * 2, self.n_features), dtype=np.float32)
                 new_array[:self.current_row] = self.features_history
                 self.features_history = new_array
             
         feature_idx = 0
+        # features = {}
         for spec in self.feature_specs.values():
             instance = spec['instance']
             for attr_name, idx in spec['features']:
@@ -260,7 +261,7 @@ class TechnicalAnalysis:
                     self.features_history[self.current_row, feature_idx] = value[idx] if idx is not None else value
                 else:
                     self.features[feature_idx] = value[idx] if idx is not None else value
-
+                # features[name+attr_name+str(idx)] = value[idx] if idx is not None else value
                 feature_idx += 1
                 
         self.current_row += 1
@@ -363,20 +364,111 @@ class TechnicalAnalysis:
                 self.counts[i] = count
                 break  # Changed from return to break to allow volume initialization
         return results
-    
+
     def get_features_df(self):
         # Generate column names from feature specs
         feature_names = []
+        scaling_methods = {}
         for name, spec in self.feature_specs.items():
             for attr_name, idx in spec['features']:
                 if idx is not None:
-                    # For indexed features (like t-1, t-2, etc.)
                     feature_names.append(f"{name}_{attr_name}_{abs(idx)}")
                 else:
-                    # For direct features (like timely's hour_of_day)
                     feature_names.append(f"{name}_{attr_name}")
+                scaling_methods[feature_names[-1]] = spec['Scaler']
 
-        return pd.DataFrame(
+        # Add label column names
+        label_names = [f'label_{i+1}' for i in range(self.n_labels)]
+        all_columns = feature_names + label_names
+
+        # Create DataFrame with all columns
+        df = pd.DataFrame(
             self.features_history[:self.current_row],
-            columns=feature_names
+            columns=all_columns
         )
+
+        # Find the log_return column name from feature names
+        log_return_col = next(col for col in feature_names if 'log_returns' in col and '_1' in col)
+
+        # Fill the label columns using shifted log returns
+        for i in range(self.n_labels):
+            shift_value = i + 1  # Positive shift: 1 to 5 for future values
+            df[f'label_{i+1}'] = df[log_return_col].shift(-shift_value)*10000 # NOTE: use pips here for better learning
+
+        # Remove last 5 rows that have incomplete labels
+        df = df.iloc[:-self.n_labels].copy()
+
+        model = GeneralizedModel(
+            # Core Architecture Parameters
+            model_type='bilstm',                # BiLSTM chosen for temporal pattern recognition
+            input_dims=[self.n_features],       # Must match your feature count exactly
+            output_dims=[self.n_labels],        # Must be 5 for your 5 future returns
+            scaling_methods=scaling_methods,    # Defined in feature_specs for each feature
+
+            # Cross-validation Parameters
+            split_method=SplitMethod.KFOLD_CV,  # Regular K-fold since:
+                                                # - This is regression, not classification (so no StratifiedKFold)
+                                                # - Technical indicators already encode temporal info (so no TimeSeriesSplit)
+            n_splits=2,                         # Standard value for k-fold CV:
+                                                # - 5-10 splits is common practice
+                                                # - 5 gives good balance of bias/variance
+                                                # - Each fold has 20% validation data
+
+            # BiLSTM Architecture Parameters
+            hidden_size=64,                     # Determined by:
+                                                # 1. Rule: 1.5-2x number of features
+                                                # 2. Round to nearest power of 2 (32,64,128)
+                                                # 3. If bidirectional=True, can use smaller size
+
+            num_layers=2,                       # Typical value for most applications:
+                                                # - First layer: Learn basic patterns
+                                                # - Second layer: Learn feature interactions
+                                                # - More layers rarely improve performance
+
+            dropout=0.3,                        # Common ranges: 0.2-0.5
+                                                # - Higher (0.3) because many technical features
+                                                # - Helps prevent overfitting from feature correlation
+
+            bidirectional=True,                 # True because:
+                                                # - Technical patterns might be relevant in both directions
+                                                # - Doubles the effective hidden size
+        )
+
+        # Training Parameters
+        training_history = model.fit(
+            X=df[feature_names].copy(),
+            y=df[label_names].copy(),
+
+            batch_size=32,                  # Small-medium batch size because:
+                                            # - Too small (<8): unstable gradients
+                                            # - Too large (>32): might miss patterns
+                                            # - 16-32 is good range for most cases
+
+            epochs=100,                     # Upper limit for training:
+                                            # - Early stopping will prevent overfitting
+                                            # - Complex relationships need time to learn
+                                            # - Can be higher with early stopping
+
+            early_stopping_patience=10,     # Monitor 10 epochs of no improvement:
+                                            # - Too low (<5): might stop too early
+                                            # - Too high (>20): wastes training time
+                                            # - 10 is good balance for this complexity
+
+            learning_rate=0.001             # Standard Adam learning rate:
+                                            # - 0.001 is default for Adam optimizer
+                                            # - Well-tested for most deep learning tasks
+                                            # - Can try 0.0001-0.01 range if needed
+        )
+        
+        model.save('models/bilstm')
+        
+        # # Make predictions
+        # new_data = pd.DataFrame(
+        #     np.random.randn(5, self.n_features),
+        #     columns=[f'feature_{i}' for i in range(self.n_features)]
+        # )
+        # predictions = model.predict_single(new_data) # type: ignore
+        # Save the model
+        # model.save('bilstm_model')
+        # Load the model later
+        # loaded_model = GeneralizedModel.load('bilstm_model')

@@ -48,7 +48,7 @@ class macd:
         self.data_points += 1
         
         # Calculate MACD line
-        macd_value = float(self.fast_ema[-1] - self.slow_ema[-1])
+        macd_value = float((self.fast_ema[-1] - self.slow_ema[-1])/self.slow_ema[-1])
         self.macd.append(macd_value)
         self.previous_macd = macd_value
         
