@@ -1,4 +1,4 @@
-# implement avwap(rolling vwap) and deviationa multiplier (close-avwap)/atr indicator as follows, 
+# implement TD sequential indicator as follows, 
 # feel free to assume ma/ema(of close), rsi... and others are already implemented and updated
 # as arraies just as OHLCV
 # leave param configurable

@@ -83,13 +83,13 @@ class SplitMethod(Enum):
     
     # Basic splits without CV
     RANDOM = "random"               # Random train-test split
-    STRATIFIED = "stratified"       # Stratified split (preserves label distribution)
+    STRATIFIED = "stratified"       # Stratified split (preserves label distribution) (for classification)
     TIMESERIES = "timeseries"       # Temporal order preserved
     GROUP = "group"                 # Group-based split
     
     # Cross-validation methods
     KFOLD_CV = "kfold_cv"          # K-fold cross validation
-    STRATIFIED_KFOLD_CV = "stratified_kfold_cv"  # Stratified k-fold
+    STRATIFIED_KFOLD_CV = "stratified_kfold_cv"  # Stratified k-fold (for classification)
     TIMESERIES_CV = "timeseries_cv"  # Time series cross validation
     GROUP_KFOLD_CV = "group_kfold_cv" # Group k-fold cross validation
 
@@ -194,7 +194,7 @@ class CNN(nn.Module):
         return self.fc(x)
 
 class Recurrent(nn.Module):
-    """Recurrent Neural Network implementation (LSTM/GRU) with simplified typing."""
+    """Recurrent Neural Network implementation (LSTM/GRU) with temporal feature support."""
     def __init__(self,
                 input_size: int,
                 hidden_size: int,
@@ -232,19 +232,79 @@ class Recurrent(nn.Module):
         fc_input_size = hidden_size * (2 if bidirectional else 1)
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(fc_input_size, output_size)
+
+    def _group_temporal_features(self, df: pd.DataFrame) -> Dict[str, List[str]]:
+        """Groups features by their base name (before the _X suffix)."""
+        feature_groups = {}
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        for col in df.columns:
+            # Look for common patterns in temporal features
+            if '_' in col:
+                # Try to identify base feature name and temporal index
+                parts = col.rsplit('_', 1)
+                if len(parts) == 2 and parts[1].isdigit():
+                    base_name = parts[0]
+                    if base_name not in feature_groups:
+                        feature_groups[base_name] = []
+                    feature_groups[base_name].append(col)
+                else:
+                    feature_groups[col] = [col]
+            else:
+                feature_groups[col] = [col]
+        
+        # Sort temporal features within each group
+        for group in feature_groups.values():
+            if len(group) > 1:
+                group.sort(key=lambda x: int(x.split('_')[-1]) if x.split('_')[-1].isdigit() else 0)
+        
+        return feature_groups
+        
+    def forward(self, x: Union[torch.Tensor, pd.DataFrame]) -> torch.Tensor:
         """
-        Forward pass with simplified typing for TorchScript compatibility.
+        Forward pass with temporal feature support.
         Args:
-            x: Input tensor of shape [batch_size, features]
+            x: Input tensor of shape [batch_size, features] or DataFrame with temporal features
         Returns:
             Output tensor of shape [batch_size, output_size]
         """
-        # Add sequence dimension [batch_size, 1, features]
-        x = x.unsqueeze(1)
+        if isinstance(x, pd.DataFrame):
+            # Group temporal features and reshape input
+            feature_groups = self._group_temporal_features(x)
+            sequence_length = max(len(group) for group in feature_groups.values())
+            n_base_features = len(feature_groups)
+            n_samples = len(x)
+            
+            # Initialize reshaped data
+            reshaped_data = torch.zeros((n_samples, sequence_length, n_base_features), 
+                                      device=next(self.parameters()).device)
+            
+            # Fill the reshaped tensor
+            for idx, (base_name, feature_cols) in enumerate(feature_groups.items()):
+                if len(feature_cols) == 1:
+                    # Non-temporal feature - repeat across sequence length
+                    reshaped_data[:, :, idx] = torch.tensor(
+                        x[feature_cols[0]].values, device=reshaped_data.device
+                    ).unsqueeze(1).expand(-1, sequence_length)
+                else:
+                    # Temporal feature - arrange in sequence
+                    for seq_idx, col in enumerate(feature_cols[:sequence_length]):
+                        reshaped_data[:, seq_idx, idx] = torch.tensor(
+                            x[col].values, device=reshaped_data.device
+                        )
+                    
+                    # If sequence is shorter than max_length, repeat last value
+                    if len(feature_cols) < sequence_length:
+                        last_val = torch.tensor(
+                            x[feature_cols[-1]].values, device=reshaped_data.device
+                        )
+                        reshaped_data[:, len(feature_cols):, idx] = last_val.unsqueeze(1)
+            
+            x = reshaped_data
+        elif isinstance(x, torch.Tensor) and x.dim() == 2:
+            # Add sequence dimension if not present [batch_size, 1, features]
+            x = x.unsqueeze(1)
         
-        # Forward pass through RNN - let PyTorch handle hidden state
+        # Forward pass through RNN
         outputs, _ = self.rnn(x)
         
         # Get output for each sample in batch
@@ -330,69 +390,57 @@ class Ensemble:
                 **params):
         self.model_type = model_type.lower()
         
-        if self.model_type == 'xgboost':
-            self.model = xgb.XGBRegressor(**{
-                'n_estimators': params.get('n_estimators', 100),
-                'learning_rate': params.get('learning_rate', 0.1),
-                'max_depth': params.get('max_depth', 6),
-                'subsample': params.get('subsample', 0.8),
-                'colsample_bytree': params.get('colsample_bytree', 0.8),
-                'min_child_weight': params.get('min_child_weight', 1),
-                'objective': params.get('objective', 'reg:squarederror'),
-                'tree_method': params.get('tree_method', 'hist'),
-                'booster': params.get('booster', 'gbtree')
-            })
+        # Default parameters for each model type
+        xgb_defaults = {
+            'n_estimators': 100,
+            'learning_rate': 0.1,
+            'max_depth': 6,
+            'subsample': 0.8,
+            'colsample_bytree': 0.8,
+            'min_child_weight': 1,
+            'objective': 'reg:squarederror',
+            'tree_method': 'hist',
+            'booster': 'gbtree',
+            'random_state': 42,
+            'n_jobs': -1,  # Use all available cores
+            'early_stopping_rounds': 10  # Enable early stopping by default
+        }
         
+        lgb_defaults = {
+            'n_estimators': 100,
+            'learning_rate': 0.1,
+            'max_depth': 6,
+            'num_leaves': 31,
+            'subsample': 0.8,
+            'colsample_bytree': 0.8,
+            'min_child_samples': 20,
+            'objective': 'regression',
+            'boosting_type': 'gbdt',
+            'random_state': 42,
+            'n_jobs': -1,
+            'early_stopping_rounds': 10
+        }
+        
+        if self.model_type == 'xgboost':
+            # Update defaults with user-provided parameters
+            final_params = xgb_defaults.copy()
+            final_params.update(params)
+            self.model = xgb.XGBRegressor(**final_params)
+            
         elif self.model_type == 'lightgbm':
-            self.model = lgb.LGBMRegressor(**{
-                'n_estimators': params.get('n_estimators', 100),
-                'learning_rate': params.get('learning_rate', 0.1),
-                'max_depth': params.get('max_depth', 6),
-                'num_leaves': params.get('num_leaves', 31),
-                'subsample': params.get('subsample', 0.8),
-                'colsample_bytree': params.get('colsample_bytree', 0.8),
-                'min_child_samples': params.get('min_child_samples', 20),
-                'objective': params.get('objective', 'regression'),
-                'boosting_type': params.get('boosting_type', 'gbdt')
-            })
+            # Update defaults with user-provided parameters
+            final_params = lgb_defaults.copy()
+            final_params.update(params)
+            self.model = lgb.LGBMRegressor(**final_params)
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
-            
-    def fit(self, X, y, **kwargs):
-        """Fit the ensemble model."""
-        return self.model.fit(X, y, **kwargs) # type: ignore
         
     def predict(self, X):
-        """Make predictions with the ensemble model."""
+        """Make predictions using the wrapped model."""
+        if isinstance(X, pd.DataFrame):
+            X = X.values
         return self.model.predict(X)
-        
-    def save_model(self, path: str):
-        """Save the ensemble model."""
-        if self.model_type == 'lightgbm':
-            # Save LightGBM model using model's save_model method
-            if hasattr(self.model, 'booster_'):
-                self.model.booster_.save_model(path) # type: ignore
-            else:
-                lgb.Booster(model_file=path)
-        elif self.model_type == 'xgboost':
-            self.model.save_model(path) # type: ignore
-        else:
-            # Fallback for models without direct save_model method
-            import joblib
-            joblib.dump(self.model, path)
-            
-    def load_model(self, path: str):
-        """Load the ensemble model."""
-        if self.model_type == 'lightgbm':
-            # Load LightGBM model
-            self.model = lgb.Booster(model_file=path)
-        elif self.model_type == 'xgboost':
-            self.model.load_model(path) # type: ignore
-        else:
-            # Fallback for models without direct load_model method
-            import joblib
-            self.model = joblib.load(path)
-
+    
 class GeneralizedModel:
     """
     A generalized model framework supporting multiple neural network architectures 
@@ -596,7 +644,7 @@ class GeneralizedModel:
         def _print_data_check_summary(results: Dict[str, Any]) -> None:
             """Print a formatted summary of data quality checks."""
             print("\n=== Data Quality Check Summary ===")
-            print("\n(Problematic)Feature Analysis:")
+            print("\nFeature Analysis:")
             for feat, res in results['features'].items():
                 if res['suitable_for_nn']:
                     continue
@@ -604,8 +652,8 @@ class GeneralizedModel:
                 print(f"  Distribution: {res['distribution_type']}, Mean: {res['mean']:.2f}, Variance: {res['variance']:.2f}")
                 print(f"  Warnings: {', '.join(res['warnings']) if res['warnings'] else 'None'}")
                 
-            print(results['bad_features'])
-            print(results['good_features'])
+            # print(results['bad_features'])
+            # print(results['good_features'])
             
         def _analyze_distribution_shape(series):
             """
@@ -687,7 +735,7 @@ class GeneralizedModel:
             else:
                 bad_features.append(f)
                 
-        # results['good_features'] = f"Features okay for NN: \n{good_features} "
+        results['good_features'] = f"Features okay for NN: \n{good_features} "
         results['bad_features'] = f"Features NOT okay for NN: \n{bad_features} "
             
         # Save results
@@ -805,10 +853,15 @@ class GeneralizedModel:
                     **training_params
                 )
             else:  # Ensemble models
-                history = self._train_ensemble(
-                    X_train, y_train, X_val, y_val,
-                    **training_params
-                )
+                # history = self._train_ensemble(
+                #     X_train, y_train, X_val, y_val,
+                #     **training_params
+                # )
+                return {
+                    'fold': fold,
+                    'history': {},
+                    'best_val_loss': 0.0
+                }
 
             # Calculate validation loss
             val_loss = min(h['val_loss'] for h in history)
@@ -864,6 +917,72 @@ class GeneralizedModel:
                                ((y_test.values - y_test.values.mean()) ** 2).sum())
             }
 
+        def _print_scale_summary(X, y, quality_results):
+            """
+            Print key statistics of features and targets before splitting.
+            """
+            print("\n=== Data Scale Summary (Before Split) ===")
+
+            # Features summary
+            print(f"\nFeatures(X) ({X.shape[1]}): {X.shape[0]:,} samples")
+            
+            feature_stats = pd.DataFrame({
+                'Mean': pd.Series({col: quality_results['features'][col]['mean'] for col in X.columns}),
+                'Std': pd.Series({col: math.sqrt(quality_results['features'][col]['variance']) for col in X.columns}),
+                'Min': X.min(),
+                'Max': X.max(),
+                'Skewness': pd.Series({col: quality_results['features'][col]['skewness'] for col in X.columns}),
+                'Kurtosis': pd.Series({col: quality_results['features'][col]['kurtosis'] for col in X.columns}),
+                'Unique': X.nunique(),
+                'Distribution': pd.Series({col: quality_results['features'][col]['distribution_type'] for col in X.columns})
+            }).round(4)
+            print(feature_stats)
+
+            # Targets summary
+            print(f"\nTargets(y) ({y.shape[1]}): {y.shape[0]:,} samples")
+            target_stats = pd.DataFrame({
+                'Mean': pd.Series({col: quality_results['targets'][col]['mean'] for col in y.columns}),
+                'Std': pd.Series({col: math.sqrt(quality_results['targets'][col]['variance']) for col in y.columns}),
+                'Min': y.min(),
+                'Max': y.max(),
+                'Skewness': pd.Series({col: quality_results['targets'][col]['skewness'] for col in y.columns}),
+                'Kurtosis': pd.Series({col: quality_results['targets'][col]['kurtosis'] for col in y.columns}),
+                'Unique': y.nunique(),
+                'Distribution': pd.Series({col: quality_results['targets'][col]['distribution_type'] for col in y.columns})
+            }).round(4)
+            print(target_stats)
+            print("\n")
+
+        def _print_split_summary(X_train, X_val, y_train, y_val):
+            """
+            Print key statistics for training and validation splits.
+            """
+            print("\n=== Split Summary ===")
+
+            # Basic dimensions
+            print(f"\nSizes:")
+            print(f"Training:   {X_train.shape[0]:,} samples")
+            print(f"Validation: {X_val.shape[0]:,} samples")
+
+            # Feature quick stats
+            print(f"\nFeatures ({X_train.shape[1]}):")
+            print("Train range: [{:.4f}, {:.4f}]".format(X_train.values.min(), X_train.values.max()))
+            print("Val range:   [{:.4f}, {:.4f}]".format(X_val.values.min(), X_val.values.max()))
+
+            # Target stats
+            print(f"\nTargets ({y_train.shape[1]}):")
+            for col in y_train.columns:
+                print(f"\n{col}:")
+                print("Train - Mean: {:.4f}, Std: {:.4f}, Range: [{:.4f}, {:.4f}]".format(
+                    y_train[col].mean(), y_train[col].std(), y_train[col].min(), y_train[col].max()
+                ))
+                print("Val   - Mean: {:.4f}, Std: {:.4f}, Range: [{:.4f}, {:.4f}]".format(
+                    y_val[col].mean(), y_val[col].std(), y_val[col].min(), y_val[col].max()
+                ))
+                print(f"Unique values - Train: {y_train[col].nunique()}, Val: {y_val[col].nunique()}")
+
+            print("\n")
+
         def _print_cv_summary(results: List[Dict[str, Any]], 
                                       is_cv: bool) -> Dict[str, Any]:
             """Summarize training results for both CV and single split cases."""
@@ -886,31 +1005,55 @@ class GeneralizedModel:
             if is_cv:
                 print(f"Average validation loss: {summary['avg_val_loss']:.4f}")
                 print(f"Standard deviation: {summary['std_val_loss']:.4f}")
-            print("\n")
+            # print("\n")
             return summary
-
+        
         def _print_final_summary(metrics: Dict[str, Any]) -> None:
-            """Print final model performance summary."""
-            print("\n" + "="*50)
-            print("FINAL MODEL PERFORMANCE")
-            print("="*50)
+            """Print metrics in ASCII table format with a one-line interpretation."""
+            print("\n=== MODEL PERFORMANCE ===\n")
 
-            # Cross-validation results
+            # Get validation/CV loss
             if metrics['is_cv']:
-                print("\nCross-validation Performance:")
-                print(f"Mean CV Loss: {np.mean([r['best_val_loss'] for r in metrics['cv_results']]):.4f}")
-                print(f"Best CV Loss: {metrics['best_val_loss']:.4f}")
+                cv_losses = [r['best_val_loss'] for r in metrics['cv_results']]
+                train_loss = np.mean(cv_losses)
+                loss_name = "CV Loss"
             else:
-                print("\nValidation Performance:")
-                print(f"Validation Loss: {metrics['best_val_loss']:.4f}")
+                train_loss = metrics['best_val_loss']
+                loss_name = "Val Loss"
 
-            # Test set performance
-            print("\nTest Set Performance:")
-            for metric, value in metrics['test_metrics'].items():
-                print(f"{metric}: {value:.4f}")
+            # Get test metrics
+            test_metrics = metrics['test_metrics']
+            rmse_mae_ratio = test_metrics['test_rmse']/test_metrics['test_mae'] if test_metrics['test_mae'] != 0 else float('inf')
 
-            print("\nModel is ready for deployment.")
-            print("="*50)
+            # Create ASCII table
+            header =    "╔═══════════════╦════════════╦════════════════════════════════════════════════════════════════╗"
+            row_fmt =   "║ {:<13} ║ {:>10} ║ {:<65} ║"
+            separator = "╠═══════════════╬════════════╬════════════════════════════════════════════════════════════════╣"
+            footer =    "╚═══════════════╩════════════╩════════════════════════════════════════════════════════════════╝"
+
+            # Metric data
+            metrics_data = [
+                (loss_name, f"{train_loss:.4f}", "<0.01:ready, <0.05:minor-tune, <0.1:major-tune, >0.1:redesign"),
+                ("R²", f"{test_metrics['test_r2']:.4f}", ">0.9:accurate, >0.8:strong, >0.6:moderate, <0.6:unreliable"),
+                ("MSE", f"{test_metrics['test_mse']:.4f}", "<0.01:precise, <0.1:acceptable, >0.1:high-variance"),
+                ("RMSE", f"{test_metrics['test_rmse']:.4f}", "<0.1:10%-scale, <0.5:50%-scale, >0.5:over-half-scale"),
+                ("MAE", f"{test_metrics['test_mae']:.4f}", "<0.08:consistent, <0.15:moderate, >0.15:inconsistent"),
+                ("RMSE/MAE", f"{rmse_mae_ratio:.4f}", "~1.0:normal, <1.3:few-outliers, >1.3:many-outliers")
+            ]
+
+            # Print table
+            print(header)
+            print(row_fmt.format("Metric", "Value", "Range Guide"))
+            print(separator)
+            for metric, value, guide in metrics_data:
+                print(row_fmt.format(metric, value, guide))
+            print(footer)
+
+            # One-line interpretation
+            val_status = metrics['is_cv'] and train_loss < 0.05 or not metrics['is_cv'] and train_loss < 0.05
+            r2 = test_metrics['test_r2']
+            rmse = test_metrics['test_rmse']
+            mae = test_metrics['test_mae']
 
         # Convert inputs to DataFrames if needed
         X = pd.DataFrame(X) if not isinstance(X, pd.DataFrame) else X.copy()
@@ -929,30 +1072,18 @@ class GeneralizedModel:
 
         # Scale features using only training data statistics
         self.logger.info("Scaling features...")
-        X_train_scaled = self._scale_full(X_train_full)
+        X_train_full_scaled = self._scale_full(X_train_full)
         # Scale test set using training data statistics
         X_test_scaled = self._scale_full(X_test)
-
-
-        print("\nX statistics:")
-        print(f"X_scaled mean: {X_train_scaled.mean().mean()}")
-        print(f"X_scaled std: {X_train_scaled.std().mean()}")
-        print(f"X_scaled min: {X_train_scaled.min().min()}")
-        print(f"X_scaled max: {X_train_scaled.max().max()}")
-
-        print("\ny statistics:")
-        print(f"y mean: {y_train_full.mean().mean()}")
-        print(f"y std: {y_train_full.std().mean()}")
-        print(f"y min: {y_train_full.min().min()}")
-        print(f"y max: {y_train_full.max().max()}")
-        print("\n")
-
+        
         # Perform data quality checks
         self.logger.info("Performing data quality checks...")
-        quality_results = self.check_data(X_train_scaled, y_train_full)
+        quality_results = self.check_data(X_train_full_scaled, y_train_full)
+        
+        _print_scale_summary(X_train_full_scaled, y_train_full, quality_results)
 
         # Get appropriate splitter for CV/validation
-        splits = _get_data_splitter(X_train_scaled, y_train_full, groups, validation_split)
+        splits = _get_data_splitter(X_train_full_scaled, y_train_full, groups, validation_split)
         
         # Initialize training results
         cv_results = []
@@ -969,9 +1100,10 @@ class GeneralizedModel:
                 self.logger.info(f"Training fold {fold + 1}/{self.n_splits}")
 
                 # Split data
-                X_train, X_val = X_train_scaled.iloc[train_idx], X_train_scaled.iloc[val_idx]
+                X_train, X_val = X_train_full_scaled.iloc[train_idx], X_train_full_scaled.iloc[val_idx]
                 y_train, y_val = y_train_full.iloc[train_idx], y_train_full.iloc[val_idx]
-
+                _print_split_summary(X_train, X_val, y_train, y_val)
+                
                 # Train fold
                 fold_results = _train_fold(
                     X_train, y_train, X_val, y_val,
@@ -990,8 +1122,9 @@ class GeneralizedModel:
         else:
             # Single validation split
             train_idx, val_idx = splits
-            X_train, X_val = X_train_scaled.iloc[train_idx], X_train_scaled.iloc[val_idx]
+            X_train, X_val = X_train_full_scaled.iloc[train_idx], X_train_full_scaled.iloc[val_idx]
             y_train, y_val = y_train_full.iloc[train_idx], y_train_full.iloc[val_idx]
+            _print_split_summary(X_train, X_val, y_train, y_val)
 
             fold_results = _train_fold(
                 X_train, y_train, X_val, y_val,
@@ -1013,14 +1146,14 @@ class GeneralizedModel:
         if isinstance(self.model, nn.Module):
             self.model = self.model.to(self.device)
             final_history = self._train_neural_network(
-                X_train_scaled, y_train_full, 
+                X_train_full_scaled, y_train_full, 
                 X_test_scaled, y_test,  # Use test set for validation during final training
                 batch_size, epochs, early_stopping_patience,
                 **self.best_params
             )
         else:
             final_history = self._train_ensemble(
-                X_train_scaled, y_train_full, 
+                X_train_full_scaled, y_train_full, 
                 X_test_scaled, y_test,
                 **self.best_params
             )
@@ -1175,73 +1308,64 @@ class GeneralizedModel:
                 
         return history
     
-    def _train_ensemble(
-        self,
-        X_train: pd.DataFrame,
-        y_train: pd.DataFrame,
-        X_val: pd.DataFrame,
-        y_val: pd.DataFrame,
-        **training_params
-    ) -> List[Dict[str, float]]:
-        """Train ensemble models."""
+    def _train_ensemble(self, X_train, y_train, X_val, y_val, **training_params):
+        """Train ensemble models with proper validation."""
         if not isinstance(self.model, Ensemble):
             raise TypeError("Model must be an Ensemble for this training method")
-
-        # Train the ensemble model
-        eval_metric = 'rmse' if self.model_type == ModelType.XGBOOST else 'l2'
-        eval_set = [(X_train.values, y_train.values), (X_val.values, y_val.values)]
-
+    
+        # Get feature names and convert to numpy
+        feature_names = X_train.columns.tolist() if isinstance(X_train, pd.DataFrame) else None
+        X_train_data = X_train.values if isinstance(X_train, pd.DataFrame) else X_train
+        X_val_data = X_val.values if isinstance(X_val, pd.DataFrame) else X_val
+        y_train_data = y_train.values if isinstance(y_train, pd.DataFrame) else y_train
+        y_val_data = y_val.values if isinstance(y_val, pd.DataFrame) else y_val
+    
+        # For first output dimension
+        eval_set = [(X_train_data, y_train_data[:, 0]), (X_val_data, y_val_data[:, 0])]
+        
+        # Train based on model type
         history = []
         if self.model_type == ModelType.XGBOOST:
-            self.model.fit(
-                X_train, 
-                y_train,
+            self.model.model.fit(
+                X_train_data,
+                y_train_data[:, 0],
                 eval_set=eval_set,
-                eval_metric=eval_metric,
                 **training_params
             )
-
-            # Extract training history
+            # Get XGBoost results
             if hasattr(self.model.model, 'evals_result'):
-                evals_result = self.model.model.evals_result() # type: ignore
-                if evals_result and 'validation_0' in evals_result:
-                    metrics = evals_result['validation_0'].get(eval_metric, [])
-                    val_metrics = evals_result['validation_1'].get(eval_metric, [])
-
-                    history = [
-                        {
-                            'epoch': i + 1,
-                            'train_loss': train_loss,
-                            'val_loss': val_loss
-                        }
-                        for i, (train_loss, val_loss) in enumerate(zip(metrics, val_metrics))
-                    ]
-
-        else:  # lightgbm
-            self.model.fit(
-                X_train,
-                y_train,
+                results = self.model.model.evals_result() # type: ignore
+                if results and 'validation_0' in results:
+                    for metric in results['validation_0']:
+                        train_metrics = results['validation_0'][metric]
+                        val_metrics = results['validation_1'][metric]
+                        history = [
+                            {'epoch': i + 1, 'train_loss': m, 'val_loss': v}
+                            for i, (m, v) in enumerate(zip(train_metrics, val_metrics))
+                        ]
+        else:  # LightGBM
+            self.model.model.fit(
+                X_train_data,
+                y_train_data[:, 0],
                 eval_set=eval_set,
-                eval_metric=eval_metric,
                 **training_params
             )
-
-            # Extract LightGBM history
-            if hasattr(self.model.model, 'evals_result_'):
-                evals_result = self.model.model.evals_result_ # type: ignore
-                if evals_result and 'training' in evals_result:
-                    metrics = evals_result['training'].get(eval_metric, [])
-                    val_metrics = evals_result['valid_1'].get(eval_metric, [])
-
-                    history = [
-                        {
-                            'epoch': i + 1,
-                            'train_loss': train_loss,
-                            'val_loss': val_loss
-                        }
-                        for i, (train_loss, val_loss) in enumerate(zip(metrics, val_metrics))
-                    ]
-
+            # Get LightGBM results
+            if hasattr(self.model.model, '_Booster'):
+                eval_result = self.model.model._Booster.eval_valid(0) # type: ignore
+                if eval_result:
+                    history = [{'epoch': 1, 'val_loss': float(eval_result)}] # type: ignore
+    
+        # Print feature importances
+        if hasattr(self.model.model, 'feature_importances_'):
+            colnames = feature_names if feature_names else [f'f{i}' for i in range(X_train_data.shape[1])]
+            importances = pd.DataFrame({
+                'Feature': colnames,
+                'Importance': self.model.model.feature_importances_
+            }).sort_values('Importance', ascending=False)
+            print("\nFeature Importances:")
+            print(importances)
+    
         return history
     
     def _prepare_inference(self) -> None:
@@ -1370,9 +1494,9 @@ class GeneralizedModel:
             }, save_path / 'best_model.pt')
         else:  # Ensemble models
             with open(save_path / 'model_config.json', 'w') as f:
-                json.dump(model_config, f)
-            if isinstance(self.best_model_state, Ensemble):
-                self.best_model_state.save_model(str(save_path / 'best_model.txt'))
+                json.dump(model_config, f, indent=4)
+            if hasattr(self.best_model_state, 'model'):
+                self.best_model_state.model.save_model(str(save_path / 'best_model.json')) # type: ignore
 
         # Save scalers
         import joblib
@@ -1433,7 +1557,7 @@ class GeneralizedModel:
             instance.model.load_state_dict(checkpoint['state_dict'])
             instance.model.to(instance.device)
         else:  # Ensemble models
-            instance.model.load_model(str(load_path / 'best_model.txt'))
+            instance.model.model.load_model(str(load_path / 'best_model.txt')) # type: ignore
 
         # Load scalers
         import joblib

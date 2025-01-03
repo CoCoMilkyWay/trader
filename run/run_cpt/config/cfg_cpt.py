@@ -3,7 +3,7 @@ class cfg_cpt:  # Constants Configs
 
     period, n = 'm', 1  # bar period
     start = 202301010000
-    end   = 202301100000
+    end   = 202301150000
     capital = 10000000
 
     # run_mode(1 in 3):
