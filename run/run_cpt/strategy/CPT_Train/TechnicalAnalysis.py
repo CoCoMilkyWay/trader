@@ -95,7 +95,7 @@ class TechnicalAnalysis:
         
         # ================== indicators ===========================
         # 0:1M, 1:5M, 2:15M, ...
-        i = 0
+        i = 2
         self.i = i
         self.lv = self.levels[i]
         # overlay
@@ -191,7 +191,7 @@ class TechnicalAnalysis:
             },
             # Momentum indicators
             'rsi14': {'instance': self.rsi14, 'features': [('rsi', -1)], 'Scaler': ScalingMethod.STANDARD,},
-            # 'stoch_rsi14': {'instance': self.stoch_rsi14, 'features': [('histogram', -1)], 'Scaler': ScalingMethod.STANDARD,},
+            'stoch_rsi14': {'instance': self.stoch_rsi14, 'features': [('histogram', -1)], 'Scaler': ScalingMethod.STANDARD,},
             'macd': {'instance': self.macd, 'features': [('histogram', -1)], 'Scaler': ScalingMethod.STANDARD,},
             'cci20': {'instance': self.cci20, 'features': [('cci', -1)], 'Scaler': ScalingMethod.STANDARD,},
             'tsi_trend20': {'instance': self.tsi_trend20, 'features': [('tsi', -1)], 'Scaler': ScalingMethod.STANDARD,},
@@ -221,7 +221,7 @@ class TechnicalAnalysis:
         }
         # Count total features and create array
         self.n_features = sum(len(spec['features']) for spec in self.feature_specs.values())
-        self.n_labels = 5
+        self.n_labels = 4
         self.n_cols = self.n_features + self.n_labels
         self.current_row = 0
         if self._train:
@@ -397,14 +397,26 @@ class TechnicalAnalysis:
         # Find the log_return column name from feature names
         log_return_col = next(col for col in feature_names if 'log_returns' in col and '_1' in col)
 
-        # Create a temporary series with the base log returns
-        base_returns = df[log_return_col] * 10000  # Convert to pips
+        y = df[log_return_col] * 10000  # Convert to pips
+        # Apply winsorization (Median Absolute Deviation)
+        median = np.median(y)
+        mad = np.median(np.abs(y - median))
+        lower = median - 3 * mad / 0.6745  # scaled MAD
+        upper = median + 3 * mad / 0.6745
+        y_winsorized = np.clip(y, lower, upper)
+        # Then apply Yeo-Johnson
+        from sklearn.preprocessing import PowerTransformer
+        pt = PowerTransformer(method='yeo-johnson')
+        y_transformed = pt.fit_transform(y_winsorized.values.reshape(-1, 1))
+        
         
         # Calculate cumulative returns properly
         for i in range(self.n_labels):
             horizon = i + 1
-            df[f'label_{horizon}'] = base_returns.rolling(window=horizon, 
-                                                         min_periods=horizon).sum().shift(-horizon)
+            
+            y_cumulated = pd.Series(y_transformed.flatten()).rolling(window=horizon, min_periods=horizon).sum().shift(-horizon)
+            df[f'label_{horizon}'] = y_cumulated
+            # np.where(base > 0, 1, np.where(base <= 0, 0, 0))
         
         # Remove rows with NaN labels at the end
         df = df.iloc[:-self.n_labels].copy()
@@ -504,7 +516,7 @@ class TechnicalAnalysis:
             # Train model
             history = model.fit(
                 X=df[feature_names].copy(),
-                y=df[['label_2']].copy(),
+                y=df[['label_1']].copy(),
                                validation_split=0.2,
                                early_stopping_patience=10)
 

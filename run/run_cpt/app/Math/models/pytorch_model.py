@@ -908,6 +908,65 @@ class GeneralizedModel:
 
             diff = y_test.values - predictions
             mse = (diff ** 2).mean()
+            
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            
+            # Initialize arrays with known sizes
+            actual_prices = np.zeros(len(y_test) + 1)
+            predicted_prices = np.zeros(len(y_test) + 1)
+            # Set initial values
+            actual_prices[0] = 1.0
+            predicted_prices[0] = 1.0
+
+            # Calculate prices iteratively
+            for i, ret in enumerate(y_test.values.flatten()):
+                actual_prices[i + 1] = actual_prices[i] * np.exp(ret * 0.0001)
+                predicted_prices[i + 1] = actual_prices[i] * np.exp(predictions[i] * 0.0001) # type: ignore
+            actual_prices = np.array(actual_prices)
+            predicted_prices = np.array(predicted_prices)
+            
+            # Create indices for buy (1) and sell (0) signals
+            high = np.percentile(predictions.flatten(), 90) # type: ignore
+            low = np.percentile(predictions.flatten(), 10) # type: ignore
+            buy_indices = np.where(predictions.flatten() > high)[0] # type: ignore
+            sell_indices = np.where(predictions.flatten() < low)[0] # type: ignore
+            colors = ['green' if pred > high else 'red' if pred < low else 'black' for pred in predictions.flatten()] # type: ignore
+            
+            print("buy_indices: ", len(buy_indices))
+            print("sell_indices: ", len(sell_indices))
+            
+            # Create Plotly figure
+            fig = go.Figure()
+            
+            # Add price trace with color segments
+            for i in range(len(actual_prices) - 1):
+                fig.add_trace(
+                    go.Scatter(
+                        x=[i, i+1],
+                        y=actual_prices[i:i+2],
+                        mode='lines',
+                        line=dict(color=colors[i], width=2),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    )
+                )
+            
+            # Update layout
+            fig.update_layout(
+                height=600,
+                title='Price with Buy/Sell Signals',
+                yaxis_title='Price',
+                xaxis_title='Time Period',
+                template='plotly_white',
+                showlegend=True,
+                hovermode='x unified'
+            )
+            
+            # Add horizontal line at y=1 for reference
+            fig.add_hline(y=1, line_dash="dash", line_color="gray")
+            
+            fig.show()
 
             return {
                 'test_mse': mse,
@@ -916,7 +975,7 @@ class GeneralizedModel:
                 'test_r2': 1 - ((diff ** 2).sum() / 
                                ((y_test.values - y_test.values.mean()) ** 2).sum())
             }
-
+            
         def _print_scale_summary(X, y, quality_results):
             """
             Print key statistics of features and targets before splitting.
@@ -1007,9 +1066,13 @@ class GeneralizedModel:
                 print(f"Standard deviation: {summary['std_val_loss']:.4f}")
             # print("\n")
             return summary
-        
+
         def _print_final_summary(metrics: Dict[str, Any]) -> None:
-            """Print metrics in ASCII table format with a one-line interpretation."""
+            """
+            Print metrics in ASCII table format with model-type specific ranges.
+            Args:
+                metrics: Dictionary of metrics
+            """
             print("\n=== MODEL PERFORMANCE ===\n")
 
             # Get validation/CV loss
@@ -1025,23 +1088,47 @@ class GeneralizedModel:
             test_metrics = metrics['test_metrics']
             rmse_mae_ratio = test_metrics['test_rmse']/test_metrics['test_mae'] if test_metrics['test_mae'] != 0 else float('inf')
 
+            model_ensemble = self.model_type in [ModelType.LIGHTGBM, ModelType.XGBOOST]
+            model_transformer = self.model_type in [ModelType.TRANSFORMER]
+            model_nn = not model_ensemble and not model_transformer
+            # Define ranges based on model type
+            if model_nn:
+                ranges = {
+                    'loss': "<0.01:ready, <0.05:minor-tune, <0.1:major-tune, >0.1:redesign",
+                    'r2': ">0.9:accurate, >0.8:strong, >0.6:moderate, <0.6:unreliable",
+                    'mse': "<0.01:precise, <0.1:acceptable, >0.1:high-variance",
+                    'rmse': "<0.1:10%-scale, <0.5:50%-scale, >0.5:over-half-scale",
+                    'mae': "<0.08:consistent, <0.15:moderate, >0.15:inconsistent",
+                    'ratio': "~1.0:normal, <1.3:few-outliers, >1.3:many-outliers"
+                }
+            else:  # ensemble methods
+                ranges = {
+                    'loss': "<0.1:ready, <0.3:minor-tune, <0.5:major-tune, >0.5:redesign",
+                    'r2': ">0.85:accurate, >0.7:strong, >0.5:moderate, <0.5:unreliable",
+                    'mse': "<0.1:precise, <0.3:acceptable, >0.3:high-variance",
+                    'rmse': "<0.3:10%-scale, <0.7:50%-scale, >0.7:over-half-scale",
+                    'mae': "<0.25:consistent, <0.4:moderate, >0.4:inconsistent",
+                    'ratio': "~1.2:normal, <1.5:few-outliers, >1.5:many-outliers"
+                }
+
             # Create ASCII table
-            header =    "╔═══════════════╦════════════╦════════════════════════════════════════════════════════════════╗"
+            header =    "╔═══════════════╦════════════╦═══════════════════════════════════════════════════════════════════╗"
             row_fmt =   "║ {:<13} ║ {:>10} ║ {:<65} ║"
-            separator = "╠═══════════════╬════════════╬════════════════════════════════════════════════════════════════╣"
-            footer =    "╚═══════════════╩════════════╩════════════════════════════════════════════════════════════════╝"
+            separator = "╠═══════════════╬════════════╬═══════════════════════════════════════════════════════════════════╣"
+            footer =    "╚═══════════════╩════════════╩═══════════════════════════════════════════════════════════════════╝"
 
             # Metric data
             metrics_data = [
-                (loss_name, f"{train_loss:.4f}", "<0.01:ready, <0.05:minor-tune, <0.1:major-tune, >0.1:redesign"),
-                ("R²", f"{test_metrics['test_r2']:.4f}", ">0.9:accurate, >0.8:strong, >0.6:moderate, <0.6:unreliable"),
-                ("MSE", f"{test_metrics['test_mse']:.4f}", "<0.01:precise, <0.1:acceptable, >0.1:high-variance"),
-                ("RMSE", f"{test_metrics['test_rmse']:.4f}", "<0.1:10%-scale, <0.5:50%-scale, >0.5:over-half-scale"),
-                ("MAE", f"{test_metrics['test_mae']:.4f}", "<0.08:consistent, <0.15:moderate, >0.15:inconsistent"),
-                ("RMSE/MAE", f"{rmse_mae_ratio:.4f}", "~1.0:normal, <1.3:few-outliers, >1.3:many-outliers")
+                (loss_name, f"{train_loss:.4f}", ranges['loss']),
+                ("R²", f"{test_metrics['test_r2']:.4f}", ranges['r2']),
+                ("MSE", f"{test_metrics['test_mse']:.4f}", ranges['mse']),
+                ("RMSE", f"{test_metrics['test_rmse']:.4f}", ranges['rmse']),
+                ("MAE", f"{test_metrics['test_mae']:.4f}", ranges['mae']),
+                ("RMSE/MAE", f"{rmse_mae_ratio:.4f}", ranges['ratio'])
             ]
 
             # Print table
+            print(f"Model Type: {'Neural Network' if model_nn else 'Ensemble'}")
             print(header)
             print(row_fmt.format("Metric", "Value", "Range Guide"))
             print(separator)
@@ -1050,7 +1137,10 @@ class GeneralizedModel:
             print(footer)
 
             # One-line interpretation
-            val_status = metrics['is_cv'] and train_loss < 0.05 or not metrics['is_cv'] and train_loss < 0.05
+            print("\nInterpretation:")
+            val_threshold = 0.05 if model_nn else 0.3
+            r2_threshold = 0.8 if model_nn else 0.7
+            val_status = metrics['is_cv'] and train_loss < val_threshold or not metrics['is_cv'] and train_loss < val_threshold
             r2 = test_metrics['test_r2']
             rmse = test_metrics['test_rmse']
             mae = test_metrics['test_mae']
@@ -1355,7 +1445,22 @@ class GeneralizedModel:
                 eval_result = self.model.model._Booster.eval_valid(0) # type: ignore
                 if eval_result:
                     history = [{'epoch': 1, 'val_loss': float(eval_result)}] # type: ignore
-    
+        
+        # Get and print prediction statistics
+        train_pred = self.model.model.predict(X_train_data)
+        pred_stats = pd.DataFrame({
+            'Predictions': train_pred
+        }).agg(['mean', 'std', 'min', 'max', 'skew', 'kurt']).round(4)
+        n_unique = len(np.unique(train_pred)) # type: ignore
+        distribution = 'normal' if stats.normaltest(train_pred)[1] > 0.05 else 'non-normal'
+
+        print(f"\nPredictions: {len(train_pred):,} samples") # type: ignore
+        print(f"           Mean     Std      Min       Max  Skewness  Kurtosis  Unique Distribution")
+        print(f"pred    {pred_stats['Predictions']['mean']:7.4f} {pred_stats['Predictions']['std']:7.4f} "
+              f"{pred_stats['Predictions']['min']:8.4f} {pred_stats['Predictions']['max']:9.4f} "
+              f"{pred_stats['Predictions']['skew']:8.4f} {pred_stats['Predictions']['kurt']:9.4f} "
+              f"{n_unique:7d} {distribution:>11}")
+
         # Print feature importances
         if hasattr(self.model.model, 'feature_importances_'):
             colnames = feature_names if feature_names else [f'f{i}' for i in range(X_train_data.shape[1])]

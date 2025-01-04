@@ -15,7 +15,6 @@ from Chan.Common.CEnum import KL_TYPE, FX_TYPE, BI_DIR
 from Chan.KLine.KLine_List import CKLine_List
 
 from Util.UtilCpt import mkdir
-from Math.models.BiLTSM_Model import BiLTSM_Model
 
 from .TechnicalAnalysis import TechnicalAnalysis
 
@@ -209,72 +208,72 @@ class Main_Train(BaseCtaStrategy):
             for i, (pred, true_label) in enumerate(zip(predictions, train_labels)):
                 print(f"Sample {i}: Prediction={pred[0]:.2f}, True Label={true_label}")
 
-    def ST_Train(self, context: CtaContext, code: str):
-        """
-        Strategy: Training ML model
-        """
-        PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
-        bi_list_m1 = self.kl_datas[code][KL_TYPE.K_1M].PA_Core.bi_list
-        bi_list_m15 = self.kl_datas[code][KL_TYPE.K_15M].PA_Core.bi_list
-        kl_list = self.kl_datas[code][self.lv_list[-1]]
-        if len(bi_list_m15) < 3:  # make sure we have both sup and res
-            return
-
-        match, lower_targets, upper_targets, hint = \
-        PA.PA_Liquidity.check_sup_res(self.close)
-        
-        if match:
-            long_short =  self.vwap > self.close
-            elasticity =  self.dev_mult
-            if long_short:
-                targets = upper_targets
-            else:
-                targets = lower_targets
-            if len(targets) > 0: # this is usually not a problem, just to be safe
-                if bi_list_m1[-1].is_sure:
-                    self.ST_signals[code].append([
-                        # status
-                        0, # 0: opened 1: closed with feature and label
-                        
-                        # features
-                        [(bi.get_klu_cnt(), bi.get_end_val()) for bi in bi_list_m1[-10:]], # pattern
-                        long_short, # dir of trade (long/short properties may be asymmetric)
-                        elasticity,
-                        self.close, # entry_price
-                        # TODO: e.g. dst to 1st OB, trend, etc
-                        
-                        # label(pnl)
-                        0.0,
-                        ])
-
-            for signal in self.ST_signals[code][:]:
-                signal_state = signal[0]
-                bi_pattern = signal[1]
-                long_short = signal[2]
-                elasticity = signal[3]
-                entry_price = signal[4]
-                label = signal[5]
-
-                stop = False
-                dir = 0
-                if signal_state == 0:
-                    if long_short:
-                        if self.short_switch:
-                            stop = True
-                            dir = 1
-                    elif not long_short:
-                        if self.long_switch:
-                            stop = True
-                            dir = -1
-                    if stop:
-                        signal[0] = 1
-                        pnl = dir*(self.close - entry_price)/entry_price
-                        pnl = pnl + 0.5 # [-1, 0 ,1] -> [-0.5, 0.5, 1.5]
-                        if pnl < 0:
-                            pnl = 0
-                        elif pnl > 1:
-                            pnl = 1
-                        signal[5] = pnl
-                        if signal[5] > 0.01:
-                            symbol = "v" if long_short else "^"
-                            print(f'{self.date}-{self.time:>4} {symbol} label:{signal[5]:>3.2f}')
+    # def ST_Train(self, context: CtaContext, code: str):
+    #     """
+    #     Strategy: Training ML model
+    #     """
+    #     PA = self.kl_datas[code][KL_TYPE.K_15M].PA_Core
+    #     bi_list_m1 = self.kl_datas[code][KL_TYPE.K_1M].PA_Core.bi_list
+    #     bi_list_m15 = self.kl_datas[code][KL_TYPE.K_15M].PA_Core.bi_list
+    #     kl_list = self.kl_datas[code][self.lv_list[-1]]
+    #     if len(bi_list_m15) < 3:  # make sure we have both sup and res
+    #         return
+    # 
+    #     match, lower_targets, upper_targets, hint = \
+    #     PA.PA_Liquidity.check_sup_res(self.close)
+    #     
+    #     if match:
+    #         long_short =  self.vwap > self.close
+    #         elasticity =  self.dev_mult
+    #         if long_short:
+    #             targets = upper_targets
+    #         else:
+    #             targets = lower_targets
+    #         if len(targets) > 0: # this is usually not a problem, just to be safe
+    #             if bi_list_m1[-1].is_sure:
+    #                 self.ST_signals[code].append([
+    #                     # status
+    #                     0, # 0: opened 1: closed with feature and label
+    #                     
+    #                     # features
+    #                     [(bi.get_klu_cnt(), bi.get_end_val()) for bi in bi_list_m1[-10:]], # pattern
+    #                     long_short, # dir of trade (long/short properties may be asymmetric)
+    #                     elasticity,
+    #                     self.close, # entry_price
+    #                     # TODO: e.g. dst to 1st OB, trend, etc
+    #                     
+    #                     # label(pnl)
+    #                     0.0,
+    #                     ])
+    # 
+    #         for signal in self.ST_signals[code][:]:
+    #             signal_state = signal[0]
+    #             bi_pattern = signal[1]
+    #             long_short = signal[2]
+    #             elasticity = signal[3]
+    #             entry_price = signal[4]
+    #             label = signal[5]
+    # 
+    #             stop = False
+    #             dir = 0
+    #             if signal_state == 0:
+    #                 if long_short:
+    #                     if self.short_switch:
+    #                         stop = True
+    #                         dir = 1
+    #                 elif not long_short:
+    #                     if self.long_switch:
+    #                         stop = True
+    #                         dir = -1
+    #                 if stop:
+    #                     signal[0] = 1
+    #                     pnl = dir*(self.close - entry_price)/entry_price
+    #                     pnl = pnl + 0.5 # [-1, 0 ,1] -> [-0.5, 0.5, 1.5]
+    #                     if pnl < 0:
+    #                         pnl = 0
+    #                     elif pnl > 1:
+    #                         pnl = 1
+    #                     signal[5] = pnl
+    #                     if signal[5] > 0.01:
+    #                         symbol = "v" if long_short else "^"
+    #                         print(f'{self.date}-{self.time:>4} {symbol} label:{signal[5]:>3.2f}')
