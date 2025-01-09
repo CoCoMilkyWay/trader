@@ -27,7 +27,7 @@ X = np.column_stack((x1, x2))
 # Configure symbolic regressor
 est_gp = SymbolicRegressor(
     population_size=5000,       # Bigger population for better exploration
-    generations=20,             # Number of evolution iterations
+    generations=10,             # Number of evolution iterations
     tournament_size=20,         # Size of tournament selection
     function_set=               # Available functions
     ('add', 'sub', 'mul', 'div', 'sin', 'cos', 'sqrt'), 
@@ -39,6 +39,7 @@ est_gp = SymbolicRegressor(
     p_point_mutation=0.1,       # Probability of point mutation
     p_hoist_mutation=0.05,      # Probability of hoist mutation
     verbose=1,                  # Print progress
+    n_jobs=5,
     random_state=42             # For reproducibility
 )
 
