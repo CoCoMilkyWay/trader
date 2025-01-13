@@ -3,7 +3,7 @@ class cfg_cpt:  # Constants Configs
 
     period, n = 'm', 1  # bar period
     start = 202301010000
-    end   = 202301150000
+    end   = 202301100000
     capital = 10000000
 
     # run_mode(1 in 3):
@@ -15,13 +15,13 @@ class cfg_cpt:  # Constants Configs
     analyze = False
     plot    = True
     snoop   = False
-    profile = True
+    profile = False
     panel   = False
     
     mode = '/um'  # spot, um, cm
     market = 'Binance'
 
-    NUM = 1  # N/None
+    NUM = 2  # N/None
     symbols = ['BTCUSDT',  '1000SHIBUSDT',  'ETHUSDT',  'BNBUSDT',  'DOGEUSDT',  'ADAUSDT',  'XRPUSDT',  'SOLUSDT',  'LTCUSDT',
                'BCHUSDT',  'MATICUSDT',  'LINKUSDT',  'AVAXUSDT',  'DOTUSDT',  'FTMUSDT',  'UNIUSDT',  'AAVEUSDT',  'XLMUSDT',  'TRXUSDT']
     if NUM:
@@ -36,6 +36,7 @@ class cfg_cpt:  # Constants Configs
     script_dir = os.path.dirname(os.path.abspath(__file__))
     ASSET_FILE = script_dir + '/cpt_assets.json'
     WT_STORAGE_DIR = script_dir + '/../../storage'
+    ML_MODEL_DIR = script_dir + '/../models'
 
     # ML model =========================================
     model_path = './models/BiLTSM.pkl'

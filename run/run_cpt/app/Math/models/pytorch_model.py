@@ -1162,9 +1162,13 @@ class GeneralizedModel:
 
         # Scale features using only training data statistics
         self.logger.info("Scaling features...")
-        X_train_full_scaled = self._scale_full(X_train_full)
-        # Scale test set using training data statistics
-        X_test_scaled = self._scale_full(X_test)
+        SCALE = True
+        if SCALE:
+            X_train_full_scaled = self._scale_full(X_train_full)
+            X_test_scaled = self._scale_full(X_test)
+        else:
+            X_train_full_scaled = X_train_full
+            X_test_scaled = X_test
         
         # Perform data quality checks
         self.logger.info("Performing data quality checks...")

@@ -65,17 +65,20 @@ class Main_Train(BaseCtaStrategy):
             self.ind_text = []
 
     def on_init(self, context: CtaContext):
-        print('Initializing Strategy...')
+        print('Preparing Bars in DDR...')
+        self.pbar = tqdm(total=len(self.__codes__))
         self.lv_list = [lv[0] for lv in self.config.lv_list]
 
         for idx, code in enumerate(self.__codes__):
-            context.stra_prepare_bars(
+            
+            r = context.stra_prepare_bars(
                 code, self.__period__, 1, isMain=idx == 0)
             # only 1 series is registered as 'Main', which works as clock, more registrations would result in fault
             # on_calculate is triggered once main bar is closed
             # if hook is installed, on_calculate_done would be triggered(for RL)
 
             self.init_shared_kl_datas(code)
+            self.init_new_code(code)
             self.last_price[code] = 0.0
             self.last_ts[code] = 0.0
             self.holds[code] = [0, 0]
@@ -84,10 +87,11 @@ class Main_Train(BaseCtaStrategy):
             # ST(Strategies): liquidity
             self.ST_signals[code] = []
             self.ST_trade[code] = []
-
+            self.pbar.update(1)
+            self.pbar.set_description(f'init: {code}', True)
+            
+        self.pbar.close()
         context.stra_log_text(stdio("Strategy Initiated"))
-        self.pbar = tqdm(total=len(self.__codes__),
-                         desc='Preparing Bars in DDR...')
 
     def init_shared_kl_datas(self, code: str):
         """Initialize K-line data structures for each time level."""
@@ -121,13 +125,9 @@ class Main_Train(BaseCtaStrategy):
         self.time = time
         
         for idx, code in enumerate(self.__codes__):
-            if self.barnum == 1:
-                self.pbar.update(1)
-                self.init_new_code(code)
-            else:
-                self.pbar.close()
 
             np_bars = context.stra_get_bars(code, self.__period__, 1, isMain=idx == 0)
+            
             # multi-level k bar generation
             TA = self.tech_analysis[code]
             klu_dict = TA.analyze(np_bars)
@@ -140,9 +140,9 @@ class Main_Train(BaseCtaStrategy):
             for lv in self.lv_list:
                 self.kl_datas[code][lv].PA_Core.parse_dynamic_bi_list()
                 
-            # indicator guard
+            # indicator guard (prepare and align)
             if not self.inited:
-                if self.barnum < 1*24*60: # need 1 day(s) of 1M data to prepare indicators
+                if self.barnum < 1*24*60: # need 1 day(s) of 1M data
                     self.inited = True
                 return
             
@@ -153,9 +153,19 @@ class Main_Train(BaseCtaStrategy):
         self.elapsed_time = time() - self.start_time
         print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         
-        train_df = self.tech_analysis[self.__codes__[0]].get_features_df()
-        print(train_df)
+        for idx, code in enumerate(self.__codes__):
+            df, scaling_methods = self.tech_analysis[code].get_features_df()
+            print(df.shape)
+            df.to_parquet(mkdir(f'{cfg_cpt.ML_MODEL_DIR}/data/ts_{code}_{cfg_cpt.start}_{cfg_cpt.end}.parquet'))
+            
+            if idx == 0:
+                print(df.describe())
+                print(df.info())
+                from .Model import train
+                train(df, scaling_methods)
         return
+    
+    
         # Generate some test data
         print('Generating Traning data')
         for code in self.__codes__:

@@ -23,7 +23,7 @@ python main.py
 
 # Check if main.py started successfully
 if [ $? -eq 0 ]; then
-    echo "main.py started successfully"
+    echo "main.py finished"
 else
     echo "Error: Failed to start main.py"
     exit 1
