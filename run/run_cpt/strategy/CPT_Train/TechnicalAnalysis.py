@@ -43,6 +43,8 @@ from Math.volume.aobv import aobv
 from Math.volume.avwap import avwap
 from Math.volume.eom import eom
 
+from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
+
 from Math.models.pytorch_model import \
     ScalingMethod, SplitMethod, \
     DataCheckResult, ModelType, GeneralizedModel, \
@@ -221,14 +223,17 @@ class TechnicalAnalysis:
         }
         # Count total features and create array
         self.n_features = sum(len(spec['features']) for spec in self.feature_specs.values())
-        self.n_labels = 4
+        self.n_labels = 1
         self.n_cols = self.n_features + self.n_labels
         self.current_row = 0
         if self._train:
             self.features_history = np.zeros((1_000_000, self.n_cols), dtype=np.float32)
         else:
             self.features = np.zeros(self.n_features, dtype=np.float32)
-
+            
+        # special purpose indicators
+        self.AdaptiveSuperTrend = AdaptiveSuperTrend(atr_len=60*4, factor=10) # 4 hours
+        
         # =========================================================
         
     def analyze(self, np_bars: WtNpKline):
@@ -274,6 +279,8 @@ class TechnicalAnalysis:
         self.current_row += 1
         # formatted_numbers = [f"{x:.5f}" for x in features]
         # print(formatted_numbers)
+        
+        self.s_long_switch, self.s_short_switch = self.AdaptiveSuperTrend.update(self.highs[0][-1], self.lows[0][-1], self.closes[0][-1], self.timestamp[-1])
         
     def parse_kline(self, np_bars: WtNpKline) -> dict[KL_TYPE, List[CKLine_Unit]]:
         # def debug(i):
@@ -395,31 +402,9 @@ class TechnicalAnalysis:
             dtype=np.float32
         )
         
-        # Find the log_return column name from feature names
-        log_return_col = next(col for col in feature_names if 'log_returns' in col and '_1' in col)
-
-        y = df[log_return_col] * 10000  # Convert to pips
-        # Apply winsorization (Median Absolute Deviation)
-        median = np.median(y)
-        mad = np.median(np.abs(y - median))
-        lower = median - 3 * mad / 0.6745  # scaled MAD
-        upper = median + 3 * mad / 0.6745
-        y_winsorized = np.clip(y, lower, upper)
-        # Then apply Yeo-Johnson
-        from sklearn.preprocessing import PowerTransformer
-        pt = PowerTransformer(method='yeo-johnson')
-        y_transformed = pt.fit_transform(y_winsorized.values.reshape(-1, 1))
-        
-        
-        # Calculate cumulative returns properly
-        for i in range(self.n_labels):
-            horizon = i + 1
-            
-            y_cumulated = pd.Series(y_transformed.flatten()).rolling(window=horizon, min_periods=horizon).sum().shift(-horizon)
-            df[f'label_{horizon}'] = y_cumulated.astype('float32')
-            # np.where(base > 0, 1, np.where(base <= 0, 0, 0))
-        
-        # Remove rows with NaN labels at the end
-        df = df.iloc[:-self.n_labels].copy()
+        # df = self.label_naive_logreturn(df, feature_names, label_names)
         
         return df, scaling_methods
+    
+        
+        

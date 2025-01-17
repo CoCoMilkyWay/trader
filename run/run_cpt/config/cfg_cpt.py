@@ -3,7 +3,7 @@ class cfg_cpt:  # Constants Configs
 
     period, n = 'm', 1  # bar period
     start = 202301010000
-    end   = 202301100000
+    end   = 202302010000
     capital = 10000000
 
     # run_mode(1 in 3):
@@ -21,7 +21,7 @@ class cfg_cpt:  # Constants Configs
     mode = '/um'  # spot, um, cm
     market = 'Binance'
 
-    NUM = 2  # N/None
+    NUM = 1  # N/None
     symbols = ['BTCUSDT',  '1000SHIBUSDT',  'ETHUSDT',  'BNBUSDT',  'DOGEUSDT',  'ADAUSDT',  'XRPUSDT',  'SOLUSDT',  'LTCUSDT',
                'BCHUSDT',  'MATICUSDT',  'LINKUSDT',  'AVAXUSDT',  'DOTUSDT',  'FTMUSDT',  'UNIUSDT',  'AAVEUSDT',  'XLMUSDT',  'TRXUSDT']
     if NUM:
@@ -43,17 +43,10 @@ class cfg_cpt:  # Constants Configs
 
     # indicators =========================================
     stats_result = './strategy/CPT_Statistics/stats'
-    dump_ind = True if normal else False
-    plot_chandelier = False
-    plot_chandekroll = False
-    plot_parabolic_sar = False
-    plot_adaptive_supertrend = True
-    plot_lorentzian_classifier = False
-
-    plot_vwma_bands = True
-
+    dump_ind = True # if normal else False
+    
     plot_bi_shapes = False
-    plot_bsp = True
+    plot_bsp = False
 
     # Stats Analysis =========================================
     analyze_fourier = True

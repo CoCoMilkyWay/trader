@@ -44,4 +44,10 @@ class stddev:
         self.previous_stddev = stddev_value
         
         self.stddev.append(stddev_value)
+        
+        # Maintain fixed length
+        LEN = 100
+        if len(self.stddev) > 2*LEN:
+            del self.stddev[:-LEN]
+            
         return

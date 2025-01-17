@@ -157,6 +157,22 @@ def generate(pset, min_, max_, condition, type_=None):
                 stack.append((depth + 1, arg))
     return expr
 
+"""
+PROMPT:
+
+objective: alpha mining for timeseries/crosssection(multi-timeseries) data
+algorithm: genetic progrmas (tree-based individual)
+input: momentum/volatility/... based indicator timeseries of default setting, number > 100
+primitive(operators): bool/integer/float/timeseries-based-operators/rank-based-operators(for crossection) ....
+fitness function: max IC from mined alpha to labels(near term sharpe as label (not simple returns)), monotone, quantile stability(alpha should be continuous(and have high near-term sharpe))/correlations to exisiting alpha...
+motivition: genetic program has vast explore space for this many inputs and primitives, need additional constraints
+
+require:
+give a dozen tree structures(e.g.  (indicator set A * primitives set A) and ...) that are likely to generate high fitness alpha for:
+    1. trend strategies
+    2. mean-reversion strategies
+"""
+# ============================================================================================
 
 """
 Let me analyze the code and explain how this tree generation differs from typical genetic programming tree generation methods.
@@ -212,4 +228,139 @@ genHalfAndHalf randomly uses either full or grow for each tree
 
 This implementation maintains these basic approaches but adds the specialized features above to handle time series data and provide more fine-grained control over the tree structure through build preferences and fixed parameters.
 Would you like me to elaborate on any of these differences or explain how they might impact the generated trees?
+"""
+
+"""
+1. Basic Components (All output 0~1)
+Price-based Normalized Components (PN)
+CopyPN1 = (P - MinP(window)) / (MaxP(window) - MinP(window))
+PN2 = Percentile(P, window) / 100
+PN3 = 1 / (1 + exp(-ZScore(P)))  # Sigmoid of z-score
+PN4 = RollingRank(P, window) / window_size
+Volume-based Normalized Components (VN)
+CopyVN1 = Volume / MaxVolume(window)
+VN2 = Percentile(Volume, window) / 100
+VN3 = RollingRank(Volume, window) / window_size
+VN4 = CurrentVolume / MovingAvgVolume(window)
+Volatility-based Normalized Components (σN)
+CopyσN1 = 1 - (CurrentVol / MaxVol(window))
+σN2 = Percentile(1/Volatility, window) / 100
+σN3 = 1 / (1 + Volatility/MovingAvgVol(window))
+σN4 = MinVol(window) / CurrentVol
+2. Tree Structure Templates
+Base Trees (Direct 0~1 output)
+
+Momentum Strength
+
+CopyMS = PN2(Returns(window))
+
+Volume Intensity
+
+CopyVI = VN1 * VN2
+
+Volatility Regime
+
+CopyVR = σN1 * σN3
+
+Trend Persistence
+
+CopyTP = MovingAvg(PN1, fast) / MovingAvg(PN1, slow)
+
+Range Position
+
+CopyRP = (Close - MinPrice(window)) / (MaxPrice(window) - MinPrice(window))
+Selector Trees
+
+Momentum-Volume Selector
+
+CopyIF VN1 > threshold
+    THEN MS
+    ELSE VI
+
+Volatility Regime Selector
+
+CopyIF σN1 > threshold
+    THEN TP
+    ELSE RP
+3. Complex Tree Structures (All outputs guaranteed 0~1)
+
+Momentum-Volume Consensus
+
+CopyMVC = MS * VI * VR
+
+Adaptive Range
+
+CopyAR = RP * σN2 * VN2
+
+Multi-timeframe Momentum
+
+CopyMTM = (MS(fast) * 0.4 + MS(medium) * 0.3 + MS(slow) * 0.3)
+
+Volume-Adjusted Position
+
+CopyVAP = RP * VN1 * σN3
+
+Trend Strength
+
+CopyTS = MovingCorr(PN1, VN1, window) * 0.5 + 0.5  # Maps [-1,1] to [0,1]
+
+Liquidity Score
+
+CopyLS = (VN1 * VN2 * σN2)
+
+Cross-sectional Position
+
+CopyCSP = GroupRank(PN1) / GroupSize
+
+Adaptive Momentum
+
+CopyAM = IF σN1 > 0.7
+        THEN MS * VN1
+        ELSE RP * VN2
+
+Regime-Based Position
+
+CopyRBP = IF VR > 0.8
+        THEN TP * σN2
+        ELSE RP * σN3
+
+Volume-Price Agreement
+
+CopyVPA = (PN2 * VN2 + (1-abs(MovingCorr(PN1, VN1, window)-0.5)))
+4. Composition Rules
+
+Multiplicative
+
+CopyFinal = Tree1 * Tree2 * Tree3
+
+Weighted Average
+
+CopyFinal = w1*Tree1 + w2*Tree2 + (1-w1-w2)*Tree3
+where w1, w2 >= 0 and w1 + w2 <= 1
+
+Conditional Selection
+
+CopyFinal = IF Condition_Tree > threshold
+           THEN Tree1
+           ELSE Tree2
+
+Smooth Transition
+
+Copyweight = Tree1
+Final = weight * Tree2 + (1-weight) * Tree3
+Implementation Notes
+
+Every component and tree must mathematically guarantee output in [0,1]
+Selector trees use normalized components for conditions
+All weights in weighted averages must sum to 1
+Moving windows should be parameterized for optimization
+Thresholds in selectors should be optimized in [0,1]
+
+Parameter Ranges:
+
+Fast window: [5, 20]
+Medium window: [20, 60]
+Slow window: [60, 120]
+Thresholds: [0.3, 0.7]
+Correlation windows: [20, 40]
 """

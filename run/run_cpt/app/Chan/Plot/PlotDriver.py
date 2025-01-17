@@ -11,12 +11,6 @@ from Chan.Common.ChanException import CChanException, ErrCode
 
 from config.cfg_cpt import cfg_cpt
 
-from Math.Chandelier_Stop import ChandelierIndicator
-from Math.ChandeKroll_Stop import ChandeKrollStop
-from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
-from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
-from Math.VolumeWeightedBands import VolumeWeightedBands
-
 class ChanPlotter:
     def __init__(self):
         self.fig = go.Figure()
@@ -568,156 +562,203 @@ class ChanPlotter:
 
     def draw_ind(self):
         "Draw Indicators: "
+        
+        from Math.Chandelier_Stop import ChandelierIndicator
+        from Math.ChandeKroll_Stop import ChandeKrollStop
+        from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
+        from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
+        from Math.VolumeWeightedBands import VolumeWeightedBands
+        
+        # plot_chandelier = False
+        # plot_chandekroll = False
+        # plot_parabolic_sar = False
+        plot_adaptive_supertrend = True
+        # plot_vwma_bands = True
+        # plot_atr_bands = True
+        
         if cfg_cpt.dump_ind:
-            ind_c:ChandelierIndicator = self.indicators[0]
-            ind_k:ChandeKrollStop = self.indicators[1]
-            ind_ps:ParabolicSARIndicator = self.indicators[2]
-            ind_st:AdaptiveSuperTrend = self.indicators[3]
-            ind_vb:VolumeWeightedBands = self.indicators[4]
-            ind_ts = self.indicators[5]
-            ind_value = self.indicators[-2]
-            ind_text = self.indicators[-1]
-            
-            if cfg_cpt.plot_chandelier:
-                # print(f'Chandelier Stop({ind_c.long_idx} switches)...')
-                # for i in range(ind_c.long_idx):
-                #     self.traces.extend([
-                #         go.Scatter(x=ind_c.his_longts[i], y=ind_c.his_longcs[i],
-                #                 mode='lines',
-                #                 line=dict(color='red', width=2), # dash='dot'
-                #                 opacity=0.6, showlegend=False),
-                #     ])
-                # for i in range(ind_c.short_idx):
-                #     self.traces.extend([
-                #         go.Scatter(x=ind_c.his_shortts[i], y=ind_c.his_shortcs[i],
-                #                 mode='lines',
-                #                 line=dict(color='blue', width=2), # dash='dot'
-                #                 opacity=0.6, showlegend=False),
-                #     ])
-                print(f'Chandelier Stop({ind_c.switch_idx} switches)...')
-                self.traces.extend([
-                    go.Scatter(x=ind_c.his_ts, y=ind_c.his_longcs,
-                            mode='lines',
-                            line=dict(color='blue', width=1), # dash='dot'
-                            opacity=0.6, showlegend=False),
-                    go.Scatter(x=ind_c.his_ts, y=ind_c.his_shortcs,
-                            mode='lines',
-                            line=dict(color='red', width=1), # dash='dot'
-                            opacity=0.6, showlegend=False),
-                    go.Scatter(x=ind_c.his_switch_ts, y=ind_c.his_switch_vs,
-                            mode='markers',
-                            marker=dict(color='black', size=6), # dash='dot'
-                            opacity=1, showlegend=False),
-                ])
-            
-            if cfg_cpt.plot_chandekroll:
-                print(f'ChandeKroll Stop...')
-                self.traces.extend([
-                    go.Scatter(x=ind_k.his_ts, y=ind_k.his_upper,
-                            mode='lines',
-                            line=dict(color='brown', width=1), # dash='dot'
-                            opacity=0.6, showlegend=False),
-                    go.Scatter(x=ind_k.his_ts, y=ind_k.his_lower,
-                            mode='lines',
-                            line=dict(color='brown', width=1), # dash='dot'
-                            opacity=0.6, showlegend=False),
-                ])
-            
-            if cfg_cpt.plot_parabolic_sar:
-                print(f'Parabolic SAR({len(ind_ps.his_ep)} extreme points) Stop...')
-                self.traces.extend([
-                    go.Scatter(x=ind_ps.his_ts, y=ind_ps.his_sar,
-                               mode='lines',
-                               line=dict(color='black', width=2, dash='dot'), # dash='dot'
-                               opacity=0.6, showlegend=False),
-                ])
-            
-            if cfg_cpt.plot_adaptive_supertrend:
-                print(f'Adaptive(k-means) SuperTrend...')
-                self.traces.extend([
-                    go.Scatter(x=ind_st.his_ts, y=ind_st.his_val,
-                               mode='lines',
-                               line=dict(color='purple', width=2), # dash='dot'
-                               opacity=1, showlegend=False),
-                ])
-            
-            if cfg_cpt.plot_vwma_bands:
-                print(f'Volume weighted Bands...')
-                self.traces.extend([
-                    go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_vavg,
-                               mode='lines',
-                               line=dict(color='black', width=2), # dash='dot
-                               opacity=1, showlegend=False),
-                    # go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_tavg,
-                    #            mode='lines',
-                    #            line=dict(color='blue', width=2), # dash='dot
-                    #            opacity=1, showlegend=False),
-                    go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1up,
-                               mode='lines',
-                               line=dict(color='gray', width=1), # dash='dot
-                               opacity=0.3,
-                               fill=None,
-                               showlegend=False),
-                    go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1lo,
-                               mode='lines',
-                               line=dict(color='gray', width=1), # dash='dot
-                               opacity=0.3,
-                               fill='tonexty',  # Fill to the trace before this one
-                               fillcolor='rgba(128, 128, 128, 0.2)',  # Light gray with transparency
-                               showlegend=False),
-                ])
-            
-            if cfg_cpt.plot_bi_shapes:
-                print(f'Shapes...')
-                for i, txt in enumerate(ind_text):
-                    if 'v' in txt:
-                        color = 'green'
-                    elif '^' in txt:
-                        color = 'red'
-                    else:
-                        color = 'black'
+            # ind_c:ChandelierIndicator = self.indicators[n]
+            # ind_k:ChandeKrollStop = self.indicators[n]
+            # ind_ps:ParabolicSARIndicator = self.indicators[n]
+            # ind_vb:VolumeWeightedBands = self.indicators[n]
+            ind_st:AdaptiveSuperTrend = self.indicators[-1]
+
+            # if plot_chandelier:
+            #     # print(f'    Chandelier Stop({ind_c.long_idx} switches)...')
+            #     # for i in range(ind_c.long_idx):
+            #     #     self.traces.extend([
+            #     #         go.Scatter(x=ind_c.his_longts[i], y=ind_c.his_longcs[i],
+            #     #                 mode='lines',
+            #     #                 line=dict(color='red', width=2), # dash='dot'
+            #     #                 opacity=0.6, showlegend=False),
+            #     #     ])
+            #     # for i in range(ind_c.short_idx):
+            #     #     self.traces.extend([
+            #     #         go.Scatter(x=ind_c.his_shortts[i], y=ind_c.his_shortcs[i],
+            #     #                 mode='lines',
+            #     #                 line=dict(color='blue', width=2), # dash='dot'
+            #     #                 opacity=0.6, showlegend=False),
+            #     #     ])
+            #     print(f'    Chandelier Stop({ind_c.switch_idx} switches)...')
+            #     self.traces.extend([
+            #         go.Scatter(x=ind_c.his_ts, y=ind_c.his_longcs,
+            #                 mode='lines',
+            #                 line=dict(color='blue', width=1), # dash='dot'
+            #                 opacity=0.6, showlegend=False),
+            #         go.Scatter(x=ind_c.his_ts, y=ind_c.his_shortcs,
+            #                 mode='lines',
+            #                 line=dict(color='red', width=1), # dash='dot'
+            #                 opacity=0.6, showlegend=False),
+            #         go.Scatter(x=ind_c.his_switch_ts, y=ind_c.his_switch_vs,
+            #                 mode='markers',
+            #                 marker=dict(color='black', size=6), # dash='dot'
+            #                 opacity=1, showlegend=False),
+            #     ])
+            # 
+            # if plot_chandekroll:
+            #     print(f'    ChandeKroll Stop...')
+            #     self.traces.extend([
+            #         go.Scatter(x=ind_k.his_ts, y=ind_k.his_upper,
+            #                 mode='lines',
+            #                 line=dict(color='brown', width=1), # dash='dot'
+            #                 opacity=0.6, showlegend=False),
+            #         go.Scatter(x=ind_k.his_ts, y=ind_k.his_lower,
+            #                 mode='lines',
+            #                 line=dict(color='brown', width=1), # dash='dot'
+            #                 opacity=0.6, showlegend=False),
+            #     ])
+            # 
+            # if plot_parabolic_sar:
+            #     print(f'    Parabolic SAR({len(ind_ps.his_ep)} extreme points) Stop...')
+            #     self.traces.extend([
+            #         go.Scatter(x=ind_ps.his_ts, y=ind_ps.his_sar,
+            #                    mode='lines',
+            #                    line=dict(color='black', width=2, dash='dot'), # dash='dot'
+            #                    opacity=0.6, showlegend=False),
+            #     ])
+            # 
+            if plot_adaptive_supertrend:
+                print(f'    Adaptive(k-means) SuperTrend...')
+                for idx, upper in enumerate(ind_st.his_val_upper): # down_trend
                     self.traces.extend([
-                        go.Scatter(x=ind_ts[i], y=ind_value[i],
+                        go.Scatter(x=ind_st.his_ts_upper[idx], y=upper,
                                    mode='lines',
-                                   line=dict(color=color, width=2), # dash='dot'
+                                   line=dict(color='red', width=3), # dash='dot'
                                    opacity=1, showlegend=False),
                     ])
-                    self.annotations.append({
-                        'x': ind_ts[i][-1],
-                        'y': ind_value[i][-1],
-                        'text': ind_text[i],
-                        'showarrow': True,
-                        'arrowsize': 1,
-                        'arrowwidth': 1,
-                        'arrowcolor': color,
-                        'arrowhead': 2,
-                        'ax': 0,
-                        'ay': 30,
-                        'font': {'color': 'black', 'size': 10},
-                        'yanchor': 'middle',
-                        'xanchor': 'center',
-                        'opacity': 1
-                    })
+                    
+                for idx, lower in enumerate(ind_st.his_val_lower): # up_trend
+                    self.traces.extend([
+                        go.Scatter(x=ind_st.his_ts_lower[idx], y=lower,
+                                   mode='lines',
+                                   line=dict(color='green', width=3), # dash='dot'
+                                   opacity=1, showlegend=False),
+                    ])
+            # 
+            # if plot_vwma_bands:
+            #     print(f'    Volume weighted Bands...')
+            #     self.traces.extend([
+            #         go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_vavg,
+            #                    mode='lines',
+            #                    line=dict(color='black', width=2), # dash='dot
+            #                    opacity=1, showlegend=False),
+            #         # go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_tavg,
+            #         #            mode='lines',
+            #         #            line=dict(color='blue', width=2), # dash='dot
+            #         #            opacity=1, showlegend=False),
+            #         go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1up,
+            #                    mode='lines',
+            #                    line=dict(color='gray', width=1), # dash='dot
+            #                    opacity=0.3,
+            #                    fill=None,
+            #                    showlegend=False),
+            #         go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_b1lo,
+            #                    mode='lines',
+            #                    line=dict(color='gray', width=1), # dash='dot
+            #                    opacity=0.3,
+            #                    fill='tonexty',  # Fill to the trace before this one
+            #                    fillcolor='rgba(128, 128, 128, 0.2)',  # Light gray with transparency
+            #                    showlegend=False),
+            #     ])
             
-            if cfg_cpt.plot_bsp:
-                for i, txt in enumerate(ind_text):
-                    if i%10==0:
-
-                        if txt[0]:
-                            color = 'yellow'
-                        else:
-                            color = 'orange'
-
-                        self.annotations.append({
-                            'x': ind_ts[i],
-                            'y': ind_value[i],
-                            'text': txt[1],
-                            'showarrow': False,
-                            'font': {'color': color, 'size': 15 if '|' not in txt[1] else 55},
-                            'yanchor': 'middle',
-                            'xanchor': 'center',
-                            'opacity': 1
-                        })
+            # if plot_atr_bands:
+            #     print(f'    ATR Bands...')
+            #     
+            #     ts      = np.array(ind_ts)
+            #     atr     = np.array(ind_value1)
+            #     signal  = np.array(ind_value2)
+            #     
+            #     self.traces.extend([
+            #         go.Scatter(x=ts, y=signal,
+            #                    mode='lines',
+            #                    line=dict(color='black', width=2), # dash='dot
+            #                    opacity=1, showlegend=False),
+            #         go.Scatter(x=ts, y=signal+atr,
+            #                    mode='lines',
+            #                    line=dict(color='gray', width=1), # dash='dot
+            #                    opacity=0.3,
+            #                    fill=None,
+            #                    showlegend=False),
+            #         go.Scatter(x=ts, y=signal-atr,
+            #                    mode='lines',
+            #                    line=dict(color='gray', width=1), # dash='dot
+            #                    opacity=0.3,
+            #                    fill='tonexty',  # Fill to the trace before this one
+            #                    fillcolor='rgba(128, 128, 128, 0.2)',  # Light gray with transparency
+            #                    showlegend=False),
+            #     ])
+            
+            # if cfg_cpt.plot_bi_shapes:
+            #     print(f'    Shapes...')
+            #     for i, txt in enumerate(ind_text):
+            #         if 'v' in txt:
+            #             color = 'green'
+            #         elif '^' in txt:
+            #             color = 'red'
+            #         else:
+            #             color = 'black'
+            #         self.traces.extend([
+            #             go.Scatter(x=ind_ts[i], y=ind_value[i],
+            #                        mode='lines',
+            #                        line=dict(color=color, width=2), # dash='dot'
+            #                        opacity=1, showlegend=False),
+            #         ])
+            #         self.annotations.append({
+            #             'x': ind_ts[i][-1],
+            #             'y': ind_value[i][-1],
+            #             'text': ind_text[i],
+            #             'showarrow': True,
+            #             'arrowsize': 1,
+            #             'arrowwidth': 1,
+            #             'arrowcolor': color,
+            #             'arrowhead': 2,
+            #             'ax': 0,
+            #             'ay': 30,
+            #             'font': {'color': 'black', 'size': 10},
+            #             'yanchor': 'middle',
+            #             'xanchor': 'center',
+            #             'opacity': 1
+            #         })
+            
+            # if cfg_cpt.plot_bsp:
+            #     for i, txt in enumerate(ind_text):
+            #         if i%10==0:
+            #             
+            #             if txt[0]:
+            #                 color = 'yellow'
+            #             else:
+            #                 color = 'orange'
+            #                 
+            #             self.annotations.append({
+            #                 'x': ind_ts[i],
+            #                 'y': ind_value[i],
+            #                 'text': txt[1],
+            #                 'showarrow': False,
+            #                 'font': {'color': color, 'size': 15 if '|' not in txt[1] else 55},
+            #                 'yanchor': 'middle',
+            #                 'xanchor': 'center',
+            #                 'opacity': 1
+            #             })
         return self.fig
 
     def plot(self,

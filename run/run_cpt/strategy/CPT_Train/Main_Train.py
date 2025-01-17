@@ -49,20 +49,15 @@ class Main_Train(BaseCtaStrategy):
         self.tech_analysis: Dict[str, TechnicalAnalysis] = {}
         
         # ML_models
-
+        
         # bsp:
         # (1: long, -1: short, 0: no hold, position open period)
         self.holds: Dict[str, List[int]] = {}
         self.markers: Dict[str, List[Tuple]] = {}
-
+        
         self.ST_signals: Dict[str, List[List]] = {}  # multiple signals
         self.ST_trade: Dict[str, List] = {}  # 1 on-going trades at a time
-
-        # debug
-        if cfg_cpt.dump_ind:
-            self.ind_ts = []
-            self.ind_value = []
-            self.ind_text = []
+        
 
     def on_init(self, context: CtaContext):
         print('Preparing Bars in DDR...')
@@ -70,20 +65,19 @@ class Main_Train(BaseCtaStrategy):
         self.lv_list = [lv[0] for lv in self.config.lv_list]
 
         for idx, code in enumerate(self.__codes__):
-            
             r = context.stra_prepare_bars(
                 code, self.__period__, 1, isMain=idx == 0)
             # only 1 series is registered as 'Main', which works as clock, more registrations would result in fault
             # on_calculate is triggered once main bar is closed
             # if hook is installed, on_calculate_done would be triggered(for RL)
-
+            
             self.init_shared_kl_datas(code)
             self.init_new_code(code)
             self.last_price[code] = 0.0
             self.last_ts[code] = 0.0
             self.holds[code] = [0, 0]
             self.markers[code] = []
-
+            
             # ST(Strategies): liquidity
             self.ST_signals[code] = []
             self.ST_trade[code] = []
@@ -125,21 +119,21 @@ class Main_Train(BaseCtaStrategy):
         self.time = time
         
         for idx, code in enumerate(self.__codes__):
-
+            
             np_bars = context.stra_get_bars(code, self.__period__, 1, isMain=idx == 0)
             
             # multi-level k bar generation
             TA = self.tech_analysis[code]
             klu_dict = TA.analyze(np_bars)
             self.ts = TA.timestamp
-
+            
             # process Chan elements (generates Bi)
             self.chan_snapshot[code].trigger_load(klu_dict)
-
+            
             # process PA elements
             for lv in self.lv_list:
                 self.kl_datas[code][lv].PA_Core.parse_dynamic_bi_list()
-                
+            
             # indicator guard (prepare and align)
             if not self.inited:
                 if self.barnum < 1*24*60: # need 1 day(s) of 1M data
@@ -161,10 +155,25 @@ class Main_Train(BaseCtaStrategy):
             if idx == 0:
                 print(df.describe())
                 print(df.info())
-                from .Model import train
-                train(df, scaling_methods)
+                # from .Model import train
+                # train(df, scaling_methods)
+        
+        if cfg_cpt.dump_ind:
+            from Chan.Plot.PlotDriver import ChanPlotter
+            from Util.plot.plot_fee_grid import plot_fee_grid
+            from Util.plot.plot_show import plot_show
+            
+            for code in self.__codes__:
+                indicators = [
+                    [] * 1,
+                    self.tech_analysis[code].AdaptiveSuperTrend,
+                    ]
+                fig = ChanPlotter().plot(
+                    self.kl_datas[code], self.markers[code], indicators)
+                fig = plot_fee_grid(fig, dtick=self.last_price[code]*cfg_cpt.FEE)
+                plot_show(fig)
+                break
         return
-    
     
         # Generate some test data
         print('Generating Traning data')

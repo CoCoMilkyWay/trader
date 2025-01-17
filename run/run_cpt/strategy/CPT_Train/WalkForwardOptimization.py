@@ -1,0 +1,1 @@
+# Walk Forward Analysis was created(specifically for Financial applications) by Robert E. Pardo in 1992

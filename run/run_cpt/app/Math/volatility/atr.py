@@ -55,4 +55,10 @@ class atr:
         self.atr.append(atr_value)
         self.previous_atr = atr_value
         
+        # Maintain fixed length
+        LEN = 100
+        if len(self.atr) > 2*LEN:
+            del self.atr[:-LEN]
+            del self.tr[:-LEN]
+
         return
