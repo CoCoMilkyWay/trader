@@ -164,9 +164,14 @@ class Main_Train(BaseCtaStrategy):
             from Util.plot.plot_show import plot_show
             
             for code in self.__codes__:
+                TA = self.tech_analysis[code]
+                # get labels
+                ts, closes, labels = TA.ts_mom_label.get_labels()
                 indicators = [
-                    [] * 1,
-                    self.tech_analysis[code].AdaptiveSuperTrend,
+                    TA.AdaptiveSuperTrend,
+                    ts,
+                    closes,
+                    labels,
                     ]
                 fig = ChanPlotter().plot(
                     self.kl_datas[code], self.markers[code], indicators)

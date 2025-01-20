@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
+from math import log1p
+from config.cfg_cpt import cfg_cpt
 
 # ts_momentum_label        : TimeSeries trend/breakout label
 # ts_mean_reversion_label  : TimeSeries mean-reversion label
 # cs_label                 : CrossSectional long-short label
 
-def ts_momentum_label(df:pd.DataFrame, feature_names, label_names):
+class ts_momentum_label:
     """
     TIMESERIES TREND/BREAKOUT Label
     
@@ -24,11 +26,132 @@ def ts_momentum_label(df:pd.DataFrame, feature_names, label_names):
         3. we use adaptive super-trend as SL-TP metric, this is a relative stable method insensitive to hyperparameter tuning
         
     also this engineered label should be continuous etc. thus ICIR and other factor analysis tools could work nicely, and model can learn relatively easily
+    
+    remember the last 3 switches (a, b, c) and calculate returns/drawdowns
+    based on profitability of initial direction:
+    - For points between a and b, denoted as A:
+      * If profitable in a's direction: calculate using price_A to price_b(take profit)
+      * If unprofitable in a's direction: use b's direction and calculate using price_A to price_c(take profit)
     """
+    def __init__(self):
+        self.FEE = cfg_cpt.FEE
+        self.A_L = (1-self.FEE/2) # fee adjusted long ratio
+        self.A_S = (1+self.FEE/2) # fee adjusted short ratio
+        
+        # Switch history (prices and directions)
+        self.switch_prices = []  # Last 3 switch prices
+        self.switch_directions = []  # Last 3 switch directions (True for long)
+        
+        # Segment tracking
+        self.prev_segment_prices = []  # Prices between a and b
+        self.curr_segment_prices = []  # Prices between b and c
+        
+        if cfg_cpt.dump_ind:
+            self.prev_segment_timestamps = []
+            self.curr_segment_timestamps = []
+        
+        self.is_long_trend = None
+        
+        # Output storage
+        self.labels: list[float] = []
+        if cfg_cpt.dump_ind:
+            self.timestamps: list[float] = []
+            self.closes: list[float] = []
 
-    return
+    def _calculate_metrics(self, price_A: float, prices_after_A: list[float], 
+                         close_price: float, is_long: bool) -> tuple[float, float]:
+        """Calculate return and drawdown for a given price point."""
+        if is_long:
+            ret = (close_price*self.A_L - price_A*self.A_S) / price_A
+            low = min(prices_after_A)
+            drawdown = (price_A - low) / price_A
+        else:
+            ret = (close_price*self.A_S - price_A*self.A_L) / price_A
+            high = max(prices_after_A)
+            drawdown = (high - price_A) / price_A
+        return ret, drawdown
 
-def ts_mean_reversion_label(df:pd.DataFrame, feature_names, label_names):
+    def update(self, ts: float, close: float, long_switch: bool, short_switch: bool) -> None:
+        """Update state and return current label."""
+        if long_switch or short_switch:
+            # New switch detected
+            new_direction = long_switch
+            
+            # Update switch history
+            self.switch_prices.append(close)
+            self.switch_directions.append(new_direction)
+            
+            # Shift segments
+            self.prev_segment_prices = self.curr_segment_prices
+            self.curr_segment_prices = [close]
+            if cfg_cpt.dump_ind:
+                self.prev_segment_timestamps = self.curr_segment_timestamps
+                self.curr_segment_timestamps = [ts]
+            
+            # Keep only last 3 switches
+            if len(self.switch_prices) > 3:
+                self.switch_prices.pop(0)
+                self.switch_directions.pop(0)
+            
+            # Calculate labels if we have enough history (3 switches)
+            if len(self.switch_prices) == 3:
+                # Label points between first and second switch
+                price_a, price_b, price_c = self.switch_prices
+                direction_a = self.switch_directions[0]
+                
+                # Process all points between a and b
+                for i in range(len(self.prev_segment_prices)):
+                    price_A = self.prev_segment_prices[i]
+                    
+                    # Check if initial direction was profitable
+                    ret_initial, _ = self._calculate_metrics(
+                        price_A, [price_b], price_b, direction_a
+                    )
+                    
+                    if (direction_a and ret_initial > 0) or (not direction_a and ret_initial < 0):
+                        # Profitable in initial direction - use price_b
+                        ret, drawdown = self._calculate_metrics(
+                            price_A, 
+                            self.prev_segment_prices[i:], 
+                            price_b, 
+                            direction_a
+                        )
+                    else:
+                        # Unprofitable in initial direction - use price_c and opposite direction
+                        ret, drawdown = self._calculate_metrics(
+                            price_A, 
+                            self.prev_segment_prices[i:] + self.curr_segment_prices + [price_c], 
+                            price_c, 
+                            not direction_a
+                        )
+                    
+                    # Calculate final label
+                    epsilon = 1e-7
+                    PNL = 3 # punish low pnl
+                    RET = 10*self.FEE # punish low absolute returns
+                    ratio = ret / (drawdown + epsilon)
+                    label = np.tanh(ratio/PNL) * np.tanh(abs(ret)/RET)
+                    
+                    self.labels.append(label)
+                    if cfg_cpt.dump_ind:
+                        self.closes.append(self.prev_segment_prices[i])
+                        self.timestamps.append(self.prev_segment_timestamps[i])
+            
+            self.is_long_trend = new_direction
+            
+        else:
+            # Collect price in current segment
+            self.curr_segment_prices.append(close)
+            if cfg_cpt.dump_ind:
+                self.curr_segment_timestamps.append(ts)
+            
+    def get_labels(self):
+        if cfg_cpt.dump_ind:
+            return self.timestamps, self.closes, self.labels
+        else:
+            return self.labels
+
+class ts_mean_reversion_label:
     """
     TIMESERIES MEAN-REVERSION Label
     
@@ -52,7 +175,10 @@ def ts_mean_reversion_label(df:pd.DataFrame, feature_names, label_names):
             label = signed local sharpe = + abs(delta(high)/delta(low))
     
     """
-
+    
+    def __init__(self, df:pd.DataFrame, feature_names:list[str], label_names:list[str]):
+        pass
+    
 def dummy_label(df, feature_names, label_names):
     """
     naive logreturn

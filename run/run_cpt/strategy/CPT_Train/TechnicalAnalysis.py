@@ -45,6 +45,8 @@ from Math.volume.eom import eom
 
 from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
 
+from .Labels import ts_momentum_label
+
 from Math.models.pytorch_model import \
     ScalingMethod, SplitMethod, \
     DataCheckResult, ModelType, GeneralizedModel, \
@@ -77,11 +79,11 @@ class TechnicalAnalysis:
         self.counts = array.array('I', [0] * n_levels)
         
         # Initialize fixed-size arrays for each level
-        self.opens = [array.array('d', [0.0]) for _ in range(n_levels)]
-        self.highs = [array.array('d', [0.0]) for _ in range(n_levels)]
-        self.lows = [array.array('d', [0.0]) for _ in range(n_levels)]
-        self.closes = [array.array('d', [0.0]) for _ in range(n_levels)]
-        self.volumes = [array.array('L', [0]) for _ in range(n_levels)]
+        self.opens = [array.array('d', [0.0]) for _ in range(n_levels)]  # trimmed as size increases
+        self.highs = [array.array('d', [0.0]) for _ in range(n_levels)]  # trimmed as size increases
+        self.lows = [array.array('d', [0.0]) for _ in range(n_levels)]   # trimmed as size increases
+        self.closes = [array.array('d', [0.0]) for _ in range(n_levels)] # trimmed as size increases
+        self.volumes = [array.array('L', [0]) for _ in range(n_levels)]  # trimmed as size increases
         self.timestamp = array.array('d', [0.0]) #  put in array to be mutable
         
         # Reusable bar dict template
@@ -230,9 +232,12 @@ class TechnicalAnalysis:
             self.features_history = np.zeros((1_000_000, self.n_cols), dtype=np.float32)
         else:
             self.features = np.zeros(self.n_features, dtype=np.float32)
-            
+        
         # special purpose indicators
         self.AdaptiveSuperTrend = AdaptiveSuperTrend(atr_len=60*4, factor=10) # 4 hours
+        
+        # labels
+        self.ts_mom_label = ts_momentum_label()
         
         # =========================================================
         
@@ -261,7 +266,7 @@ class TechnicalAnalysis:
                 new_array = np.zeros((len(self.features_history) * 2, self.n_features), dtype=np.float32)
                 new_array[:self.current_row] = self.features_history
                 self.features_history = new_array
-            
+        
         feature_idx = 0
         # features = {}
         for spec in self.feature_specs.values():
@@ -280,7 +285,10 @@ class TechnicalAnalysis:
         # formatted_numbers = [f"{x:.5f}" for x in features]
         # print(formatted_numbers)
         
-        self.s_long_switch, self.s_short_switch = self.AdaptiveSuperTrend.update(self.highs[0][-1], self.lows[0][-1], self.closes[0][-1], self.timestamp[-1])
+        s_long_switch, s_short_switch = self.AdaptiveSuperTrend.update(self.highs[0][-1], self.lows[0][-1], self.closes[0][-1], self.timestamp[-1])
+        
+        if self._train:
+            self.ts_mom_label.update(self.timestamp[-1], self.closes[0][-1], s_long_switch, s_short_switch)
         
     def parse_kline(self, np_bars: WtNpKline) -> dict[KL_TYPE, List[CKLine_Unit]]:
         # def debug(i):

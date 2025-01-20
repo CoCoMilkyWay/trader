@@ -23,13 +23,14 @@ class ChanPlotter:
         self.color_list = [lv[3] for lv in self.lv_list]
         self.opacity_list = [lv[4] for lv in self.lv_list]
 
-        # self.traces:Dict[KL_TYPE,List[go.Scatter]] = {}
+        # self.traces1:Dict[KL_TYPE,List[go.Scatter]] = {}
         # self.layout_annotations:Dict[int,List[Dict]] = {}
         # for lv in self.lv_type_list:
-        #     self.traces[lv] = []
+        #     self.traces1[lv] = []
         #     self.layout_annotations[lv] = []
 
-        self.traces: List[go.Candlestick | go.Scatter | go.Bar] = []
+        self.traces0: List[go.Scatter] = []
+        self.traces1: List[go.Candlestick | go.Scatter | go.Bar] = []
         self.traces2: List[go.Bar] = []
         self.shapes: List[Dict] = []
         self.annotations: List[Dict] = []
@@ -64,7 +65,7 @@ class ChanPlotter:
 
             # Add up candlesticks if we have any
             if up_data['x']:
-                self.traces.append(go.Candlestick(
+                self.traces1.append(go.Candlestick(
                     x=up_data['x'],
                     open=up_data['open'],
                     high=up_data['high'],
@@ -78,7 +79,7 @@ class ChanPlotter:
 
             # Add down candlesticks if we have any
             if down_data['x']:
-                self.traces.append(go.Candlestick(
+                self.traces1.append(go.Candlestick(
                     x=down_data['x'],
                     open=down_data['open'],
                     high=down_data['high'],
@@ -113,7 +114,7 @@ class ChanPlotter:
                     )
 
             if x_data:
-                self.traces.append(go.Scatter(
+                self.traces1.append(go.Scatter(
                     x=x_data,
                     y=y_data,
                     mode='lines',
@@ -180,7 +181,7 @@ class ChanPlotter:
 
             # Draw the line
             if bi.is_sure:
-                self.traces.append(go.Scatter(
+                self.traces1.append(go.Scatter(
                     x=[begin_x, end_x],
                     y=[begin_y, end_y],
                     mode='lines',
@@ -189,7 +190,7 @@ class ChanPlotter:
                     showlegend=False
                 ))
             else:
-                self.traces.append(go.Scatter(
+                self.traces1.append(go.Scatter(
                     x=[begin_x, end_x],
                     y=[begin_y, end_y],
                     mode='lines',
@@ -249,7 +250,7 @@ class ChanPlotter:
 
         for shape in shapes['conv_type']:
             # note that level 1m would not be plotted because lv_idx_rev = 0
-            self.traces.extend([
+            self.traces1.extend([
                 go.Scatter(x=[v.ts for v in shape.vertices], y=[v.value for v in shape.vertices],
                            mode='lines', line=dict(color=self.color, width=4),
                            opacity=0.2, showlegend=False),
@@ -304,7 +305,7 @@ class ChanPlotter:
 
         # x=[ver.ts for ver in liquidity_class.vertices]
         # y=[ver.value for ver in liquidity_class.vertices]
-        # self.traces.extend([
+        # self.traces1.extend([
         #     go.Scatter(x=x, y=y,
         #                mode='lines', line=dict(color='purple', width=10),
         #                opacity=0.2, showlegend=False),
@@ -450,7 +451,7 @@ class ChanPlotter:
             profile = profiles[ptype]
             base_x = x_end + offset * x_extend
 
-            self.traces.extend([
+            self.traces1.extend([
                 # Add bars
                 go.Bar(x=profile[0], y=y_pos, orientation='h', marker_color=buy_color.replace('0.4', '1'),
                        base=base_x, width=price_bin_width, showlegend=False),
@@ -465,7 +466,7 @@ class ChanPlotter:
 
             # Add lines for volume weighted cost and percentiles
             for val, (width, color) in zip(profile[4:8], [(4, 'black'), (2, 'gray'), (2, 'gray'), (2, 'gray')]):
-                self.traces.append(go.Scatter(x=[base_x, base_x + x_extend], y=[val, val],
+                self.traces1.append(go.Scatter(x=[base_x, base_x + x_extend], y=[val, val],
                                               mode='lines', line=dict(width=width, color=color), showlegend=False))
 
             # Add label
@@ -473,7 +474,7 @@ class ChanPlotter:
                                          text=label, showarrow=False, font=dict(size=10, color='black')))
 
         # Add session volume profile
-        self.traces.extend([
+        self.traces1.extend([
             go.Bar(x=total_session_adjusted, y=y_pos, width=price_bin_width, orientation='h',
                    marker_color='rgba(0,0,0,1)', base=x_end + x_extend, showlegend=False),
             go.Scatter(x=[x_end + x_extend + x for x in total_session_adjusted], y=y_pos,
@@ -528,12 +529,6 @@ class ChanPlotter:
                 down_volume['x'].append(kl.time.ts)
                 down_volume['y'].append(kl.volume)
 
-        # Create a subplot for volume
-        self.fig = make_subplots(rows=2, cols=1,
-                                 row_heights=[0.7, 0.3],
-                                 vertical_spacing=0.05,
-                                 shared_xaxes=True)
-
         # Add up volume bars
         if up_volume['x']:
             self.traces2.append(
@@ -554,53 +549,53 @@ class ChanPlotter:
                        showlegend=False)
             )
 
-        # Update y-axis label for volume
-        self.fig.update_yaxes(title_text="Volume", row=2, col=1)
-        self.fig.update_xaxes(rangeslider_visible=False, row=2, col=1)
-
-        return self.fig
-
     def draw_ind(self):
         "Draw Indicators: "
         
         from Math.Chandelier_Stop import ChandelierIndicator
         from Math.ChandeKroll_Stop import ChandeKrollStop
         from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
-        from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
         from Math.VolumeWeightedBands import VolumeWeightedBands
+        from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
         
         # plot_chandelier = False
         # plot_chandekroll = False
         # plot_parabolic_sar = False
-        plot_adaptive_supertrend = True
         # plot_vwma_bands = True
         # plot_atr_bands = True
+        plot_bi_shapes = False
+        plot_bsp = False
+        plot_adaptive_supertrend = True
+        plot_labels = True
         
         if cfg_cpt.dump_ind:
             # ind_c:ChandelierIndicator = self.indicators[n]
             # ind_k:ChandeKrollStop = self.indicators[n]
             # ind_ps:ParabolicSARIndicator = self.indicators[n]
             # ind_vb:VolumeWeightedBands = self.indicators[n]
-            ind_st:AdaptiveSuperTrend = self.indicators[-1]
+            ind_st:AdaptiveSuperTrend = self.indicators[-4]
+            timestamps:list[float] = self.indicators[-3]
+            closes:list[float] = self.indicators[-2]
+            labels:list[float] = self.indicators[-1]
 
             # if plot_chandelier:
             #     # print(f'    Chandelier Stop({ind_c.long_idx} switches)...')
             #     # for i in range(ind_c.long_idx):
-            #     #     self.traces.extend([
+            #     #     self.traces1.extend([
             #     #         go.Scatter(x=ind_c.his_longts[i], y=ind_c.his_longcs[i],
             #     #                 mode='lines',
             #     #                 line=dict(color='red', width=2), # dash='dot'
             #     #                 opacity=0.6, showlegend=False),
             #     #     ])
             #     # for i in range(ind_c.short_idx):
-            #     #     self.traces.extend([
+            #     #     self.traces1.extend([
             #     #         go.Scatter(x=ind_c.his_shortts[i], y=ind_c.his_shortcs[i],
             #     #                 mode='lines',
             #     #                 line=dict(color='blue', width=2), # dash='dot'
             #     #                 opacity=0.6, showlegend=False),
             #     #     ])
             #     print(f'    Chandelier Stop({ind_c.switch_idx} switches)...')
-            #     self.traces.extend([
+            #     self.traces1.extend([
             #         go.Scatter(x=ind_c.his_ts, y=ind_c.his_longcs,
             #                 mode='lines',
             #                 line=dict(color='blue', width=1), # dash='dot'
@@ -617,7 +612,7 @@ class ChanPlotter:
             # 
             # if plot_chandekroll:
             #     print(f'    ChandeKroll Stop...')
-            #     self.traces.extend([
+            #     self.traces1.extend([
             #         go.Scatter(x=ind_k.his_ts, y=ind_k.his_upper,
             #                 mode='lines',
             #                 line=dict(color='brown', width=1), # dash='dot'
@@ -630,34 +625,16 @@ class ChanPlotter:
             # 
             # if plot_parabolic_sar:
             #     print(f'    Parabolic SAR({len(ind_ps.his_ep)} extreme points) Stop...')
-            #     self.traces.extend([
+            #     self.traces1.extend([
             #         go.Scatter(x=ind_ps.his_ts, y=ind_ps.his_sar,
             #                    mode='lines',
             #                    line=dict(color='black', width=2, dash='dot'), # dash='dot'
             #                    opacity=0.6, showlegend=False),
             #     ])
             # 
-            if plot_adaptive_supertrend:
-                print(f'    Adaptive(k-means) SuperTrend...')
-                for idx, upper in enumerate(ind_st.his_val_upper): # down_trend
-                    self.traces.extend([
-                        go.Scatter(x=ind_st.his_ts_upper[idx], y=upper,
-                                   mode='lines',
-                                   line=dict(color='red', width=3), # dash='dot'
-                                   opacity=1, showlegend=False),
-                    ])
-                    
-                for idx, lower in enumerate(ind_st.his_val_lower): # up_trend
-                    self.traces.extend([
-                        go.Scatter(x=ind_st.his_ts_lower[idx], y=lower,
-                                   mode='lines',
-                                   line=dict(color='green', width=3), # dash='dot'
-                                   opacity=1, showlegend=False),
-                    ])
-            # 
             # if plot_vwma_bands:
             #     print(f'    Volume weighted Bands...')
-            #     self.traces.extend([
+            #     self.traces1.extend([
             #         go.Scatter(x=ind_vb.his_ts, y=ind_vb.his_vavg,
             #                    mode='lines',
             #                    line=dict(color='black', width=2), # dash='dot
@@ -688,7 +665,7 @@ class ChanPlotter:
             #     atr     = np.array(ind_value1)
             #     signal  = np.array(ind_value2)
             #     
-            #     self.traces.extend([
+            #     self.traces1.extend([
             #         go.Scatter(x=ts, y=signal,
             #                    mode='lines',
             #                    line=dict(color='black', width=2), # dash='dot
@@ -708,7 +685,7 @@ class ChanPlotter:
             #                    showlegend=False),
             #     ])
             
-            # if cfg_cpt.plot_bi_shapes:
+            # if plot_bi_shapes:
             #     print(f'    Shapes...')
             #     for i, txt in enumerate(ind_text):
             #         if 'v' in txt:
@@ -717,7 +694,7 @@ class ChanPlotter:
             #             color = 'red'
             #         else:
             #             color = 'black'
-            #         self.traces.extend([
+            #         self.traces1.extend([
             #             go.Scatter(x=ind_ts[i], y=ind_value[i],
             #                        mode='lines',
             #                        line=dict(color=color, width=2), # dash='dot'
@@ -740,7 +717,7 @@ class ChanPlotter:
             #             'opacity': 1
             #         })
             
-            # if cfg_cpt.plot_bsp:
+            # if plot_bsp:
             #     for i, txt in enumerate(ind_text):
             #         if i%10==0:
             #             
@@ -759,6 +736,40 @@ class ChanPlotter:
             #                 'xanchor': 'center',
             #                 'opacity': 1
             #             })
+            
+            if plot_adaptive_supertrend:
+                print(f'    Adaptive(k-means) SuperTrend...')
+                for idx, upper in enumerate(ind_st.his_val_upper): # down_trend
+                    self.traces1.extend([
+                        go.Scatter(x=ind_st.his_ts_upper[idx], y=upper,
+                                   mode='lines',
+                                   line=dict(color='red', width=3), # dash='dot'
+                                   opacity=1, showlegend=False),
+                    ])
+
+                for idx, lower in enumerate(ind_st.his_val_lower): # up_trend
+                    self.traces1.extend([
+                        go.Scatter(x=ind_st.his_ts_lower[idx], y=lower,
+                                   mode='lines',
+                                   line=dict(color='green', width=3), # dash='dot'
+                                   opacity=1, showlegend=False),
+                    ])
+                    
+            if plot_labels:
+                self.traces0.extend([
+                    go.Scatter(x=timestamps, y=labels,
+                               mode='lines',
+                               line=dict(color='blue', width=2), # dash='dot'
+                               opacity=1, showlegend=False),
+                ])
+                
+                self.traces0.extend([
+                    go.Scatter(x=timestamps, y=[0.0] * len(timestamps),
+                               mode='lines',
+                               line=dict(color='black', width=2), # dash='dot'
+                               opacity=1, showlegend=False),
+                ])
+                
         return self.fig
 
     def plot(self,
@@ -767,9 +778,15 @@ class ChanPlotter:
              indicators: List,
              **kwargs):
         """Convenience method to draw both KLC and Bi elements"""
-
         self.markers = markers
         self.indicators = indicators
+        
+        # Create a subplot for volume
+        self.fig = make_subplots(rows=3, cols=1,
+                                 row_heights=[0.3, 0.6, 0.1],
+                                 vertical_spacing=0.05,
+                                 shared_xaxes=True)
+        
         # plot from small to big
         no_lv = len(self.lv_type_list)
         for lv_idx_rev, lv in enumerate(reversed(self.lv_type_list)):
@@ -794,14 +811,30 @@ class ChanPlotter:
         self.draw_ind()
 
         # Add traces
-        self.fig.add_traces(self.traces, rows=1, cols=1)
-        self.fig.add_traces(self.traces2, rows=2, cols=1)
+        self.fig.add_traces(self.traces0, rows=1, cols=1)
+        self.fig.add_traces(self.traces1, rows=2, cols=1)
+        self.fig.add_traces(self.traces2, rows=3, cols=1)
 
+        all_shapes = []
+        for shape in self.shapes:
+            shape_copy = shape.copy()
+            shape_copy['yref'] = 'y2'  # Second row y-axis
+            shape_copy['xref'] = 'x2'  # Second row x-axis
+            all_shapes.append(shape_copy)
+            
+        all_annotations = []
+        for annotation in self.annotations:
+            # Force annotation to be on second row's axes
+            annotation_copy = annotation.copy()
+            annotation_copy['yref'] = 'y2'  # Second row y-axis
+            annotation_copy['xref'] = 'x2'  # Second row x-axis
+            all_annotations.append(annotation_copy)
+        
         # Add shapes
-        self.fig.update_layout(shapes=self.shapes)
+        self.fig.update_layout(shapes=all_shapes)
 
         # Update annotations
-        self.fig.update_layout(annotations=self.annotations)
+        self.fig.update_layout(annotations=all_annotations)
 
         # Update layout
         self.fig.update_layout(
@@ -821,12 +854,18 @@ class ChanPlotter:
                 'resetScale'
             ]
         )
-
+        # Update y-axis label for ML_labels
+        self.fig.update_xaxes(rangeslider_visible=False, row=1, col=1)
+        self.fig.update_yaxes(title_text="Label", row=1, col=1)
         # Update both x and y axes for main and volume charts
-        self.fig.update_xaxes(title_text="Timestamp",   row=1, col=1, showgrid=True,
+        self.fig.update_xaxes(title_text="Timestamp", rangeslider_visible=False, row=2, col=1, showgrid=True,
                               showline=True, linewidth=1, linecolor='black', mirror=True,
                               # type='date', tickformat='%Y-%m-%d %H:%M:%S', dtick='auto',
                               )
-        self.fig.update_yaxes(title_text="Price",       row=1, col=1, showgrid=True,
+        self.fig.update_yaxes(title_text="Price", row=2, col=1, showgrid=True,
                               showline=True, linewidth=1, linecolor='black', mirror=True)
+        # Update y-axis label for volume
+        self.fig.update_xaxes(rangeslider_visible=False, row=3, col=1)
+        self.fig.update_yaxes(title_text="Volume", row=3, col=1)
+
         return self.fig

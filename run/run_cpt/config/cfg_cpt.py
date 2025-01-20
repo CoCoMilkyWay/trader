@@ -3,7 +3,7 @@ class cfg_cpt:  # Constants Configs
 
     period, n = 'm', 1  # bar period
     start = 202301010000
-    end   = 202302010000
+    end   = 202301100000
     capital = 10000000
 
     # run_mode(1 in 3):
@@ -44,9 +44,6 @@ class cfg_cpt:  # Constants Configs
     # indicators =========================================
     stats_result = './strategy/CPT_Statistics/stats'
     dump_ind = True # if normal else False
-    
-    plot_bi_shapes = False
-    plot_bsp = False
 
     # Stats Analysis =========================================
     analyze_fourier = True
