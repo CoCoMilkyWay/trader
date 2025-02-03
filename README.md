@@ -1,12 +1,11 @@
 - trade/backtest-core:
     - WonderTrader PY+CPP
 - trading account API:
-    - QMT(GuoJin Inc.): (communicate through socket ports)
-        - xtquant API (only works on windows)
-        - brokerage firms(GuoJin Inc.)' QMT (XunTou Inc.)xt-client （with windows GUI）
+    - brokerage firm / crypto(CEX)
 - trading signal:
-    - Deep-Learning:
-        - supervised-learning: qlib
-        - reinforcement-learning: FinRL/ElegantRL(not used)
-    - ChanLun(Winding-Theory)/Elliot-Wave with Deep-Learning:
-        - chan.py
+    - Technical(TimeSeries(PriceAction etc.) + CrossSectional) + Fundamental + Sentiment/Event-Driven
+    - Alpha Mining(reinforcement-learning)
+    - multi-AlphaPool (momentum/mean-reversion/fundamental/...)
+    - DeepLearning(NN/Ensemble)
+
+    - and now you are filthy rich, that is, you can survive the black-swains of course :(
