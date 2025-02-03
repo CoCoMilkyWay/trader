@@ -573,10 +573,11 @@ class ChanPlotter:
             # ind_k:ChandeKrollStop = self.indicators[n]
             # ind_ps:ParabolicSARIndicator = self.indicators[n]
             # ind_vb:VolumeWeightedBands = self.indicators[n]
-            ind_st:AdaptiveSuperTrend = self.indicators[-4]
-            timestamps:list[float] = self.indicators[-3]
-            closes:list[float] = self.indicators[-2]
-            labels:list[float] = self.indicators[-1]
+            ind_st:AdaptiveSuperTrend = self.indicators[-5]
+            timestamps:list[float] = self.indicators[-4]
+            closes:list[float] = self.indicators[-3]
+            labels1:list[float] = self.indicators[-2]
+            labels2:list[float] = self.indicators[-1]
 
             # if plot_chandelier:
             #     # print(f'    Chandelier Stop({ind_c.long_idx} switches)...')
@@ -757,7 +758,14 @@ class ChanPlotter:
                     
             if plot_labels:
                 self.traces0.extend([
-                    go.Scatter(x=timestamps, y=labels,
+                    go.Scatter(x=timestamps, y=labels1,
+                               mode='lines',
+                               line=dict(color='red', width=2), # dash='dot'
+                               opacity=1, showlegend=False),
+                ])
+                
+                self.traces0.extend([
+                    go.Scatter(x=timestamps, y=labels2,
                                mode='lines',
                                line=dict(color='blue', width=2), # dash='dot'
                                opacity=1, showlegend=False),
@@ -798,12 +806,12 @@ class ChanPlotter:
             self.klc_list = kl_datas[lv]
             self.color = self.color_list[self.lv_idx]
             self.opacity = self.opacity_list[self.lv_idx]
-            if self.lv_idx == no_lv - 1 - 2: # 5M
+            if self.lv_idx_rev == 0: # 1M
                 self.draw_klu()
                 self.draw_klc()
                 self.draw_volume()
             self.draw_charts(text=False)
-            if self.lv_idx in range(no_lv-1-2, no_lv): # 1M, 5M, 15M
+            if self.lv_idx_rev in [0, 1, 2]: # 1M, 5M, 15M
                 self.draw_bi()
             self.draw_liquidity_zones()
             self.draw_volume_profile()

@@ -1,9 +1,3 @@
-# implement TD sequential indicator as follows, 
-# feel free to assume ma/ema(of close), rsi... and others are already implemented and updated
-# as arraies just as OHLCV
-# leave param configurable
-# do not store intermediate values as array, only the final indicators
-
 import array
 class macd:
     def __init__(self,

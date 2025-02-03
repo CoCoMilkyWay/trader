@@ -227,7 +227,7 @@ def resample(src_path, times, store_path):
     if not os.path.exists(store_path):
         script_dir = os.path.dirname(os.path.realpath(__file__))
         sessMgr = SessionMgr()
-        sessMgr.load(f"{script_dir}/../config/cpt_sessions.json")
+        sessMgr.load(f"{script_dir}/../../config/cpt_sessions.json")
         sInfo = sessMgr.getSession("ALLDAY")
         df = dtHelper.resample_bars(
             barFile=src_path,

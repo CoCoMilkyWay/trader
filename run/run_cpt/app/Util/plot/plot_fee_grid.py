@@ -14,14 +14,24 @@ def plot_fee_grid(fig:go.Figure, dtick:float):
     """Add x% interval grid lines to plotly figure using direct yaxis configuration"""
     
     print(f'Plotting Fee Grid...')
-    fig.update_layout(
-        yaxis=dict(
-            showgrid=True,
-            gridcolor='rgba(128, 128, 128, 0.2)',
-            dtick=dtick,
-            gridwidth=0.5,
-            showticklabels=False,
-            # nticks=10,  # Show approximately 10 tick labels
-        )
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor='rgba(128, 128, 128, 0.2)',
+        dtick=dtick,
+        gridwidth=0.5,
+        showticklabels=False,
+        # nticks=10,  # Show approximately 10 tick labels
+        row=2, col=1,
     )
+    
+    # fig.update_layout(
+    #     yaxis2=dict(
+    #         showgrid=True,
+    #         gridcolor='rgba(128, 128, 128, 0.2)',
+    #         dtick=dtick,
+    #         gridwidth=0.5,
+    #         showticklabels=False,
+    #         # nticks=10,  # Show approximately 10 tick labels
+    #     )
+    # )
     return fig

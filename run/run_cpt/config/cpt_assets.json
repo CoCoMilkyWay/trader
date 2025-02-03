@@ -12,16 +12,76 @@
             "name": "ETHUSDT",
             "product": "UM"
         },
-        "BNBUSDT": {
-            "code": "BNBUSDT",
+        "1000000MOGUSDT": {
+            "code": "1000000MOGUSDT",
             "exchg": "Binance",
-            "name": "BNBUSDT",
+            "name": "1000000MOGUSDT",
             "product": "UM"
         },
-        "DOGEUSDT": {
-            "code": "DOGEUSDT",
+        "1000BONKUSDC": {
+            "code": "1000BONKUSDC",
             "exchg": "Binance",
-            "name": "DOGEUSDT",
+            "name": "1000BONKUSDC",
+            "product": "UM"
+        },
+        "1000BONKUSDT": {
+            "code": "1000BONKUSDT",
+            "exchg": "Binance",
+            "name": "1000BONKUSDT",
+            "product": "UM"
+        },
+        "1000CATUSDT": {
+            "code": "1000CATUSDT",
+            "exchg": "Binance",
+            "name": "1000CATUSDT",
+            "product": "UM"
+        },
+        "1000CHEEMSUSDT": {
+            "code": "1000CHEEMSUSDT",
+            "exchg": "Binance",
+            "name": "1000CHEEMSUSDT",
+            "product": "UM"
+        },
+        "1000FLOKIUSDT": {
+            "code": "1000FLOKIUSDT",
+            "exchg": "Binance",
+            "name": "1000FLOKIUSDT",
+            "product": "UM"
+        },
+        "1000LUNCUSDT": {
+            "code": "1000LUNCUSDT",
+            "exchg": "Binance",
+            "name": "1000LUNCUSDT",
+            "product": "UM"
+        },
+        "1000PEPEUSDC": {
+            "code": "1000PEPEUSDC",
+            "exchg": "Binance",
+            "name": "1000PEPEUSDC",
+            "product": "UM"
+        },
+        "1000PEPEUSDT": {
+            "code": "1000PEPEUSDT",
+            "exchg": "Binance",
+            "name": "1000PEPEUSDT",
+            "product": "UM"
+        },
+        "1000RATSUSDT": {
+            "code": "1000RATSUSDT",
+            "exchg": "Binance",
+            "name": "1000RATSUSDT",
+            "product": "UM"
+        },
+        "1000SATSUSDT": {
+            "code": "1000SATSUSDT",
+            "exchg": "Binance",
+            "name": "1000SATSUSDT",
+            "product": "UM"
+        },
+        "1000SHIBUSDC": {
+            "code": "1000SHIBUSDC",
+            "exchg": "Binance",
+            "name": "1000SHIBUSDC",
             "product": "UM"
         },
         "1000SHIBUSDT": {
@@ -30,70 +90,34 @@
             "name": "1000SHIBUSDT",
             "product": "UM"
         },
-        "ADAUSDT": {
-            "code": "ADAUSDT",
+        "1000WHYUSDT": {
+            "code": "1000WHYUSDT",
             "exchg": "Binance",
-            "name": "ADAUSDT",
+            "name": "1000WHYUSDT",
             "product": "UM"
         },
-        "XRPUSDT": {
-            "code": "XRPUSDT",
+        "1000XECUSDT": {
+            "code": "1000XECUSDT",
             "exchg": "Binance",
-            "name": "XRPUSDT",
+            "name": "1000XECUSDT",
             "product": "UM"
         },
-        "SOLUSDT": {
-            "code": "SOLUSDT",
+        "1000XUSDT": {
+            "code": "1000XUSDT",
             "exchg": "Binance",
-            "name": "SOLUSDT",
+            "name": "1000XUSDT",
             "product": "UM"
         },
-        "LTCUSDT": {
-            "code": "LTCUSDT",
+        "1INCHUSDT": {
+            "code": "1INCHUSDT",
             "exchg": "Binance",
-            "name": "LTCUSDT",
+            "name": "1INCHUSDT",
             "product": "UM"
         },
-        "BCHUSDT": {
-            "code": "BCHUSDT",
+        "1MBABYDOGEUSDT": {
+            "code": "1MBABYDOGEUSDT",
             "exchg": "Binance",
-            "name": "BCHUSDT",
-            "product": "UM"
-        },
-        "MATICUSDT": {
-            "code": "MATICUSDT",
-            "exchg": "Binance",
-            "name": "MATICUSDT",
-            "product": "UM"
-        },
-        "LINKUSDT": {
-            "code": "LINKUSDT",
-            "exchg": "Binance",
-            "name": "LINKUSDT",
-            "product": "UM"
-        },
-        "AVAXUSDT": {
-            "code": "AVAXUSDT",
-            "exchg": "Binance",
-            "name": "AVAXUSDT",
-            "product": "UM"
-        },
-        "DOTUSDT": {
-            "code": "DOTUSDT",
-            "exchg": "Binance",
-            "name": "DOTUSDT",
-            "product": "UM"
-        },
-        "FTMUSDT": {
-            "code": "FTMUSDT",
-            "exchg": "Binance",
-            "name": "FTMUSDT",
-            "product": "UM"
-        },
-        "UNIUSDT": {
-            "code": "UNIUSDT",
-            "exchg": "Binance",
-            "name": "UNIUSDT",
+            "name": "1MBABYDOGEUSDT",
             "product": "UM"
         },
         "AAVEUSDT": {
@@ -102,16 +126,2386 @@
             "name": "AAVEUSDT",
             "product": "UM"
         },
-        "XLMUSDT": {
-            "code": "XLMUSDT",
+        "ACEUSDT": {
+            "code": "ACEUSDT",
             "exchg": "Binance",
-            "name": "XLMUSDT",
+            "name": "ACEUSDT",
+            "product": "UM"
+        },
+        "ACHUSDT": {
+            "code": "ACHUSDT",
+            "exchg": "Binance",
+            "name": "ACHUSDT",
+            "product": "UM"
+        },
+        "ACTUSDT": {
+            "code": "ACTUSDT",
+            "exchg": "Binance",
+            "name": "ACTUSDT",
+            "product": "UM"
+        },
+        "ACXUSDT": {
+            "code": "ACXUSDT",
+            "exchg": "Binance",
+            "name": "ACXUSDT",
+            "product": "UM"
+        },
+        "ADAUSDT": {
+            "code": "ADAUSDT",
+            "exchg": "Binance",
+            "name": "ADAUSDT",
+            "product": "UM"
+        },
+        "AERGOUSDT": {
+            "code": "AERGOUSDT",
+            "exchg": "Binance",
+            "name": "AERGOUSDT",
+            "product": "UM"
+        },
+        "AEROUSDT": {
+            "code": "AEROUSDT",
+            "exchg": "Binance",
+            "name": "AEROUSDT",
+            "product": "UM"
+        },
+        "AEVOUSDT": {
+            "code": "AEVOUSDT",
+            "exchg": "Binance",
+            "name": "AEVOUSDT",
+            "product": "UM"
+        },
+        "AGIXUSDT": {
+            "code": "AGIXUSDT",
+            "exchg": "Binance",
+            "name": "AGIXUSDT",
+            "product": "UM"
+        },
+        "AGLDUSDT": {
+            "code": "AGLDUSDT",
+            "exchg": "Binance",
+            "name": "AGLDUSDT",
+            "product": "UM"
+        },
+        "AI16ZUSDT": {
+            "code": "AI16ZUSDT",
+            "exchg": "Binance",
+            "name": "AI16ZUSDT",
+            "product": "UM"
+        },
+        "AIUSDT": {
+            "code": "AIUSDT",
+            "exchg": "Binance",
+            "name": "AIUSDT",
+            "product": "UM"
+        },
+        "AIXBTUSDT": {
+            "code": "AIXBTUSDT",
+            "exchg": "Binance",
+            "name": "AIXBTUSDT",
+            "product": "UM"
+        },
+        "AKTUSDT": {
+            "code": "AKTUSDT",
+            "exchg": "Binance",
+            "name": "AKTUSDT",
+            "product": "UM"
+        },
+        "ALCHUSDT": {
+            "code": "ALCHUSDT",
+            "exchg": "Binance",
+            "name": "ALCHUSDT",
+            "product": "UM"
+        },
+        "ALGOUSDT": {
+            "code": "ALGOUSDT",
+            "exchg": "Binance",
+            "name": "ALGOUSDT",
+            "product": "UM"
+        },
+        "ALICEUSDT": {
+            "code": "ALICEUSDT",
+            "exchg": "Binance",
+            "name": "ALICEUSDT",
+            "product": "UM"
+        },
+        "ALPACAUSDT": {
+            "code": "ALPACAUSDT",
+            "exchg": "Binance",
+            "name": "ALPACAUSDT",
+            "product": "UM"
+        },
+        "ALPHAUSDT": {
+            "code": "ALPHAUSDT",
+            "exchg": "Binance",
+            "name": "ALPHAUSDT",
+            "product": "UM"
+        },
+        "ALTUSDT": {
+            "code": "ALTUSDT",
+            "exchg": "Binance",
+            "name": "ALTUSDT",
+            "product": "UM"
+        },
+        "AMBUSDT": {
+            "code": "AMBUSDT",
+            "exchg": "Binance",
+            "name": "AMBUSDT",
+            "product": "UM"
+        },
+        "ANKRUSDT": {
+            "code": "ANKRUSDT",
+            "exchg": "Binance",
+            "name": "ANKRUSDT",
+            "product": "UM"
+        },
+        "APEUSDT": {
+            "code": "APEUSDT",
+            "exchg": "Binance",
+            "name": "APEUSDT",
+            "product": "UM"
+        },
+        "API3USDT": {
+            "code": "API3USDT",
+            "exchg": "Binance",
+            "name": "API3USDT",
+            "product": "UM"
+        },
+        "APTUSDT": {
+            "code": "APTUSDT",
+            "exchg": "Binance",
+            "name": "APTUSDT",
+            "product": "UM"
+        },
+        "ARBUSDC": {
+            "code": "ARBUSDC",
+            "exchg": "Binance",
+            "name": "ARBUSDC",
+            "product": "UM"
+        },
+        "ARBUSDT": {
+            "code": "ARBUSDT",
+            "exchg": "Binance",
+            "name": "ARBUSDT",
+            "product": "UM"
+        },
+        "ARCUSDT": {
+            "code": "ARCUSDT",
+            "exchg": "Binance",
+            "name": "ARCUSDT",
+            "product": "UM"
+        },
+        "ARKMUSDT": {
+            "code": "ARKMUSDT",
+            "exchg": "Binance",
+            "name": "ARKMUSDT",
+            "product": "UM"
+        },
+        "ARKUSDT": {
+            "code": "ARKUSDT",
+            "exchg": "Binance",
+            "name": "ARKUSDT",
+            "product": "UM"
+        },
+        "ARPAUSDT": {
+            "code": "ARPAUSDT",
+            "exchg": "Binance",
+            "name": "ARPAUSDT",
+            "product": "UM"
+        },
+        "ARUSDT": {
+            "code": "ARUSDT",
+            "exchg": "Binance",
+            "name": "ARUSDT",
+            "product": "UM"
+        },
+        "ASTRUSDT": {
+            "code": "ASTRUSDT",
+            "exchg": "Binance",
+            "name": "ASTRUSDT",
+            "product": "UM"
+        },
+        "ATAUSDT": {
+            "code": "ATAUSDT",
+            "exchg": "Binance",
+            "name": "ATAUSDT",
+            "product": "UM"
+        },
+        "ATOMUSDT": {
+            "code": "ATOMUSDT",
+            "exchg": "Binance",
+            "name": "ATOMUSDT",
+            "product": "UM"
+        },
+        "AUCTIONUSDT": {
+            "code": "AUCTIONUSDT",
+            "exchg": "Binance",
+            "name": "AUCTIONUSDT",
+            "product": "UM"
+        },
+        "AVAAIUSDT": {
+            "code": "AVAAIUSDT",
+            "exchg": "Binance",
+            "name": "AVAAIUSDT",
+            "product": "UM"
+        },
+        "AVAUSDT": {
+            "code": "AVAUSDT",
+            "exchg": "Binance",
+            "name": "AVAUSDT",
+            "product": "UM"
+        },
+        "AVAXUSDC": {
+            "code": "AVAXUSDC",
+            "exchg": "Binance",
+            "name": "AVAXUSDC",
+            "product": "UM"
+        },
+        "AVAXUSDT": {
+            "code": "AVAXUSDT",
+            "exchg": "Binance",
+            "name": "AVAXUSDT",
+            "product": "UM"
+        },
+        "AXLUSDT": {
+            "code": "AXLUSDT",
+            "exchg": "Binance",
+            "name": "AXLUSDT",
+            "product": "UM"
+        },
+        "AXSUSDT": {
+            "code": "AXSUSDT",
+            "exchg": "Binance",
+            "name": "AXSUSDT",
+            "product": "UM"
+        },
+        "BADGERUSDT": {
+            "code": "BADGERUSDT",
+            "exchg": "Binance",
+            "name": "BADGERUSDT",
+            "product": "UM"
+        },
+        "BAKEUSDT": {
+            "code": "BAKEUSDT",
+            "exchg": "Binance",
+            "name": "BAKEUSDT",
+            "product": "UM"
+        },
+        "BALUSDT": {
+            "code": "BALUSDT",
+            "exchg": "Binance",
+            "name": "BALUSDT",
+            "product": "UM"
+        },
+        "BANANAUSDT": {
+            "code": "BANANAUSDT",
+            "exchg": "Binance",
+            "name": "BANANAUSDT",
+            "product": "UM"
+        },
+        "BANDUSDT": {
+            "code": "BANDUSDT",
+            "exchg": "Binance",
+            "name": "BANDUSDT",
+            "product": "UM"
+        },
+        "BANUSDT": {
+            "code": "BANUSDT",
+            "exchg": "Binance",
+            "name": "BANUSDT",
+            "product": "UM"
+        },
+        "BATUSDT": {
+            "code": "BATUSDT",
+            "exchg": "Binance",
+            "name": "BATUSDT",
+            "product": "UM"
+        },
+        "BBUSDT": {
+            "code": "BBUSDT",
+            "exchg": "Binance",
+            "name": "BBUSDT",
+            "product": "UM"
+        },
+        "BCHUSDC": {
+            "code": "BCHUSDC",
+            "exchg": "Binance",
+            "name": "BCHUSDC",
+            "product": "UM"
+        },
+        "BCHUSDT": {
+            "code": "BCHUSDT",
+            "exchg": "Binance",
+            "name": "BCHUSDT",
+            "product": "UM"
+        },
+        "BEAMXUSDT": {
+            "code": "BEAMXUSDT",
+            "exchg": "Binance",
+            "name": "BEAMXUSDT",
+            "product": "UM"
+        },
+        "BELUSDT": {
+            "code": "BELUSDT",
+            "exchg": "Binance",
+            "name": "BELUSDT",
+            "product": "UM"
+        },
+        "BICOUSDT": {
+            "code": "BICOUSDT",
+            "exchg": "Binance",
+            "name": "BICOUSDT",
+            "product": "UM"
+        },
+        "BIGTIMEUSDT": {
+            "code": "BIGTIMEUSDT",
+            "exchg": "Binance",
+            "name": "BIGTIMEUSDT",
+            "product": "UM"
+        },
+        "BIOUSDT": {
+            "code": "BIOUSDT",
+            "exchg": "Binance",
+            "name": "BIOUSDT",
+            "product": "UM"
+        },
+        "BLURUSDT": {
+            "code": "BLURUSDT",
+            "exchg": "Binance",
+            "name": "BLURUSDT",
+            "product": "UM"
+        },
+        "BLZUSDT": {
+            "code": "BLZUSDT",
+            "exchg": "Binance",
+            "name": "BLZUSDT",
+            "product": "UM"
+        },
+        "BNBUSDC": {
+            "code": "BNBUSDC",
+            "exchg": "Binance",
+            "name": "BNBUSDC",
+            "product": "UM"
+        },
+        "BNBUSDT": {
+            "code": "BNBUSDT",
+            "exchg": "Binance",
+            "name": "BNBUSDT",
+            "product": "UM"
+        },
+        "BNTUSDT": {
+            "code": "BNTUSDT",
+            "exchg": "Binance",
+            "name": "BNTUSDT",
+            "product": "UM"
+        },
+        "BNXUSDT": {
+            "code": "BNXUSDT",
+            "exchg": "Binance",
+            "name": "BNXUSDT",
+            "product": "UM"
+        },
+        "BOMEUSDC": {
+            "code": "BOMEUSDC",
+            "exchg": "Binance",
+            "name": "BOMEUSDC",
+            "product": "UM"
+        },
+        "BOMEUSDT": {
+            "code": "BOMEUSDT",
+            "exchg": "Binance",
+            "name": "BOMEUSDT",
+            "product": "UM"
+        },
+        "BONDUSDT": {
+            "code": "BONDUSDT",
+            "exchg": "Binance",
+            "name": "BONDUSDT",
+            "product": "UM"
+        },
+        "BRETTUSDT": {
+            "code": "BRETTUSDT",
+            "exchg": "Binance",
+            "name": "BRETTUSDT",
+            "product": "UM"
+        },
+        "BSVUSDT": {
+            "code": "BSVUSDT",
+            "exchg": "Binance",
+            "name": "BSVUSDT",
+            "product": "UM"
+        },
+        "BSWUSDT": {
+            "code": "BSWUSDT",
+            "exchg": "Binance",
+            "name": "BSWUSDT",
+            "product": "UM"
+        },
+        "BTCDOMUSDT": {
+            "code": "BTCDOMUSDT",
+            "exchg": "Binance",
+            "name": "BTCDOMUSDT",
+            "product": "UM"
+        },
+        "BTCSTUSDT": {
+            "code": "BTCSTUSDT",
+            "exchg": "Binance",
+            "name": "BTCSTUSDT",
+            "product": "UM"
+        },
+        "BTCUSDC": {
+            "code": "BTCUSDC",
+            "exchg": "Binance",
+            "name": "BTCUSDC",
+            "product": "UM"
+        },
+        "BTCUSDT_250328": {
+            "code": "BTCUSDT_250328",
+            "exchg": "Binance",
+            "name": "BTCUSDT_250328",
+            "product": "UM"
+        },
+        "BTCUSDT_250627": {
+            "code": "BTCUSDT_250627",
+            "exchg": "Binance",
+            "name": "BTCUSDT_250627",
+            "product": "UM"
+        },
+        "C98USDT": {
+            "code": "C98USDT",
+            "exchg": "Binance",
+            "name": "C98USDT",
+            "product": "UM"
+        },
+        "CAKEUSDT": {
+            "code": "CAKEUSDT",
+            "exchg": "Binance",
+            "name": "CAKEUSDT",
+            "product": "UM"
+        },
+        "CATIUSDT": {
+            "code": "CATIUSDT",
+            "exchg": "Binance",
+            "name": "CATIUSDT",
+            "product": "UM"
+        },
+        "CELOUSDT": {
+            "code": "CELOUSDT",
+            "exchg": "Binance",
+            "name": "CELOUSDT",
+            "product": "UM"
+        },
+        "CELRUSDT": {
+            "code": "CELRUSDT",
+            "exchg": "Binance",
+            "name": "CELRUSDT",
+            "product": "UM"
+        },
+        "CETUSUSDT": {
+            "code": "CETUSUSDT",
+            "exchg": "Binance",
+            "name": "CETUSUSDT",
+            "product": "UM"
+        },
+        "CFXUSDT": {
+            "code": "CFXUSDT",
+            "exchg": "Binance",
+            "name": "CFXUSDT",
+            "product": "UM"
+        },
+        "CGPTUSDT": {
+            "code": "CGPTUSDT",
+            "exchg": "Binance",
+            "name": "CGPTUSDT",
+            "product": "UM"
+        },
+        "CHESSUSDT": {
+            "code": "CHESSUSDT",
+            "exchg": "Binance",
+            "name": "CHESSUSDT",
+            "product": "UM"
+        },
+        "CHILLGUYUSDT": {
+            "code": "CHILLGUYUSDT",
+            "exchg": "Binance",
+            "name": "CHILLGUYUSDT",
+            "product": "UM"
+        },
+        "CHRUSDT": {
+            "code": "CHRUSDT",
+            "exchg": "Binance",
+            "name": "CHRUSDT",
+            "product": "UM"
+        },
+        "CHZUSDT": {
+            "code": "CHZUSDT",
+            "exchg": "Binance",
+            "name": "CHZUSDT",
+            "product": "UM"
+        },
+        "CKBUSDT": {
+            "code": "CKBUSDT",
+            "exchg": "Binance",
+            "name": "CKBUSDT",
+            "product": "UM"
+        },
+        "COMBOUSDT": {
+            "code": "COMBOUSDT",
+            "exchg": "Binance",
+            "name": "COMBOUSDT",
+            "product": "UM"
+        },
+        "COMPUSDT": {
+            "code": "COMPUSDT",
+            "exchg": "Binance",
+            "name": "COMPUSDT",
+            "product": "UM"
+        },
+        "COOKIEUSDT": {
+            "code": "COOKIEUSDT",
+            "exchg": "Binance",
+            "name": "COOKIEUSDT",
+            "product": "UM"
+        },
+        "COSUSDT": {
+            "code": "COSUSDT",
+            "exchg": "Binance",
+            "name": "COSUSDT",
+            "product": "UM"
+        },
+        "COTIUSDT": {
+            "code": "COTIUSDT",
+            "exchg": "Binance",
+            "name": "COTIUSDT",
+            "product": "UM"
+        },
+        "COWUSDT": {
+            "code": "COWUSDT",
+            "exchg": "Binance",
+            "name": "COWUSDT",
+            "product": "UM"
+        },
+        "CRVUSDC": {
+            "code": "CRVUSDC",
+            "exchg": "Binance",
+            "name": "CRVUSDC",
+            "product": "UM"
+        },
+        "CRVUSDT": {
+            "code": "CRVUSDT",
+            "exchg": "Binance",
+            "name": "CRVUSDT",
+            "product": "UM"
+        },
+        "CTKUSDT": {
+            "code": "CTKUSDT",
+            "exchg": "Binance",
+            "name": "CTKUSDT",
+            "product": "UM"
+        },
+        "CTSIUSDT": {
+            "code": "CTSIUSDT",
+            "exchg": "Binance",
+            "name": "CTSIUSDT",
+            "product": "UM"
+        },
+        "CVCUSDT": {
+            "code": "CVCUSDT",
+            "exchg": "Binance",
+            "name": "CVCUSDT",
+            "product": "UM"
+        },
+        "CVXUSDT": {
+            "code": "CVXUSDT",
+            "exchg": "Binance",
+            "name": "CVXUSDT",
+            "product": "UM"
+        },
+        "CYBERUSDT": {
+            "code": "CYBERUSDT",
+            "exchg": "Binance",
+            "name": "CYBERUSDT",
+            "product": "UM"
+        },
+        "DARUSDT": {
+            "code": "DARUSDT",
+            "exchg": "Binance",
+            "name": "DARUSDT",
+            "product": "UM"
+        },
+        "DASHUSDT": {
+            "code": "DASHUSDT",
+            "exchg": "Binance",
+            "name": "DASHUSDT",
+            "product": "UM"
+        },
+        "DEFIUSDT": {
+            "code": "DEFIUSDT",
+            "exchg": "Binance",
+            "name": "DEFIUSDT",
+            "product": "UM"
+        },
+        "DEGENUSDT": {
+            "code": "DEGENUSDT",
+            "exchg": "Binance",
+            "name": "DEGENUSDT",
+            "product": "UM"
+        },
+        "DEGOUSDT": {
+            "code": "DEGOUSDT",
+            "exchg": "Binance",
+            "name": "DEGOUSDT",
+            "product": "UM"
+        },
+        "DENTUSDT": {
+            "code": "DENTUSDT",
+            "exchg": "Binance",
+            "name": "DENTUSDT",
+            "product": "UM"
+        },
+        "DEXEUSDT": {
+            "code": "DEXEUSDT",
+            "exchg": "Binance",
+            "name": "DEXEUSDT",
+            "product": "UM"
+        },
+        "DFUSDT": {
+            "code": "DFUSDT",
+            "exchg": "Binance",
+            "name": "DFUSDT",
+            "product": "UM"
+        },
+        "DGBUSDT": {
+            "code": "DGBUSDT",
+            "exchg": "Binance",
+            "name": "DGBUSDT",
+            "product": "UM"
+        },
+        "DIAUSDT": {
+            "code": "DIAUSDT",
+            "exchg": "Binance",
+            "name": "DIAUSDT",
+            "product": "UM"
+        },
+        "DODOXUSDT": {
+            "code": "DODOXUSDT",
+            "exchg": "Binance",
+            "name": "DODOXUSDT",
+            "product": "UM"
+        },
+        "DOGEUSDC": {
+            "code": "DOGEUSDC",
+            "exchg": "Binance",
+            "name": "DOGEUSDC",
+            "product": "UM"
+        },
+        "DOGEUSDT": {
+            "code": "DOGEUSDT",
+            "exchg": "Binance",
+            "name": "DOGEUSDT",
+            "product": "UM"
+        },
+        "DOGSUSDT": {
+            "code": "DOGSUSDT",
+            "exchg": "Binance",
+            "name": "DOGSUSDT",
+            "product": "UM"
+        },
+        "DOTUSDT": {
+            "code": "DOTUSDT",
+            "exchg": "Binance",
+            "name": "DOTUSDT",
+            "product": "UM"
+        },
+        "DRIFTUSDT": {
+            "code": "DRIFTUSDT",
+            "exchg": "Binance",
+            "name": "DRIFTUSDT",
+            "product": "UM"
+        },
+        "DUSDT": {
+            "code": "DUSDT",
+            "exchg": "Binance",
+            "name": "DUSDT",
+            "product": "UM"
+        },
+        "DUSKUSDT": {
+            "code": "DUSKUSDT",
+            "exchg": "Binance",
+            "name": "DUSKUSDT",
+            "product": "UM"
+        },
+        "DYDXUSDT": {
+            "code": "DYDXUSDT",
+            "exchg": "Binance",
+            "name": "DYDXUSDT",
+            "product": "UM"
+        },
+        "DYMUSDT": {
+            "code": "DYMUSDT",
+            "exchg": "Binance",
+            "name": "DYMUSDT",
+            "product": "UM"
+        },
+        "EDUUSDT": {
+            "code": "EDUUSDT",
+            "exchg": "Binance",
+            "name": "EDUUSDT",
+            "product": "UM"
+        },
+        "EGLDUSDT": {
+            "code": "EGLDUSDT",
+            "exchg": "Binance",
+            "name": "EGLDUSDT",
+            "product": "UM"
+        },
+        "EIGENUSDT": {
+            "code": "EIGENUSDT",
+            "exchg": "Binance",
+            "name": "EIGENUSDT",
+            "product": "UM"
+        },
+        "ENAUSDC": {
+            "code": "ENAUSDC",
+            "exchg": "Binance",
+            "name": "ENAUSDC",
+            "product": "UM"
+        },
+        "ENAUSDT": {
+            "code": "ENAUSDT",
+            "exchg": "Binance",
+            "name": "ENAUSDT",
+            "product": "UM"
+        },
+        "ENJUSDT": {
+            "code": "ENJUSDT",
+            "exchg": "Binance",
+            "name": "ENJUSDT",
+            "product": "UM"
+        },
+        "ENSUSDT": {
+            "code": "ENSUSDT",
+            "exchg": "Binance",
+            "name": "ENSUSDT",
+            "product": "UM"
+        },
+        "EOSUSDT": {
+            "code": "EOSUSDT",
+            "exchg": "Binance",
+            "name": "EOSUSDT",
+            "product": "UM"
+        },
+        "ETCUSDT": {
+            "code": "ETCUSDT",
+            "exchg": "Binance",
+            "name": "ETCUSDT",
+            "product": "UM"
+        },
+        "ETHBTC": {
+            "code": "ETHBTC",
+            "exchg": "Binance",
+            "name": "ETHBTC",
+            "product": "UM"
+        },
+        "ETHFIUSDC": {
+            "code": "ETHFIUSDC",
+            "exchg": "Binance",
+            "name": "ETHFIUSDC",
+            "product": "UM"
+        },
+        "ETHFIUSDT": {
+            "code": "ETHFIUSDT",
+            "exchg": "Binance",
+            "name": "ETHFIUSDT",
+            "product": "UM"
+        },
+        "ETHUSDC": {
+            "code": "ETHUSDC",
+            "exchg": "Binance",
+            "name": "ETHUSDC",
+            "product": "UM"
+        },
+        "ETHUSDT_250328": {
+            "code": "ETHUSDT_250328",
+            "exchg": "Binance",
+            "name": "ETHUSDT_250328",
+            "product": "UM"
+        },
+        "ETHUSDT_250627": {
+            "code": "ETHUSDT_250627",
+            "exchg": "Binance",
+            "name": "ETHUSDT_250627",
+            "product": "UM"
+        },
+        "ETHWUSDT": {
+            "code": "ETHWUSDT",
+            "exchg": "Binance",
+            "name": "ETHWUSDT",
+            "product": "UM"
+        },
+        "FARTCOINUSDT": {
+            "code": "FARTCOINUSDT",
+            "exchg": "Binance",
+            "name": "FARTCOINUSDT",
+            "product": "UM"
+        },
+        "FETUSDT": {
+            "code": "FETUSDT",
+            "exchg": "Binance",
+            "name": "FETUSDT",
+            "product": "UM"
+        },
+        "FIDAUSDT": {
+            "code": "FIDAUSDT",
+            "exchg": "Binance",
+            "name": "FIDAUSDT",
+            "product": "UM"
+        },
+        "FILUSDC": {
+            "code": "FILUSDC",
+            "exchg": "Binance",
+            "name": "FILUSDC",
+            "product": "UM"
+        },
+        "FILUSDT": {
+            "code": "FILUSDT",
+            "exchg": "Binance",
+            "name": "FILUSDT",
+            "product": "UM"
+        },
+        "FIOUSDT": {
+            "code": "FIOUSDT",
+            "exchg": "Binance",
+            "name": "FIOUSDT",
+            "product": "UM"
+        },
+        "FLMUSDT": {
+            "code": "FLMUSDT",
+            "exchg": "Binance",
+            "name": "FLMUSDT",
+            "product": "UM"
+        },
+        "FLOWUSDT": {
+            "code": "FLOWUSDT",
+            "exchg": "Binance",
+            "name": "FLOWUSDT",
+            "product": "UM"
+        },
+        "FLUXUSDT": {
+            "code": "FLUXUSDT",
+            "exchg": "Binance",
+            "name": "FLUXUSDT",
+            "product": "UM"
+        },
+        "FTMUSDT": {
+            "code": "FTMUSDT",
+            "exchg": "Binance",
+            "name": "FTMUSDT",
+            "product": "UM"
+        },
+        "FTTUSDT": {
+            "code": "FTTUSDT",
+            "exchg": "Binance",
+            "name": "FTTUSDT",
+            "product": "UM"
+        },
+        "FXSUSDT": {
+            "code": "FXSUSDT",
+            "exchg": "Binance",
+            "name": "FXSUSDT",
+            "product": "UM"
+        },
+        "GALAUSDT": {
+            "code": "GALAUSDT",
+            "exchg": "Binance",
+            "name": "GALAUSDT",
+            "product": "UM"
+        },
+        "GASUSDT": {
+            "code": "GASUSDT",
+            "exchg": "Binance",
+            "name": "GASUSDT",
+            "product": "UM"
+        },
+        "GHSTUSDT": {
+            "code": "GHSTUSDT",
+            "exchg": "Binance",
+            "name": "GHSTUSDT",
+            "product": "UM"
+        },
+        "GLMRUSDT": {
+            "code": "GLMRUSDT",
+            "exchg": "Binance",
+            "name": "GLMRUSDT",
+            "product": "UM"
+        },
+        "GLMUSDT": {
+            "code": "GLMUSDT",
+            "exchg": "Binance",
+            "name": "GLMUSDT",
+            "product": "UM"
+        },
+        "GMTUSDT": {
+            "code": "GMTUSDT",
+            "exchg": "Binance",
+            "name": "GMTUSDT",
+            "product": "UM"
+        },
+        "GMXUSDT": {
+            "code": "GMXUSDT",
+            "exchg": "Binance",
+            "name": "GMXUSDT",
+            "product": "UM"
+        },
+        "GOATUSDT": {
+            "code": "GOATUSDT",
+            "exchg": "Binance",
+            "name": "GOATUSDT",
+            "product": "UM"
+        },
+        "GRASSUSDT": {
+            "code": "GRASSUSDT",
+            "exchg": "Binance",
+            "name": "GRASSUSDT",
+            "product": "UM"
+        },
+        "GRIFFAINUSDT": {
+            "code": "GRIFFAINUSDT",
+            "exchg": "Binance",
+            "name": "GRIFFAINUSDT",
+            "product": "UM"
+        },
+        "GRTUSDT": {
+            "code": "GRTUSDT",
+            "exchg": "Binance",
+            "name": "GRTUSDT",
+            "product": "UM"
+        },
+        "GTCUSDT": {
+            "code": "GTCUSDT",
+            "exchg": "Binance",
+            "name": "GTCUSDT",
+            "product": "UM"
+        },
+        "GUSDT": {
+            "code": "GUSDT",
+            "exchg": "Binance",
+            "name": "GUSDT",
+            "product": "UM"
+        },
+        "HBARUSDT": {
+            "code": "HBARUSDT",
+            "exchg": "Binance",
+            "name": "HBARUSDT",
+            "product": "UM"
+        },
+        "HFTUSDT": {
+            "code": "HFTUSDT",
+            "exchg": "Binance",
+            "name": "HFTUSDT",
+            "product": "UM"
+        },
+        "HIFIUSDT": {
+            "code": "HIFIUSDT",
+            "exchg": "Binance",
+            "name": "HIFIUSDT",
+            "product": "UM"
+        },
+        "HIGHUSDT": {
+            "code": "HIGHUSDT",
+            "exchg": "Binance",
+            "name": "HIGHUSDT",
+            "product": "UM"
+        },
+        "HIPPOUSDT": {
+            "code": "HIPPOUSDT",
+            "exchg": "Binance",
+            "name": "HIPPOUSDT",
+            "product": "UM"
+        },
+        "HIVEUSDT": {
+            "code": "HIVEUSDT",
+            "exchg": "Binance",
+            "name": "HIVEUSDT",
+            "product": "UM"
+        },
+        "HMSTRUSDT": {
+            "code": "HMSTRUSDT",
+            "exchg": "Binance",
+            "name": "HMSTRUSDT",
+            "product": "UM"
+        },
+        "HOOKUSDT": {
+            "code": "HOOKUSDT",
+            "exchg": "Binance",
+            "name": "HOOKUSDT",
+            "product": "UM"
+        },
+        "HOTUSDT": {
+            "code": "HOTUSDT",
+            "exchg": "Binance",
+            "name": "HOTUSDT",
+            "product": "UM"
+        },
+        "ICPUSDT": {
+            "code": "ICPUSDT",
+            "exchg": "Binance",
+            "name": "ICPUSDT",
+            "product": "UM"
+        },
+        "ICXUSDT": {
+            "code": "ICXUSDT",
+            "exchg": "Binance",
+            "name": "ICXUSDT",
+            "product": "UM"
+        },
+        "IDEXUSDT": {
+            "code": "IDEXUSDT",
+            "exchg": "Binance",
+            "name": "IDEXUSDT",
+            "product": "UM"
+        },
+        "IDUSDT": {
+            "code": "IDUSDT",
+            "exchg": "Binance",
+            "name": "IDUSDT",
+            "product": "UM"
+        },
+        "ILVUSDT": {
+            "code": "ILVUSDT",
+            "exchg": "Binance",
+            "name": "ILVUSDT",
+            "product": "UM"
+        },
+        "IMXUSDT": {
+            "code": "IMXUSDT",
+            "exchg": "Binance",
+            "name": "IMXUSDT",
+            "product": "UM"
+        },
+        "INJUSDT": {
+            "code": "INJUSDT",
+            "exchg": "Binance",
+            "name": "INJUSDT",
+            "product": "UM"
+        },
+        "IOSTUSDT": {
+            "code": "IOSTUSDT",
+            "exchg": "Binance",
+            "name": "IOSTUSDT",
+            "product": "UM"
+        },
+        "IOTAUSDT": {
+            "code": "IOTAUSDT",
+            "exchg": "Binance",
+            "name": "IOTAUSDT",
+            "product": "UM"
+        },
+        "IOTXUSDT": {
+            "code": "IOTXUSDT",
+            "exchg": "Binance",
+            "name": "IOTXUSDT",
+            "product": "UM"
+        },
+        "IOUSDT": {
+            "code": "IOUSDT",
+            "exchg": "Binance",
+            "name": "IOUSDT",
+            "product": "UM"
+        },
+        "JASMYUSDT": {
+            "code": "JASMYUSDT",
+            "exchg": "Binance",
+            "name": "JASMYUSDT",
+            "product": "UM"
+        },
+        "JOEUSDT": {
+            "code": "JOEUSDT",
+            "exchg": "Binance",
+            "name": "JOEUSDT",
+            "product": "UM"
+        },
+        "JTOUSDT": {
+            "code": "JTOUSDT",
+            "exchg": "Binance",
+            "name": "JTOUSDT",
+            "product": "UM"
+        },
+        "JUPUSDT": {
+            "code": "JUPUSDT",
+            "exchg": "Binance",
+            "name": "JUPUSDT",
+            "product": "UM"
+        },
+        "KAIAUSDT": {
+            "code": "KAIAUSDT",
+            "exchg": "Binance",
+            "name": "KAIAUSDT",
+            "product": "UM"
+        },
+        "KASUSDT": {
+            "code": "KASUSDT",
+            "exchg": "Binance",
+            "name": "KASUSDT",
+            "product": "UM"
+        },
+        "KAVAUSDT": {
+            "code": "KAVAUSDT",
+            "exchg": "Binance",
+            "name": "KAVAUSDT",
+            "product": "UM"
+        },
+        "KDAUSDT": {
+            "code": "KDAUSDT",
+            "exchg": "Binance",
+            "name": "KDAUSDT",
+            "product": "UM"
+        },
+        "KEYUSDT": {
+            "code": "KEYUSDT",
+            "exchg": "Binance",
+            "name": "KEYUSDT",
+            "product": "UM"
+        },
+        "KLAYUSDT": {
+            "code": "KLAYUSDT",
+            "exchg": "Binance",
+            "name": "KLAYUSDT",
+            "product": "UM"
+        },
+        "KMNOUSDT": {
+            "code": "KMNOUSDT",
+            "exchg": "Binance",
+            "name": "KMNOUSDT",
+            "product": "UM"
+        },
+        "KNCUSDT": {
+            "code": "KNCUSDT",
+            "exchg": "Binance",
+            "name": "KNCUSDT",
+            "product": "UM"
+        },
+        "KOMAUSDT": {
+            "code": "KOMAUSDT",
+            "exchg": "Binance",
+            "name": "KOMAUSDT",
+            "product": "UM"
+        },
+        "KSMUSDT": {
+            "code": "KSMUSDT",
+            "exchg": "Binance",
+            "name": "KSMUSDT",
+            "product": "UM"
+        },
+        "LDOUSDT": {
+            "code": "LDOUSDT",
+            "exchg": "Binance",
+            "name": "LDOUSDT",
+            "product": "UM"
+        },
+        "LEVERUSDT": {
+            "code": "LEVERUSDT",
+            "exchg": "Binance",
+            "name": "LEVERUSDT",
+            "product": "UM"
+        },
+        "LINAUSDT": {
+            "code": "LINAUSDT",
+            "exchg": "Binance",
+            "name": "LINAUSDT",
+            "product": "UM"
+        },
+        "LINKUSDC": {
+            "code": "LINKUSDC",
+            "exchg": "Binance",
+            "name": "LINKUSDC",
+            "product": "UM"
+        },
+        "LINKUSDT": {
+            "code": "LINKUSDT",
+            "exchg": "Binance",
+            "name": "LINKUSDT",
+            "product": "UM"
+        },
+        "LISTAUSDT": {
+            "code": "LISTAUSDT",
+            "exchg": "Binance",
+            "name": "LISTAUSDT",
+            "product": "UM"
+        },
+        "LITUSDT": {
+            "code": "LITUSDT",
+            "exchg": "Binance",
+            "name": "LITUSDT",
+            "product": "UM"
+        },
+        "LOKAUSDT": {
+            "code": "LOKAUSDT",
+            "exchg": "Binance",
+            "name": "LOKAUSDT",
+            "product": "UM"
+        },
+        "LOOMUSDT": {
+            "code": "LOOMUSDT",
+            "exchg": "Binance",
+            "name": "LOOMUSDT",
+            "product": "UM"
+        },
+        "LPTUSDT": {
+            "code": "LPTUSDT",
+            "exchg": "Binance",
+            "name": "LPTUSDT",
+            "product": "UM"
+        },
+        "LQTYUSDT": {
+            "code": "LQTYUSDT",
+            "exchg": "Binance",
+            "name": "LQTYUSDT",
+            "product": "UM"
+        },
+        "LRCUSDT": {
+            "code": "LRCUSDT",
+            "exchg": "Binance",
+            "name": "LRCUSDT",
+            "product": "UM"
+        },
+        "LSKUSDT": {
+            "code": "LSKUSDT",
+            "exchg": "Binance",
+            "name": "LSKUSDT",
+            "product": "UM"
+        },
+        "LTCUSDC": {
+            "code": "LTCUSDC",
+            "exchg": "Binance",
+            "name": "LTCUSDC",
+            "product": "UM"
+        },
+        "LTCUSDT": {
+            "code": "LTCUSDT",
+            "exchg": "Binance",
+            "name": "LTCUSDT",
+            "product": "UM"
+        },
+        "LUMIAUSDT": {
+            "code": "LUMIAUSDT",
+            "exchg": "Binance",
+            "name": "LUMIAUSDT",
+            "product": "UM"
+        },
+        "LUNA2USDT": {
+            "code": "LUNA2USDT",
+            "exchg": "Binance",
+            "name": "LUNA2USDT",
+            "product": "UM"
+        },
+        "MAGICUSDT": {
+            "code": "MAGICUSDT",
+            "exchg": "Binance",
+            "name": "MAGICUSDT",
+            "product": "UM"
+        },
+        "MANAUSDT": {
+            "code": "MANAUSDT",
+            "exchg": "Binance",
+            "name": "MANAUSDT",
+            "product": "UM"
+        },
+        "MANTAUSDT": {
+            "code": "MANTAUSDT",
+            "exchg": "Binance",
+            "name": "MANTAUSDT",
+            "product": "UM"
+        },
+        "MASKUSDT": {
+            "code": "MASKUSDT",
+            "exchg": "Binance",
+            "name": "MASKUSDT",
+            "product": "UM"
+        },
+        "MAVIAUSDT": {
+            "code": "MAVIAUSDT",
+            "exchg": "Binance",
+            "name": "MAVIAUSDT",
+            "product": "UM"
+        },
+        "MAVUSDT": {
+            "code": "MAVUSDT",
+            "exchg": "Binance",
+            "name": "MAVUSDT",
+            "product": "UM"
+        },
+        "MBOXUSDT": {
+            "code": "MBOXUSDT",
+            "exchg": "Binance",
+            "name": "MBOXUSDT",
+            "product": "UM"
+        },
+        "MDTUSDT": {
+            "code": "MDTUSDT",
+            "exchg": "Binance",
+            "name": "MDTUSDT",
+            "product": "UM"
+        },
+        "MELANIAUSDT": {
+            "code": "MELANIAUSDT",
+            "exchg": "Binance",
+            "name": "MELANIAUSDT",
+            "product": "UM"
+        },
+        "MEMEUSDT": {
+            "code": "MEMEUSDT",
+            "exchg": "Binance",
+            "name": "MEMEUSDT",
+            "product": "UM"
+        },
+        "METISUSDT": {
+            "code": "METISUSDT",
+            "exchg": "Binance",
+            "name": "METISUSDT",
+            "product": "UM"
+        },
+        "MEUSDT": {
+            "code": "MEUSDT",
+            "exchg": "Binance",
+            "name": "MEUSDT",
+            "product": "UM"
+        },
+        "MEWUSDT": {
+            "code": "MEWUSDT",
+            "exchg": "Binance",
+            "name": "MEWUSDT",
+            "product": "UM"
+        },
+        "MINAUSDT": {
+            "code": "MINAUSDT",
+            "exchg": "Binance",
+            "name": "MINAUSDT",
+            "product": "UM"
+        },
+        "MKRUSDT": {
+            "code": "MKRUSDT",
+            "exchg": "Binance",
+            "name": "MKRUSDT",
+            "product": "UM"
+        },
+        "MOCAUSDT": {
+            "code": "MOCAUSDT",
+            "exchg": "Binance",
+            "name": "MOCAUSDT",
+            "product": "UM"
+        },
+        "MOODENGUSDT": {
+            "code": "MOODENGUSDT",
+            "exchg": "Binance",
+            "name": "MOODENGUSDT",
+            "product": "UM"
+        },
+        "MORPHOUSDT": {
+            "code": "MORPHOUSDT",
+            "exchg": "Binance",
+            "name": "MORPHOUSDT",
+            "product": "UM"
+        },
+        "MOVEUSDT": {
+            "code": "MOVEUSDT",
+            "exchg": "Binance",
+            "name": "MOVEUSDT",
+            "product": "UM"
+        },
+        "MOVRUSDT": {
+            "code": "MOVRUSDT",
+            "exchg": "Binance",
+            "name": "MOVRUSDT",
+            "product": "UM"
+        },
+        "MTLUSDT": {
+            "code": "MTLUSDT",
+            "exchg": "Binance",
+            "name": "MTLUSDT",
+            "product": "UM"
+        },
+        "MYROUSDT": {
+            "code": "MYROUSDT",
+            "exchg": "Binance",
+            "name": "MYROUSDT",
+            "product": "UM"
+        },
+        "NEARUSDC": {
+            "code": "NEARUSDC",
+            "exchg": "Binance",
+            "name": "NEARUSDC",
+            "product": "UM"
+        },
+        "NEARUSDT": {
+            "code": "NEARUSDT",
+            "exchg": "Binance",
+            "name": "NEARUSDT",
+            "product": "UM"
+        },
+        "NEIROETHUSDT": {
+            "code": "NEIROETHUSDT",
+            "exchg": "Binance",
+            "name": "NEIROETHUSDT",
+            "product": "UM"
+        },
+        "NEIROUSDT": {
+            "code": "NEIROUSDT",
+            "exchg": "Binance",
+            "name": "NEIROUSDT",
+            "product": "UM"
+        },
+        "NEOUSDC": {
+            "code": "NEOUSDC",
+            "exchg": "Binance",
+            "name": "NEOUSDC",
+            "product": "UM"
+        },
+        "NEOUSDT": {
+            "code": "NEOUSDT",
+            "exchg": "Binance",
+            "name": "NEOUSDT",
+            "product": "UM"
+        },
+        "NFPUSDT": {
+            "code": "NFPUSDT",
+            "exchg": "Binance",
+            "name": "NFPUSDT",
+            "product": "UM"
+        },
+        "NKNUSDT": {
+            "code": "NKNUSDT",
+            "exchg": "Binance",
+            "name": "NKNUSDT",
+            "product": "UM"
+        },
+        "NMRUSDT": {
+            "code": "NMRUSDT",
+            "exchg": "Binance",
+            "name": "NMRUSDT",
+            "product": "UM"
+        },
+        "NOTUSDT": {
+            "code": "NOTUSDT",
+            "exchg": "Binance",
+            "name": "NOTUSDT",
+            "product": "UM"
+        },
+        "NTRNUSDT": {
+            "code": "NTRNUSDT",
+            "exchg": "Binance",
+            "name": "NTRNUSDT",
+            "product": "UM"
+        },
+        "NULSUSDT": {
+            "code": "NULSUSDT",
+            "exchg": "Binance",
+            "name": "NULSUSDT",
+            "product": "UM"
+        },
+        "OCEANUSDT": {
+            "code": "OCEANUSDT",
+            "exchg": "Binance",
+            "name": "OCEANUSDT",
+            "product": "UM"
+        },
+        "OGNUSDT": {
+            "code": "OGNUSDT",
+            "exchg": "Binance",
+            "name": "OGNUSDT",
+            "product": "UM"
+        },
+        "OMGUSDT": {
+            "code": "OMGUSDT",
+            "exchg": "Binance",
+            "name": "OMGUSDT",
+            "product": "UM"
+        },
+        "OMNIUSDT": {
+            "code": "OMNIUSDT",
+            "exchg": "Binance",
+            "name": "OMNIUSDT",
+            "product": "UM"
+        },
+        "OMUSDT": {
+            "code": "OMUSDT",
+            "exchg": "Binance",
+            "name": "OMUSDT",
+            "product": "UM"
+        },
+        "ONDOUSDT": {
+            "code": "ONDOUSDT",
+            "exchg": "Binance",
+            "name": "ONDOUSDT",
+            "product": "UM"
+        },
+        "ONEUSDT": {
+            "code": "ONEUSDT",
+            "exchg": "Binance",
+            "name": "ONEUSDT",
+            "product": "UM"
+        },
+        "ONGUSDT": {
+            "code": "ONGUSDT",
+            "exchg": "Binance",
+            "name": "ONGUSDT",
+            "product": "UM"
+        },
+        "ONTUSDT": {
+            "code": "ONTUSDT",
+            "exchg": "Binance",
+            "name": "ONTUSDT",
+            "product": "UM"
+        },
+        "OPUSDT": {
+            "code": "OPUSDT",
+            "exchg": "Binance",
+            "name": "OPUSDT",
+            "product": "UM"
+        },
+        "ORBSUSDT": {
+            "code": "ORBSUSDT",
+            "exchg": "Binance",
+            "name": "ORBSUSDT",
+            "product": "UM"
+        },
+        "ORCAUSDT": {
+            "code": "ORCAUSDT",
+            "exchg": "Binance",
+            "name": "ORCAUSDT",
+            "product": "UM"
+        },
+        "ORDIUSDC": {
+            "code": "ORDIUSDC",
+            "exchg": "Binance",
+            "name": "ORDIUSDC",
+            "product": "UM"
+        },
+        "ORDIUSDT": {
+            "code": "ORDIUSDT",
+            "exchg": "Binance",
+            "name": "ORDIUSDT",
+            "product": "UM"
+        },
+        "OXTUSDT": {
+            "code": "OXTUSDT",
+            "exchg": "Binance",
+            "name": "OXTUSDT",
+            "product": "UM"
+        },
+        "PENDLEUSDT": {
+            "code": "PENDLEUSDT",
+            "exchg": "Binance",
+            "name": "PENDLEUSDT",
+            "product": "UM"
+        },
+        "PENGUUSDT": {
+            "code": "PENGUUSDT",
+            "exchg": "Binance",
+            "name": "PENGUUSDT",
+            "product": "UM"
+        },
+        "PEOPLEUSDT": {
+            "code": "PEOPLEUSDT",
+            "exchg": "Binance",
+            "name": "PEOPLEUSDT",
+            "product": "UM"
+        },
+        "PERPUSDT": {
+            "code": "PERPUSDT",
+            "exchg": "Binance",
+            "name": "PERPUSDT",
+            "product": "UM"
+        },
+        "PHAUSDT": {
+            "code": "PHAUSDT",
+            "exchg": "Binance",
+            "name": "PHAUSDT",
+            "product": "UM"
+        },
+        "PHBUSDT": {
+            "code": "PHBUSDT",
+            "exchg": "Binance",
+            "name": "PHBUSDT",
+            "product": "UM"
+        },
+        "PIXELUSDT": {
+            "code": "PIXELUSDT",
+            "exchg": "Binance",
+            "name": "PIXELUSDT",
+            "product": "UM"
+        },
+        "PNUTUSDT": {
+            "code": "PNUTUSDT",
+            "exchg": "Binance",
+            "name": "PNUTUSDT",
+            "product": "UM"
+        },
+        "POLUSDT": {
+            "code": "POLUSDT",
+            "exchg": "Binance",
+            "name": "POLUSDT",
+            "product": "UM"
+        },
+        "POLYXUSDT": {
+            "code": "POLYXUSDT",
+            "exchg": "Binance",
+            "name": "POLYXUSDT",
+            "product": "UM"
+        },
+        "PONKEUSDT": {
+            "code": "PONKEUSDT",
+            "exchg": "Binance",
+            "name": "PONKEUSDT",
+            "product": "UM"
+        },
+        "POPCATUSDT": {
+            "code": "POPCATUSDT",
+            "exchg": "Binance",
+            "name": "POPCATUSDT",
+            "product": "UM"
+        },
+        "PORTALUSDT": {
+            "code": "PORTALUSDT",
+            "exchg": "Binance",
+            "name": "PORTALUSDT",
+            "product": "UM"
+        },
+        "POWRUSDT": {
+            "code": "POWRUSDT",
+            "exchg": "Binance",
+            "name": "POWRUSDT",
+            "product": "UM"
+        },
+        "PROMUSDT": {
+            "code": "PROMUSDT",
+            "exchg": "Binance",
+            "name": "PROMUSDT",
+            "product": "UM"
+        },
+        "PYTHUSDT": {
+            "code": "PYTHUSDT",
+            "exchg": "Binance",
+            "name": "PYTHUSDT",
+            "product": "UM"
+        },
+        "QNTUSDT": {
+            "code": "QNTUSDT",
+            "exchg": "Binance",
+            "name": "QNTUSDT",
+            "product": "UM"
+        },
+        "QTUMUSDT": {
+            "code": "QTUMUSDT",
+            "exchg": "Binance",
+            "name": "QTUMUSDT",
+            "product": "UM"
+        },
+        "QUICKUSDT": {
+            "code": "QUICKUSDT",
+            "exchg": "Binance",
+            "name": "QUICKUSDT",
+            "product": "UM"
+        },
+        "RADUSDT": {
+            "code": "RADUSDT",
+            "exchg": "Binance",
+            "name": "RADUSDT",
+            "product": "UM"
+        },
+        "RAREUSDT": {
+            "code": "RAREUSDT",
+            "exchg": "Binance",
+            "name": "RAREUSDT",
+            "product": "UM"
+        },
+        "RAYSOLUSDT": {
+            "code": "RAYSOLUSDT",
+            "exchg": "Binance",
+            "name": "RAYSOLUSDT",
+            "product": "UM"
+        },
+        "RAYUSDT": {
+            "code": "RAYUSDT",
+            "exchg": "Binance",
+            "name": "RAYUSDT",
+            "product": "UM"
+        },
+        "RDNTUSDT": {
+            "code": "RDNTUSDT",
+            "exchg": "Binance",
+            "name": "RDNTUSDT",
+            "product": "UM"
+        },
+        "REEFUSDT": {
+            "code": "REEFUSDT",
+            "exchg": "Binance",
+            "name": "REEFUSDT",
+            "product": "UM"
+        },
+        "REIUSDT": {
+            "code": "REIUSDT",
+            "exchg": "Binance",
+            "name": "REIUSDT",
+            "product": "UM"
+        },
+        "RENDERUSDT": {
+            "code": "RENDERUSDT",
+            "exchg": "Binance",
+            "name": "RENDERUSDT",
+            "product": "UM"
+        },
+        "RENUSDT": {
+            "code": "RENUSDT",
+            "exchg": "Binance",
+            "name": "RENUSDT",
+            "product": "UM"
+        },
+        "REZUSDT": {
+            "code": "REZUSDT",
+            "exchg": "Binance",
+            "name": "REZUSDT",
+            "product": "UM"
+        },
+        "RIFUSDT": {
+            "code": "RIFUSDT",
+            "exchg": "Binance",
+            "name": "RIFUSDT",
+            "product": "UM"
+        },
+        "RLCUSDT": {
+            "code": "RLCUSDT",
+            "exchg": "Binance",
+            "name": "RLCUSDT",
+            "product": "UM"
+        },
+        "RONINUSDT": {
+            "code": "RONINUSDT",
+            "exchg": "Binance",
+            "name": "RONINUSDT",
+            "product": "UM"
+        },
+        "ROSEUSDT": {
+            "code": "ROSEUSDT",
+            "exchg": "Binance",
+            "name": "ROSEUSDT",
+            "product": "UM"
+        },
+        "RPLUSDT": {
+            "code": "RPLUSDT",
+            "exchg": "Binance",
+            "name": "RPLUSDT",
+            "product": "UM"
+        },
+        "RSRUSDT": {
+            "code": "RSRUSDT",
+            "exchg": "Binance",
+            "name": "RSRUSDT",
+            "product": "UM"
+        },
+        "RUNEUSDT": {
+            "code": "RUNEUSDT",
+            "exchg": "Binance",
+            "name": "RUNEUSDT",
+            "product": "UM"
+        },
+        "RVNUSDT": {
+            "code": "RVNUSDT",
+            "exchg": "Binance",
+            "name": "RVNUSDT",
+            "product": "UM"
+        },
+        "SAFEUSDT": {
+            "code": "SAFEUSDT",
+            "exchg": "Binance",
+            "name": "SAFEUSDT",
+            "product": "UM"
+        },
+        "SAGAUSDT": {
+            "code": "SAGAUSDT",
+            "exchg": "Binance",
+            "name": "SAGAUSDT",
+            "product": "UM"
+        },
+        "SANDUSDT": {
+            "code": "SANDUSDT",
+            "exchg": "Binance",
+            "name": "SANDUSDT",
+            "product": "UM"
+        },
+        "SANTOSUSDT": {
+            "code": "SANTOSUSDT",
+            "exchg": "Binance",
+            "name": "SANTOSUSDT",
+            "product": "UM"
+        },
+        "SCRTUSDT": {
+            "code": "SCRTUSDT",
+            "exchg": "Binance",
+            "name": "SCRTUSDT",
+            "product": "UM"
+        },
+        "SCRUSDT": {
+            "code": "SCRUSDT",
+            "exchg": "Binance",
+            "name": "SCRUSDT",
+            "product": "UM"
+        },
+        "SCUSDT": {
+            "code": "SCUSDT",
+            "exchg": "Binance",
+            "name": "SCUSDT",
+            "product": "UM"
+        },
+        "SEIUSDT": {
+            "code": "SEIUSDT",
+            "exchg": "Binance",
+            "name": "SEIUSDT",
+            "product": "UM"
+        },
+        "SFPUSDT": {
+            "code": "SFPUSDT",
+            "exchg": "Binance",
+            "name": "SFPUSDT",
+            "product": "UM"
+        },
+        "SKLUSDT": {
+            "code": "SKLUSDT",
+            "exchg": "Binance",
+            "name": "SKLUSDT",
+            "product": "UM"
+        },
+        "SLERFUSDT": {
+            "code": "SLERFUSDT",
+            "exchg": "Binance",
+            "name": "SLERFUSDT",
+            "product": "UM"
+        },
+        "SLPUSDT": {
+            "code": "SLPUSDT",
+            "exchg": "Binance",
+            "name": "SLPUSDT",
+            "product": "UM"
+        },
+        "SNTUSDT": {
+            "code": "SNTUSDT",
+            "exchg": "Binance",
+            "name": "SNTUSDT",
+            "product": "UM"
+        },
+        "SNXUSDT": {
+            "code": "SNXUSDT",
+            "exchg": "Binance",
+            "name": "SNXUSDT",
+            "product": "UM"
+        },
+        "SOLUSDC": {
+            "code": "SOLUSDC",
+            "exchg": "Binance",
+            "name": "SOLUSDC",
+            "product": "UM"
+        },
+        "SOLUSDT": {
+            "code": "SOLUSDT",
+            "exchg": "Binance",
+            "name": "SOLUSDT",
+            "product": "UM"
+        },
+        "SOLVUSDT": {
+            "code": "SOLVUSDT",
+            "exchg": "Binance",
+            "name": "SOLVUSDT",
+            "product": "UM"
+        },
+        "SONICUSDT": {
+            "code": "SONICUSDT",
+            "exchg": "Binance",
+            "name": "SONICUSDT",
+            "product": "UM"
+        },
+        "SPELLUSDT": {
+            "code": "SPELLUSDT",
+            "exchg": "Binance",
+            "name": "SPELLUSDT",
+            "product": "UM"
+        },
+        "SPXUSDT": {
+            "code": "SPXUSDT",
+            "exchg": "Binance",
+            "name": "SPXUSDT",
+            "product": "UM"
+        },
+        "SSVUSDT": {
+            "code": "SSVUSDT",
+            "exchg": "Binance",
+            "name": "SSVUSDT",
+            "product": "UM"
+        },
+        "STEEMUSDT": {
+            "code": "STEEMUSDT",
+            "exchg": "Binance",
+            "name": "STEEMUSDT",
+            "product": "UM"
+        },
+        "STGUSDT": {
+            "code": "STGUSDT",
+            "exchg": "Binance",
+            "name": "STGUSDT",
+            "product": "UM"
+        },
+        "STMXUSDT": {
+            "code": "STMXUSDT",
+            "exchg": "Binance",
+            "name": "STMXUSDT",
+            "product": "UM"
+        },
+        "STORJUSDT": {
+            "code": "STORJUSDT",
+            "exchg": "Binance",
+            "name": "STORJUSDT",
+            "product": "UM"
+        },
+        "STPTUSDT": {
+            "code": "STPTUSDT",
+            "exchg": "Binance",
+            "name": "STPTUSDT",
+            "product": "UM"
+        },
+        "STRAXUSDT": {
+            "code": "STRAXUSDT",
+            "exchg": "Binance",
+            "name": "STRAXUSDT",
+            "product": "UM"
+        },
+        "STRKUSDT": {
+            "code": "STRKUSDT",
+            "exchg": "Binance",
+            "name": "STRKUSDT",
+            "product": "UM"
+        },
+        "STXUSDT": {
+            "code": "STXUSDT",
+            "exchg": "Binance",
+            "name": "STXUSDT",
+            "product": "UM"
+        },
+        "SUIUSDC": {
+            "code": "SUIUSDC",
+            "exchg": "Binance",
+            "name": "SUIUSDC",
+            "product": "UM"
+        },
+        "SUIUSDT": {
+            "code": "SUIUSDT",
+            "exchg": "Binance",
+            "name": "SUIUSDT",
+            "product": "UM"
+        },
+        "SUNUSDT": {
+            "code": "SUNUSDT",
+            "exchg": "Binance",
+            "name": "SUNUSDT",
+            "product": "UM"
+        },
+        "SUPERUSDT": {
+            "code": "SUPERUSDT",
+            "exchg": "Binance",
+            "name": "SUPERUSDT",
+            "product": "UM"
+        },
+        "SUSDT": {
+            "code": "SUSDT",
+            "exchg": "Binance",
+            "name": "SUSDT",
+            "product": "UM"
+        },
+        "SUSHIUSDT": {
+            "code": "SUSHIUSDT",
+            "exchg": "Binance",
+            "name": "SUSHIUSDT",
+            "product": "UM"
+        },
+        "SWARMSUSDT": {
+            "code": "SWARMSUSDT",
+            "exchg": "Binance",
+            "name": "SWARMSUSDT",
+            "product": "UM"
+        },
+        "SWELLUSDT": {
+            "code": "SWELLUSDT",
+            "exchg": "Binance",
+            "name": "SWELLUSDT",
+            "product": "UM"
+        },
+        "SXPUSDT": {
+            "code": "SXPUSDT",
+            "exchg": "Binance",
+            "name": "SXPUSDT",
+            "product": "UM"
+        },
+        "SYNUSDT": {
+            "code": "SYNUSDT",
+            "exchg": "Binance",
+            "name": "SYNUSDT",
+            "product": "UM"
+        },
+        "SYSUSDT": {
+            "code": "SYSUSDT",
+            "exchg": "Binance",
+            "name": "SYSUSDT",
+            "product": "UM"
+        },
+        "TAOUSDT": {
+            "code": "TAOUSDT",
+            "exchg": "Binance",
+            "name": "TAOUSDT",
+            "product": "UM"
+        },
+        "THETAUSDT": {
+            "code": "THETAUSDT",
+            "exchg": "Binance",
+            "name": "THETAUSDT",
+            "product": "UM"
+        },
+        "THEUSDT": {
+            "code": "THEUSDT",
+            "exchg": "Binance",
+            "name": "THEUSDT",
+            "product": "UM"
+        },
+        "TIAUSDC": {
+            "code": "TIAUSDC",
+            "exchg": "Binance",
+            "name": "TIAUSDC",
+            "product": "UM"
+        },
+        "TIAUSDT": {
+            "code": "TIAUSDT",
+            "exchg": "Binance",
+            "name": "TIAUSDT",
+            "product": "UM"
+        },
+        "TLMUSDT": {
+            "code": "TLMUSDT",
+            "exchg": "Binance",
+            "name": "TLMUSDT",
+            "product": "UM"
+        },
+        "TNSRUSDT": {
+            "code": "TNSRUSDT",
+            "exchg": "Binance",
+            "name": "TNSRUSDT",
+            "product": "UM"
+        },
+        "TOKENUSDT": {
+            "code": "TOKENUSDT",
+            "exchg": "Binance",
+            "name": "TOKENUSDT",
+            "product": "UM"
+        },
+        "TONUSDT": {
+            "code": "TONUSDT",
+            "exchg": "Binance",
+            "name": "TONUSDT",
+            "product": "UM"
+        },
+        "TRBUSDT": {
+            "code": "TRBUSDT",
+            "exchg": "Binance",
+            "name": "TRBUSDT",
+            "product": "UM"
+        },
+        "TROYUSDT": {
+            "code": "TROYUSDT",
+            "exchg": "Binance",
+            "name": "TROYUSDT",
+            "product": "UM"
+        },
+        "TRUMPUSDT": {
+            "code": "TRUMPUSDT",
+            "exchg": "Binance",
+            "name": "TRUMPUSDT",
+            "product": "UM"
+        },
+        "TRUUSDT": {
+            "code": "TRUUSDT",
+            "exchg": "Binance",
+            "name": "TRUUSDT",
             "product": "UM"
         },
         "TRXUSDT": {
             "code": "TRXUSDT",
             "exchg": "Binance",
             "name": "TRXUSDT",
+            "product": "UM"
+        },
+        "TURBOUSDT": {
+            "code": "TURBOUSDT",
+            "exchg": "Binance",
+            "name": "TURBOUSDT",
+            "product": "UM"
+        },
+        "TUSDT": {
+            "code": "TUSDT",
+            "exchg": "Binance",
+            "name": "TUSDT",
+            "product": "UM"
+        },
+        "TWTUSDT": {
+            "code": "TWTUSDT",
+            "exchg": "Binance",
+            "name": "TWTUSDT",
+            "product": "UM"
+        },
+        "UMAUSDT": {
+            "code": "UMAUSDT",
+            "exchg": "Binance",
+            "name": "UMAUSDT",
+            "product": "UM"
+        },
+        "UNFIUSDT": {
+            "code": "UNFIUSDT",
+            "exchg": "Binance",
+            "name": "UNFIUSDT",
+            "product": "UM"
+        },
+        "UNIUSDT": {
+            "code": "UNIUSDT",
+            "exchg": "Binance",
+            "name": "UNIUSDT",
+            "product": "UM"
+        },
+        "USDCUSDT": {
+            "code": "USDCUSDT",
+            "exchg": "Binance",
+            "name": "USDCUSDT",
+            "product": "UM"
+        },
+        "USTCUSDT": {
+            "code": "USTCUSDT",
+            "exchg": "Binance",
+            "name": "USTCUSDT",
+            "product": "UM"
+        },
+        "USUALUSDT": {
+            "code": "USUALUSDT",
+            "exchg": "Binance",
+            "name": "USUALUSDT",
+            "product": "UM"
+        },
+        "UXLINKUSDT": {
+            "code": "UXLINKUSDT",
+            "exchg": "Binance",
+            "name": "UXLINKUSDT",
+            "product": "UM"
+        },
+        "VANAUSDT": {
+            "code": "VANAUSDT",
+            "exchg": "Binance",
+            "name": "VANAUSDT",
+            "product": "UM"
+        },
+        "VANRYUSDT": {
+            "code": "VANRYUSDT",
+            "exchg": "Binance",
+            "name": "VANRYUSDT",
+            "product": "UM"
+        },
+        "VELODROMEUSDT": {
+            "code": "VELODROMEUSDT",
+            "exchg": "Binance",
+            "name": "VELODROMEUSDT",
+            "product": "UM"
+        },
+        "VETUSDT": {
+            "code": "VETUSDT",
+            "exchg": "Binance",
+            "name": "VETUSDT",
+            "product": "UM"
+        },
+        "VIDTUSDT": {
+            "code": "VIDTUSDT",
+            "exchg": "Binance",
+            "name": "VIDTUSDT",
+            "product": "UM"
+        },
+        "VIRTUALUSDT": {
+            "code": "VIRTUALUSDT",
+            "exchg": "Binance",
+            "name": "VIRTUALUSDT",
+            "product": "UM"
+        },
+        "VOXELUSDT": {
+            "code": "VOXELUSDT",
+            "exchg": "Binance",
+            "name": "VOXELUSDT",
+            "product": "UM"
+        },
+        "VTHOUSDT": {
+            "code": "VTHOUSDT",
+            "exchg": "Binance",
+            "name": "VTHOUSDT",
+            "product": "UM"
+        },
+        "WAVESUSDT": {
+            "code": "WAVESUSDT",
+            "exchg": "Binance",
+            "name": "WAVESUSDT",
+            "product": "UM"
+        },
+        "WAXPUSDT": {
+            "code": "WAXPUSDT",
+            "exchg": "Binance",
+            "name": "WAXPUSDT",
+            "product": "UM"
+        },
+        "WIFUSDC": {
+            "code": "WIFUSDC",
+            "exchg": "Binance",
+            "name": "WIFUSDC",
+            "product": "UM"
+        },
+        "WIFUSDT": {
+            "code": "WIFUSDT",
+            "exchg": "Binance",
+            "name": "WIFUSDT",
+            "product": "UM"
+        },
+        "WLDUSDC": {
+            "code": "WLDUSDC",
+            "exchg": "Binance",
+            "name": "WLDUSDC",
+            "product": "UM"
+        },
+        "WLDUSDT": {
+            "code": "WLDUSDT",
+            "exchg": "Binance",
+            "name": "WLDUSDT",
+            "product": "UM"
+        },
+        "WOOUSDT": {
+            "code": "WOOUSDT",
+            "exchg": "Binance",
+            "name": "WOOUSDT",
+            "product": "UM"
+        },
+        "WUSDT": {
+            "code": "WUSDT",
+            "exchg": "Binance",
+            "name": "WUSDT",
+            "product": "UM"
+        },
+        "XAIUSDT": {
+            "code": "XAIUSDT",
+            "exchg": "Binance",
+            "name": "XAIUSDT",
+            "product": "UM"
+        },
+        "XEMUSDT": {
+            "code": "XEMUSDT",
+            "exchg": "Binance",
+            "name": "XEMUSDT",
+            "product": "UM"
+        },
+        "XLMUSDT": {
+            "code": "XLMUSDT",
+            "exchg": "Binance",
+            "name": "XLMUSDT",
+            "product": "UM"
+        },
+        "XMRUSDT": {
+            "code": "XMRUSDT",
+            "exchg": "Binance",
+            "name": "XMRUSDT",
+            "product": "UM"
+        },
+        "XRPUSDC": {
+            "code": "XRPUSDC",
+            "exchg": "Binance",
+            "name": "XRPUSDC",
+            "product": "UM"
+        },
+        "XRPUSDT": {
+            "code": "XRPUSDT",
+            "exchg": "Binance",
+            "name": "XRPUSDT",
+            "product": "UM"
+        },
+        "XTZUSDT": {
+            "code": "XTZUSDT",
+            "exchg": "Binance",
+            "name": "XTZUSDT",
+            "product": "UM"
+        },
+        "XVGUSDT": {
+            "code": "XVGUSDT",
+            "exchg": "Binance",
+            "name": "XVGUSDT",
+            "product": "UM"
+        },
+        "XVSUSDT": {
+            "code": "XVSUSDT",
+            "exchg": "Binance",
+            "name": "XVSUSDT",
+            "product": "UM"
+        },
+        "YFIUSDT": {
+            "code": "YFIUSDT",
+            "exchg": "Binance",
+            "name": "YFIUSDT",
+            "product": "UM"
+        },
+        "YGGUSDT": {
+            "code": "YGGUSDT",
+            "exchg": "Binance",
+            "name": "YGGUSDT",
+            "product": "UM"
+        },
+        "ZECUSDT": {
+            "code": "ZECUSDT",
+            "exchg": "Binance",
+            "name": "ZECUSDT",
+            "product": "UM"
+        },
+        "ZENUSDT": {
+            "code": "ZENUSDT",
+            "exchg": "Binance",
+            "name": "ZENUSDT",
+            "product": "UM"
+        },
+        "ZEREBROUSDT": {
+            "code": "ZEREBROUSDT",
+            "exchg": "Binance",
+            "name": "ZEREBROUSDT",
+            "product": "UM"
+        },
+        "ZETAUSDT": {
+            "code": "ZETAUSDT",
+            "exchg": "Binance",
+            "name": "ZETAUSDT",
+            "product": "UM"
+        },
+        "ZILUSDT": {
+            "code": "ZILUSDT",
+            "exchg": "Binance",
+            "name": "ZILUSDT",
+            "product": "UM"
+        },
+        "ZKUSDT": {
+            "code": "ZKUSDT",
+            "exchg": "Binance",
+            "name": "ZKUSDT",
+            "product": "UM"
+        },
+        "ZROUSDT": {
+            "code": "ZROUSDT",
+            "exchg": "Binance",
+            "name": "ZROUSDT",
+            "product": "UM"
+        },
+        "ZRXUSDT": {
+            "code": "ZRXUSDT",
+            "exchg": "Binance",
+            "name": "ZRXUSDT",
             "product": "UM"
         }
     }

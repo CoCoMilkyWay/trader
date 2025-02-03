@@ -253,7 +253,8 @@ class AdaptiveSuperTrend:
         short_switch = False
         if direction != self.prev_direction:
             self.current_cluster = self._calculate_kmeans()
-            self.cluster_factors = [self.centroids[0]/self.centroids[1], 1, self.centroids[2]/self.centroids[1]]
+            if self.centroids[1]!=0:
+                self.cluster_factors = [self.centroids[0]/self.centroids[1], 1, self.centroids[2]/self.centroids[1]]
             long_switch = (direction == 1)
             short_switch = (direction == -1)
             
@@ -308,3 +309,8 @@ class AdaptiveSuperTrend:
         self.prev_lower = final_lower
         
         return long_switch, short_switch
+    
+    def get_stats(self, code:str):
+        print(f"\nAdaptiveSuperTrend Statistics: {code}")
+        print(f"Long trades:  Return: {self.avg_return[0]:6.2f}% | Win Rate: {self.avg_win_rate[0]:5.1f}% | Avg Hold: {self.avg_hold[0]:5.1f}h")
+        print(f"Short trades: Return: {self.avg_return[1]:6.2f}% | Win Rate: {self.avg_win_rate[1]:5.1f}% | Avg Hold: {self.avg_hold[1]:5.1f}h")
