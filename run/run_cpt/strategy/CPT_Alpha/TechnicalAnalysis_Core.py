@@ -78,7 +78,7 @@ class TechnicalAnalysis_Core:
     def _init_indicators(self):
         """Define and initialize all technical indicators"""
         
-        self.indicator_manager.process_definitions(TechnicalAnalysis_Rules().indicator_definitions)
+        self.indicator_manager.process_definitions(TechnicalAnalysis_Rules.indicator_definitions)
         
     def _init_feature_storage(self):
         """Initialize feature storage based on specs"""

@@ -1,11 +1,12 @@
 {
     "ALLDAY": {
         "name": "ALLDAY",
-        "offset": 0,
+        "offset": -1,
         "sections": [
             {
-                "from": 0,
-                "to": 0
+                "from": 1,
+                "to": 1,
+                "comment": "全天候: 'from'='to'=-'offset'!=0 "
             }
         ]
     }

@@ -4,8 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${default}",
-                "app/wtcpp_dep/include/**",
-                "app/wtcpp/src/API/**"
+                "app/wtcpp_dep/include/**"
             ],
             "defines": [],
             //"compilerPath": "/usr/bin/gcc-8",

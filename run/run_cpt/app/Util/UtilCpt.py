@@ -14,6 +14,8 @@ PURPLE  = '\033[95m'
 CYAN    = '\033[96m'
 DEFAULT = '\033[0m'
 
+SEC_IN_HALF_YEAR = int(3600*24*365*0.5)
+
 def load_json(file_path):
     import json
     with open(file_path, 'r', encoding='gbk', errors='ignore') as file:  # Note the 'utf-8-sig' which handles BOM if present
@@ -61,18 +63,21 @@ from config.cfg_cpt import cfg_cpt
 
 dtHelper = WtDataHelper()
 
-def generate_database_files(force_sync:bool=False):
+def generate_database_files(wt_assets:list, force_sync:bool=False):
     '''
     force-sync: would check DATABASE file for each csv \n
     non-force-sync(default): only check symbol name exist in DATABASE
     '''
-    # print('DB(1m): Generating monthly/daily 1m db files...')
+    print('Analyzing/Generating L1(CSV)/L2(DSB) datebase files...')
     print(f"SRC_CSV:          {GREEN}{cfg_cpt.CRYPTO_CSV_DIR} /<symbol>/1m/{DEFAULT}")
     print(f"DB_DSB:           {GREEN}{cfg_cpt.CRYPTO_DB_DIR} /<symbol>/1m/{DEFAULT}")
     
-    assets = cfg_cpt.symbols
+    assets = wt_assets
     unprocessed_asset_list = []
     processed_asset_list = os.listdir(mkdir(f"{cfg_cpt.CRYPTO_DB_DIR}/"))
+    
+    # print(f'Num of processed L2(DSB) assets: {len(processed_asset_list)}')
+    
     for asset in assets:
         if asset not in processed_asset_list or force_sync:
             unprocessed_asset_list.append(asset)
@@ -161,16 +166,15 @@ def store_bars(df, file_path): # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
 # ================================================
 # DATABASE file to MERGED DATABASE file
 # ================================================
-def generate_merged_database_files(resample_n:int=1, begin_date=datetime(1990,1,1), end_date=datetime(2050,1,1), total=True):
+def generate_merged_database_files(symbols:list, resample_n:int=1, begin_date=datetime(1990,1,1), end_date=datetime(2050,1,1), total=True):
     ''' 
     generate temporary merged DB files for back-testing
     '''
-    # print('Merge_DB(resample): Generating Merged db files...')
+    print('Analyzing/Generating L3(DSB)/L4(DSB) datebase files...')
     print(f"MERGED_DB_DSB:    {GREEN}{cfg_cpt.WT_STORAGE_DIR}/his/min1/{cfg_cpt.market}/ <symbol>.dsb{DEFAULT}")
     print(f"RESAMPLED_DB_DSB: {GREEN}{cfg_cpt.WT_STORAGE_DIR}/his/{'min'+str(resample_n)}/{cfg_cpt.market}/ <symbol>.dsb{DEFAULT}")
     
-    assets = cfg_cpt.symbols
-    for asset in tqdm(assets, desc=f'Merging and Resampling(x{resample_n})...'):
+    for asset in tqdm(symbols, desc=f'Merging and Resampling(x{resample_n})...'):
         database_db_folder  = f"{cfg_cpt.CRYPTO_DB_DIR}/{asset}/1m/"
         merged_db_path      = f'{cfg_cpt.WT_STORAGE_DIR}/his/min1/{cfg_cpt.market}/{asset}.dsb'
         resampled_db_path   = f'{cfg_cpt.WT_STORAGE_DIR}/his/{'min'+str(resample_n)}/{cfg_cpt.market}/{asset}.dsb'
@@ -259,33 +263,150 @@ def wt_df_2_dsb(df, store_path):
 # ================================================
 # generate asset list
 # ================================================
-def generate_asset_list():
-    symbols = cfg_cpt.symbols
+def generate_asset_list(num=None):
     
-    if not os.path.exists(cfg_cpt.ASSET_FILE):
+    import time
+    timestamp_current_s = int(time.time())
+    
+    asset_list_updated = os.path.exists(cfg_cpt.ASSET_FILE)
+    
+    if asset_list_updated:
+        try:
+            with open(cfg_cpt.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
+                asstes_info = json.load(file)
+                timestamp_last_update_ms = asstes_info['Binance']['BTCUSDT']['extras']['serverTime']
+                timestamp_last_update_s = timestamp_last_update_ms / 1000
+                dt = datetime.fromtimestamp(timestamp_last_update_s)
+                
+                updated_within_1_day = abs(timestamp_current_s - timestamp_last_update_s) <= 86400 # 24hrs
+                
+                if updated_within_1_day:
+                    print(f'Binance UM ExchangeInfo Already Updated: {dt.year}-{dt.month}-{dt.day}')
+                else:
+                    asset_list_updated = False
+                    print(f'Old Binance UM ExchangeInfo: {dt.year}-{dt.month}-{dt.day}')
+        except:
+            asset_list_updated = False
+            print(f'Error reading Binance UM ExchangeInfo')
+            
+    if not asset_list_updated:
+        import logging
+        from binance.um_futures import UMFutures
+        print('HTTP Querying Binance UM ExchangeInfo...')
+        um_futures_client = UMFutures()
+        info = um_futures_client.exchange_info()
+        
+        # from pprint import pprint
+        # pprint(info)
+        
         output = {
-            "Binance": {}
+            # "serverTime": info['serverTime'],
+            # "all_underlying_SubTypes": [],
+            "Binance": {
+            }
         }
         # Populate the data for each symbol
-        for symbol in symbols:
-            output["Binance"][symbol] = {
-                "code": symbol,
+        for symbol in info['symbols']:
+            name = symbol['symbol']
+            
+            if not name.endswith('USDT'):
+                print('Skipping for name:', name)
+                continue
+            if symbol['marginAsset'] != 'USDT':
+                print('Skipping for marginAsset:', name, symbol['marginAsset'])
+                continue
+            if symbol['quoteAsset'] != 'USDT':
+                print('Skipping for quoteAsset:', name, symbol['quoteAsset'])
+                continue
+            if symbol['underlyingType'] != 'COIN':
+                print('Skipping for underlyingType:', name, symbol['underlyingType'])
+                continue
+            if symbol['status'] != 'TRADING':
+                print('Skipping for status:', name, symbol['status'])
+                continue
+            if symbol['contractType'] != 'PERPETUAL':
+                print('Skipping for contractType:', name, symbol['contractType'])
+                continue
+            if symbol['pair'] != name:
+                print('Skipping for pair:', name, symbol['pair'])
+                continue
+            onboardDate_ms = symbol['onboardDate']
+            if abs(timestamp_current_s - onboardDate_ms/1000) <= SEC_IN_HALF_YEAR:
+                print('Skipping for recency(half year):', name)
+                continue
+            
+            output["Binance"][name] = {
+                "code": name,
+                "name": f"{name}_UM_PERP",
                 "exchg": "Binance",
-                "name": symbol,
-                "product": "UM"
+                "extras": {
+                    "instType": "PERPETUAL",
+                    "baseCcy": symbol['baseAsset'],
+                    "quoteCcy": symbol['quoteAsset'],
+                    "category": 22,     # 分类，参考CTP
+                                        # 0=股票 1=期货 2=期货期权 3=组合 4=即期
+                                        # 5=期转现 6=现货期权(股指期权) 7=个股期权(ETF期权)
+                                        # 20=数币现货 21=数币永续 22=数币期货 23=数币杠杆 24=数币期权
+                    # "ctVal": "",
+                    # "ctValCcy": "",
+                    # "lever": "10",
+                    # "ctType": ""
+
+                    "serverTime": info['serverTime'],
+                    "onboardDate": symbol['onboardDate'],
+                    "deliveryDate": symbol['deliveryDate'],
+                    "underlyingSubType": symbol['underlyingSubType'],
+                    "liquidationFee": symbol['liquidationFee'],
+                    "triggerProtect": symbol['triggerProtect'],
+                                        # threshold for algo order with "priceProtect"
+                    "marketTakeBound": symbol['marketTakeBound'],
+                                        # the max price difference rate( from mark price) a market order can make
+                },
+                "rules": {
+                    "session": "ALLDAY",
+                    "holiday": "NO_HOLIDAYS",
+                    "covermode": 3,     # 0=开平，1=开平昨平今，2=平未了结的，3=不区分开平
+                    "pricemode": 0,     # 价格模式 0=市价限价 1=仅限价 2=仅市价
+                    "trademode": 0,     # 交易模式，0=多空都支持 1=只支持做多 2=只支持做多且T+1
+                    "precision": int(symbol['pricePrecision']),
+                                        # 价格小数点位数
+                    "pricetick": float(symbol['filters'][0]['tickSize']),
+                                        # 最小价格变动单位
+                    "lotstick": float(symbol['filters'][2]['stepSize']),
+                                        # 最小交易手数
+                    "minlots": float(symbol['filters'][2]['minQty']),
+                                        # 最小交易手数
+                    "volscale": 100,    # 合约倍数
+                }
+                
             }
         # Write to JSON file
         with open(cfg_cpt.ASSET_FILE, 'w') as f:
             json.dump(output, f, indent=4)
 
     with open(cfg_cpt.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
-        asstes = json.load(file)
+        asstes_info = json.load(file)
         
     wt_assets = []
+    symbols = []
+    all_underlying_SubTypes = []
+    cnt = 0
     exchange = 'Binance'
-    for symbol in symbols:
-        wt_assets.append(f'{exchange}.{asstes[exchange][symbol]['product']}.{symbol}')
-    return wt_assets
+    product = 'UM'
+    for symbol_key, symbol_value in asstes_info[exchange].items():
+        wt_assets.append(f'{exchange}.{product}.{symbol_key}')
+        symbols.append(symbol_key)
+        for subtype in symbol_value['extras']['underlyingSubType']:
+            if subtype not in all_underlying_SubTypes:
+                all_underlying_SubTypes.append(subtype)
+        cnt += 1
+        if num and cnt >= num:
+            break
+    
+    print('All underlying SubTypes:', all_underlying_SubTypes)
+    print('Number of assets:', len(wt_assets))
+    
+    return wt_assets, symbols
 
 # ================================================
 # Others
@@ -296,6 +417,7 @@ def enable_logging():
     '''
     This needs to be set up before init(import) of packages(with logging)
     '''
+    print(f'Logging saved to logs/wtcpp.log')
     log_file=mkdir('logs/wtcpp.log')
     with open(log_file, 'w', encoding='utf-8') as f:
         # f.write('@charset "gbk";\n')  # CSS-style encoding declaration

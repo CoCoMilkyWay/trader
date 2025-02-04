@@ -58,477 +58,476 @@ class IndicatorArg:
 
 
 class TechnicalAnalysis_Rules:
-    def __init__(self):
-        """
-        dummy indicator(only instantiated after called as dependency):
-            1. with param = None
-            2. empty features
-        """
-        # Technical indicator configurations
-        self.indicator_definitions = [
-            # Overlay indicators
-            {
-                'param0': None,
-                'name': ('ma', 'param0'),
-                'constructor': ma,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': []
-            },
-            {
-                'param0': None,
-                'name': ('ema', 'param0'),
-                'constructor': ema,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': []
-            },
-            {
-                'param0': None,
-                'name': ('vema', 'param0'),
-                'constructor': ema,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': []
-            },
+    """
+    dummy indicator(only instantiated after called as dependency):
+        1. with param = None
+        2. empty features
+    """
+    # Technical indicator configurations
+    indicator_definitions = [
+        # Overlay indicators
+        {
+            'param0': None,
+            'name': ('ma', 'param0'),
+            'constructor': ma,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': []
+        },
+        {
+            'param0': None,
+            'name': ('ema', 'param0'),
+            'constructor': ema,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': []
+        },
+        {
+            'param0': None,
+            'name': ('vema', 'param0'),
+            'constructor': ema,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': []
+        },
 
-            # Volatility indicators
-            {
-                'param0': 20,
-                'name': ('stddev', 'param0'),
-                'constructor': stddev,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('stddev', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 10,
-                'name': ('atr', 'param0'),
-                'constructor': atr,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('atr', -1)],
-                'scaler': ScalingMethod.ROBUST
-            },
-            {
-                'param0': 9,
-                'param1': 25,
-                'name': ('massi', 'param0', 'param1'),
-                'constructor': massi,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 'param1'),
-                ],
-                'features': [('mass_index', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 10,
-                'param1': 7,
-                'name': ('rvi', 'param0', 'param1'),
-                'constructor': rvi,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 'param1'),
-                ],
-                'features': [('rvi', -1)],
-                'scaler': ScalingMethod.ROBUST
-            },
-            {
-                'param0': 10,
-                'name': ('gk', 'param0'),
-                'constructor': gk,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('opens', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 252),
-                ],
-                'features': [('volatility', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': None, #20,
-                'param1': None, #2,
-                'name': ('bband', 'param0', 'param1'),
-                'constructor': bband,
-                'args': [
-                    IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
-                    IndicatorArg(ParamType.REFERENCE, ('stddev', 'param0'), 'stddev'),
-                    IndicatorArg(ParamType.LITERAL, 'param1'),
-                ],
-                'features': []
-            },
-            {
-                'param0': None, #20,
-                'name': ('donchian', 'param0'),
-                'constructor': donchian,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': []
-            },
-            {
-                'param0': None, #20,
-                'param1': None, #2,
-                'name': ('keltner', 'param0', 'param1'),
-                'constructor': keltner,
-                'args': [
-                    IndicatorArg(ParamType.REFERENCE, ('ema', 'param0'), 'ema'),
-                    IndicatorArg(ParamType.REFERENCE, ('atr', 10), 'atr'),
-                    IndicatorArg(ParamType.LITERAL, 'param1'),
-                ],
-                'features': []
-            },
+        # Volatility indicators
+        {
+            'param0': 20,
+            'name': ('stddev', 'param0'),
+            'constructor': stddev,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('stddev', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 10,
+            'name': ('atr', 'param0'),
+            'constructor': atr,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('atr', -1)],
+            'scaler': ScalingMethod.ROBUST
+        },
+        {
+            'param0': 9,
+            'param1': 25,
+            'name': ('massi', 'param0', 'param1'),
+            'constructor': massi,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 'param1'),
+            ],
+            'features': [('mass_index', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 10,
+            'param1': 7,
+            'name': ('rvi', 'param0', 'param1'),
+            'constructor': rvi,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 'param1'),
+            ],
+            'features': [('rvi', -1)],
+            'scaler': ScalingMethod.ROBUST
+        },
+        {
+            'param0': 10,
+            'name': ('gk', 'param0'),
+            'constructor': gk,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('opens', 0)),
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 252),
+            ],
+            'features': [('volatility', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': None, #20,
+            'param1': None, #2,
+            'name': ('bband', 'param0', 'param1'),
+            'constructor': bband,
+            'args': [
+                IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
+                IndicatorArg(ParamType.REFERENCE, ('stddev', 'param0'), 'stddev'),
+                IndicatorArg(ParamType.LITERAL, 'param1'),
+            ],
+            'features': []
+        },
+        {
+            'param0': None, #20,
+            'name': ('donchian', 'param0'),
+            'constructor': donchian,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': []
+        },
+        {
+            'param0': None, #20,
+            'param1': None, #2,
+            'name': ('keltner', 'param0', 'param1'),
+            'constructor': keltner,
+            'args': [
+                IndicatorArg(ParamType.REFERENCE, ('ema', 'param0'), 'ema'),
+                IndicatorArg(ParamType.REFERENCE, ('atr', 10), 'atr'),
+                IndicatorArg(ParamType.LITERAL, 'param1'),
+            ],
+            'features': []
+        },
 
-            # Performance indicators
-            {
-                'name': ('logreturn',),
-                'constructor': logreturn,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                ],
-                'features': [
-                    ('log_returns', -1), ('log_returns', -2), ('log_returns', -3),
-                    ('log_returns', -4), ('log_returns', -5)
-                ],
-                'scaler': ScalingMethod.ROBUST
-            },
-            {
-                'param0': 10,
-                'name': ('candlestrength', 'param0'),
-                'constructor': candlestrength,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('opens', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('vema', 'param0'), 'ema'),
-                    IndicatorArg(ParamType.REFERENCE, ('atr', 'param0'), 'atr'),
-                ],
-                'features': [
-                    ('strength', -1), ('strength', -2), ('strength', -3),
-                    ('strength', -4), ('strength', -5),
-                    ('tr_mult', -1), ('tr_mult', -2), ('tr_mult', -3),
-                    ('tr_mult', -4), ('tr_mult', -5),
-                    ('v_mult', -1), ('v_mult', -2), ('v_mult', -3),
-                    ('v_mult', -4), ('v_mult', -5)
-                ],
-                'scaler': ScalingMethod.ROBUST
-            },
-            {
-                'name': ('timely',),
-                'constructor': timely,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('timestamp',)),
-                ],
-                'features': [('day_of_week', None), ('hour_of_day', None)],
-                'scaler': ScalingMethod.STANDARD
-            },
+        # Performance indicators
+        {
+            'name': ('logreturn',),
+            'constructor': logreturn,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+            ],
+            'features': [
+                ('log_returns', -1), ('log_returns', -2), ('log_returns', -3),
+                ('log_returns', -4), ('log_returns', -5)
+            ],
+            'scaler': ScalingMethod.ROBUST
+        },
+        {
+            'param0': 10,
+            'name': ('candlestrength', 'param0'),
+            'constructor': candlestrength,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('opens', 0)),
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('vema', 'param0'), 'ema'),
+                IndicatorArg(ParamType.REFERENCE, ('atr', 'param0'), 'atr'),
+            ],
+            'features': [
+                ('strength', -1), ('strength', -2), ('strength', -3),
+                ('strength', -4), ('strength', -5),
+                ('tr_mult', -1), ('tr_mult', -2), ('tr_mult', -3),
+                ('tr_mult', -4), ('tr_mult', -5),
+                ('v_mult', -1), ('v_mult', -2), ('v_mult', -3),
+                ('v_mult', -4), ('v_mult', -5)
+            ],
+            'scaler': ScalingMethod.ROBUST
+        },
+        {
+            'name': ('timely',),
+            'constructor': timely,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('timestamp',)),
+            ],
+            'features': [('day_of_week', None), ('hour_of_day', None)],
+            'scaler': ScalingMethod.STANDARD
+        },
 
-            # Momentum indicators
-            {
-                'param0': 14,
-                'name': ('rsi', 'param0'),
-                'constructor': rsi,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('rsi', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 3,
-                'name': ('stoch_rsi', 14),
-                'constructor': stoch_rsi,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('rsi', 14), 'rsi'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('histogram', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 9,
-                'name': ('macd', 'param0'),
-                'constructor': macd,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('ema', 12), 'ema'),
-                    IndicatorArg(ParamType.REFERENCE, ('ema', 26), 'ema'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('histogram', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 25,
-                'name': ('aroon', 'param0'),
-                'constructor': aroon,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('aroon_up', -1), ('aroon_down', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 20,
-                'name': ('cci', 'param0'),
-                'constructor': cci,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 0.015),
-                ],
-                'features': [('cci', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 20,
-                'name': ('tsi_trend', 'param0'),
-                'constructor': tsi_trend,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('tsi', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 25,
-                'param1': 13,
-                'name': ('tsi_true', 'param0', 'param1'),
-                'constructor': tsi_true,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 'param1'),
-                ],
-                'features': [('tsi', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': None,
-                'name': ('roc', 'param0'),
-                'constructor': roc,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': []
-            },
-            {
-                'param0': 9,
-                'name': ('fisher', 'param0'),
-                'constructor': fisher,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('fisher', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 9,
-                'name': ('cmo', 'param0'),
-                'constructor': cmo,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('cmo', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 14,
-                'name': ('adx', 'param0'),
-                'constructor': adx,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('adx', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 20,
-                'name': ('squeeze', 'param0'),
-                'constructor': squeeze,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('bband', 'param0', 2), 'upper_band'),
-                    IndicatorArg(ParamType.REFERENCE, ('bband', 'param0', 2), 'lower_band'),
-                    IndicatorArg(ParamType.REFERENCE, ('keltner', 'param0', 2), 'upper_band'),
-                    IndicatorArg(ParamType.REFERENCE, ('keltner', 'param0', 2), 'lower_band'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('squeeze_rating', -1), ('momentum', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'name': ('uo',),
-                'constructor': uo,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.LITERAL, 7 ),
-                    IndicatorArg(ParamType.LITERAL, 14),
-                    IndicatorArg(ParamType.LITERAL, 28),
-                    IndicatorArg(ParamType.LITERAL, 4 ),
-                    IndicatorArg(ParamType.LITERAL, 2 ),
-                    IndicatorArg(ParamType.LITERAL, 1 ),
-                ],
-                'features': [('uo', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'name': ('kst',),
-                'constructor': kst,
-                'args': [
-                    IndicatorArg(ParamType.REFERENCE, ('roc', 10), 'roc'),
-                    IndicatorArg(ParamType.REFERENCE, ('roc', 15), 'roc'),
-                    IndicatorArg(ParamType.REFERENCE, ('roc', 20), 'roc'),
-                    IndicatorArg(ParamType.REFERENCE, ('roc', 30), 'roc'),
-                    IndicatorArg(ParamType.LITERAL, [10, 15, 20, 30]),
-                    IndicatorArg(ParamType.LITERAL, [1, 2, 3, 4]),
-                    IndicatorArg(ParamType.LITERAL, 9),
-                ],
-                'features': [('histogram', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 14,
-                'name': ('william_r', 'param0'),
-                'constructor': williams_r,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('wpr', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 50,
-                'name': ('william_r', 'param0'),
-                'constructor': williams_r,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('wpr', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 200,
-                'name': ('william_r', 'param0'),
-                'constructor': williams_r,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('wpr', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'name': ('td_seq',),
-                'constructor': td_seq,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                ],
-                'features': [('setup_index', None)],
-                'scaler': ScalingMethod.STANDARD
-            },
+        # Momentum indicators
+        {
+            'param0': 14,
+            'name': ('rsi', 'param0'),
+            'constructor': rsi,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('rsi', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 3,
+            'name': ('stoch_rsi', 14),
+            'constructor': stoch_rsi,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('rsi', 14), 'rsi'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('histogram', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 9,
+            'name': ('macd', 'param0'),
+            'constructor': macd,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('ema', 12), 'ema'),
+                IndicatorArg(ParamType.REFERENCE, ('ema', 26), 'ema'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('histogram', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 25,
+            'name': ('aroon', 'param0'),
+            'constructor': aroon,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('aroon_up', -1), ('aroon_down', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 20,
+            'name': ('cci', 'param0'),
+            'constructor': cci,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 0.015),
+            ],
+            'features': [('cci', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 20,
+            'name': ('tsi_trend', 'param0'),
+            'constructor': tsi_trend,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('tsi', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 25,
+            'param1': 13,
+            'name': ('tsi_true', 'param0', 'param1'),
+            'constructor': tsi_true,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 'param1'),
+            ],
+            'features': [('tsi', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': None,
+            'name': ('roc', 'param0'),
+            'constructor': roc,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': []
+        },
+        {
+            'param0': 9,
+            'name': ('fisher', 'param0'),
+            'constructor': fisher,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('fisher', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 9,
+            'name': ('cmo', 'param0'),
+            'constructor': cmo,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('cmo', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 14,
+            'name': ('adx', 'param0'),
+            'constructor': adx,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('adx', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 20,
+            'name': ('squeeze', 'param0'),
+            'constructor': squeeze,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('bband', 'param0', 2), 'upper_band'),
+                IndicatorArg(ParamType.REFERENCE, ('bband', 'param0', 2), 'lower_band'),
+                IndicatorArg(ParamType.REFERENCE, ('keltner', 'param0', 2), 'upper_band'),
+                IndicatorArg(ParamType.REFERENCE, ('keltner', 'param0', 2), 'lower_band'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('squeeze_rating', -1), ('momentum', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'name': ('uo',),
+            'constructor': uo,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.LITERAL, 7 ),
+                IndicatorArg(ParamType.LITERAL, 14),
+                IndicatorArg(ParamType.LITERAL, 28),
+                IndicatorArg(ParamType.LITERAL, 4 ),
+                IndicatorArg(ParamType.LITERAL, 2 ),
+                IndicatorArg(ParamType.LITERAL, 1 ),
+            ],
+            'features': [('uo', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'name': ('kst',),
+            'constructor': kst,
+            'args': [
+                IndicatorArg(ParamType.REFERENCE, ('roc', 10), 'roc'),
+                IndicatorArg(ParamType.REFERENCE, ('roc', 15), 'roc'),
+                IndicatorArg(ParamType.REFERENCE, ('roc', 20), 'roc'),
+                IndicatorArg(ParamType.REFERENCE, ('roc', 30), 'roc'),
+                IndicatorArg(ParamType.LITERAL, [10, 15, 20, 30]),
+                IndicatorArg(ParamType.LITERAL, [1, 2, 3, 4]),
+                IndicatorArg(ParamType.LITERAL, 9),
+            ],
+            'features': [('histogram', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 14,
+            'name': ('william_r', 'param0'),
+            'constructor': williams_r,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('wpr', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 50,
+            'name': ('william_r', 'param0'),
+            'constructor': williams_r,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('wpr', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 200,
+            'name': ('william_r', 'param0'),
+            'constructor': williams_r,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('wpr', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'name': ('td_seq',),
+            'constructor': td_seq,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+            ],
+            'features': [('setup_index', None)],
+            'scaler': ScalingMethod.STANDARD
+        },
 
-            # Volume indicators
-            {
-                'param0': 13,
-                'name': ('aobv', 'param0'),
-                'constructor': aobv,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('opens', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('histogram', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 20,
-                'name': ('avwap', 'param0'),
-                'constructor': avwap,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
-                    IndicatorArg(ParamType.REFERENCE, ('atr', 10), 'atr'),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                    IndicatorArg(ParamType.LITERAL, 0),
-                ],
-                'features': [('deviation', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-            {
-                'param0': 14,
-                'name': ('eom', 'param0'),
-                'constructor': eom,
-                'args': [
-                    IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                    IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
-                    IndicatorArg(ParamType.LITERAL, 'param0'),
-                ],
-                'features': [('emv_osc', -1)],
-                'scaler': ScalingMethod.STANDARD
-            },
-        ]
+        # Volume indicators
+        {
+            'param0': 13,
+            'name': ('aobv', 'param0'),
+            'constructor': aobv,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('opens', 0)),
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('histogram', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 20,
+            'name': ('avwap', 'param0'),
+            'constructor': avwap,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
+                IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
+                IndicatorArg(ParamType.REFERENCE, ('atr', 10), 'atr'),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+                IndicatorArg(ParamType.LITERAL, 0),
+            ],
+            'features': [('deviation', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': 14,
+            'name': ('eom', 'param0'),
+            'constructor': eom,
+            'args': [
+                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
+                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
+                IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
+                IndicatorArg(ParamType.LITERAL, 'param0'),
+            ],
+            'features': [('emv_osc', -1)],
+            'scaler': ScalingMethod.STANDARD
+        },
+    ]
 
 class IndicatorManager:
     """
@@ -607,7 +606,7 @@ class IndicatorManager:
                  if not dependencies[name_str]}
         
         # print(f'dummy_definitions:'); pprint(dummy_definitions.keys())
-        print(f'real_definitions:'); pprint(real_definitions.keys())
+        # print(f'real_definitions:'); pprint(real_definitions.keys())
         # print(f'Dependency tree:'); pprint(dependencies)
         # print(f'Reverse_deps tree:'); pprint(reverse_deps)
         # print(f'Roots:'); pprint(roots)
