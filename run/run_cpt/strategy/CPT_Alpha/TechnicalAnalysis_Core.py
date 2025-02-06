@@ -17,12 +17,20 @@ from .Labels import ts_label
 from .TechnicalAnalysis_Rules import TechnicalAnalysis_Rules, IndicatorManager, ParamType, IndicatorArg, ScalingMethod
 
 class TechnicalAnalysis_Core:
-    def __init__(self, code: str, train: bool = False):
+    def __init__(self, code: str, train: bool = False, plot: bool = False):
+        self._code = code
         self._train = train
+        self._plot = plot
         self.config: CChanConfig = CChanConfig()
         self.lv_list = [lv[0] for lv in self.config.lv_list]
         self.levels = tuple(reversed(self.lv_list))
         self.multiplier = tuple(lv[1] for lv in reversed(self.config.lv_list))
+        
+        if self._plot:
+            # Timer
+            self.day = None
+            self.hour = None
+            self.minute = None
         
         # Initialize data storage
         n_levels = len(self.levels)
@@ -31,7 +39,7 @@ class TechnicalAnalysis_Core:
         self.highs = [array.array('d', [0.0]) for _ in range(n_levels)]
         self.lows = [array.array('d', [0.0]) for _ in range(n_levels)]
         self.closes = [array.array('d', [0.0]) for _ in range(n_levels)]
-        self.volumes = [array.array('L', [0]) for _ in range(n_levels)]
+        self.volumes = [array.array('d', [0]) for _ in range(n_levels)]
         self.timestamp = array.array('d', [0.0])
         
         # Initialize core components
@@ -88,9 +96,9 @@ class TechnicalAnalysis_Core:
             self.features = np.zeros(self.n_features, dtype=np.float32)
         self.current_row = 0
 
-    def analyze(self, np_bars: WtNpKline):
+    def analyze(self, open:float, high:float, low:float, close:float, vol:float, time:int):
         """Main analysis workflow"""
-        klu_dict = self.parse_kline(np_bars)
+        klu_dict = self.parse_kline(open, high, low, close, vol, time)
         
         # process Chan elements (generates Bi)
         self.chan_snapshot.trigger_load(klu_dict)
@@ -131,36 +139,43 @@ class TechnicalAnalysis_Core:
         # print(formatted_numbers)
 
         s_long_switch, s_short_switch = self.AdaptiveSuperTrend.update(self.highs[0][-1], self.lows[0][-1], self.closes[0][-1], self.timestamp[-1])
-
+        
         if self._train:
             self.ts_label.update(self.timestamp[-1], self.closes[0][-1], self.atr_10.atr[-1], s_long_switch, s_short_switch) # type: ignore
 
-    def parse_kline(self, np_bars: WtNpKline) -> dict[KL_TYPE, List[CKLine_Unit]]:
+    def parse_kline(self, open:float, high:float, low:float, close:float, vol:float, time:int) -> dict[KL_TYPE, List[CKLine_Unit]]:
         # def debug(i):
         #     print(i, curr_open, curr_high, curr_low, curr_close, curr_vol)
         # if not np_bars or len(np_bars.bartimes) == 0:
         #     raise ValueError("Empty bars data")
-
+        
         # Extract bar data
-        time_str = str(np_bars.bartimes[-1])
-        time = CTime(
-            int(time_str[:4]),
-            int(time_str[4:6]),
-            int(time_str[6:8]),
-            int(time_str[8:10]),
-            int(time_str[10:12]),
-            auto=False
-        )
-
-        curr_open = np_bars.opens[-1]
-        curr_high = np_bars.highs[-1]
-        curr_low = np_bars.lows[-1]
-        curr_close = np_bars.closes[-1]
-        curr_vol = int(np_bars.volumes[-1])
-        self.timestamp[-1] = time.ts
-
+        time_str = str(time)
+        # df['date'] = df['bartime'].astype(str).str[:8].astype(int)
+        # df['time'] = df['bartime']-199000000000
+        year    = int(time_str[-10:-8]) + 1990
+        month   = int(time_str[-8:-6])
+        day     = int(time_str[-6:-4])
+        hour    = int(time_str[-4:-2])
+        minute  = int(time_str[-2:])
+        ctime = CTime(year, month, day, hour, minute, auto=False)
+        
+        if self._plot:
+            if hour != self.hour:
+                self.day = day
+                self.hour = hour
+                self.minute  = minute 
+                print(f'{self._code}:{day}-{hour}-{minute}')
+            
+        curr_open = open
+        curr_high = high
+        curr_low = low
+        curr_close = close
+        curr_vol = vol
+        self.timestamp[-1] = ctime.ts
+        
         # Reuse bar dict
-        self._bar_template[DATA_FIELD.FIELD_TIME] = time
+        self._bar_template[DATA_FIELD.FIELD_TIME] = ctime
         self._bar_template[DATA_FIELD.FIELD_OPEN] = curr_open
         self._bar_template[DATA_FIELD.FIELD_HIGH] = curr_high
         self._bar_template[DATA_FIELD.FIELD_LOW] = curr_low
@@ -205,7 +220,7 @@ class TechnicalAnalysis_Core:
 
             if count >= self.multiplier[i]:
                 # Update bar dict in place
-                self._bar_template[DATA_FIELD.FIELD_TIME] = time
+                self._bar_template[DATA_FIELD.FIELD_TIME] = ctime
                 self._bar_template[DATA_FIELD.FIELD_OPEN] = opens[i][-1]
                 self._bar_template[DATA_FIELD.FIELD_HIGH] = highs[i][-1]
                 self._bar_template[DATA_FIELD.FIELD_LOW] = lows[i][-1]

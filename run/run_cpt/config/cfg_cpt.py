@@ -4,7 +4,7 @@ class cfg_cpt:  # Constants Configs
     import os
 
     period, n = 'm', 1  # bar period
-    num = 5  # number of assets (int/None)
+    num = 70  # number of assets (int/None)
     start = 202405010000
     end   = 202408010000
     capital = 10000000

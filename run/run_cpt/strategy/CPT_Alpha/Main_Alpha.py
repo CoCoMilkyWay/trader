@@ -5,10 +5,8 @@ from typing import Tuple, List, Dict, Optional
 from wtpy import SelContext
 from wtpy import BaseSelStrategy
 
-from Util.UtilCpt import mkdir
-from Util.Parallel import Parallel
-
-from .TechnicalAnalysis_Core import TechnicalAnalysis_Core
+from .Parallel_Process import Parallel_Process
+from .Main_Alpha_Core import Main_Alpha_Core
 
 from config.cfg_cpt import cfg_cpt
 import warnings
@@ -18,9 +16,6 @@ def stdio(str):
     print(str)
     return str
 
-def parallel_worker(worker_id:int, data):
-    print(worker_id, data)
-    
 class Main_Alpha(BaseSelStrategy):
     def __init__(self, name: str, codes: List[str], period: str):
         BaseSelStrategy.__init__(self, name)
@@ -31,78 +26,51 @@ class Main_Alpha(BaseSelStrategy):
         # stats
         self.inited = False
         self.barnum = 0
-        self.date = None
-        self.time = None
+        
+        # code_info
         self.code_info: Dict[str, Dict] = {}
-        
-        # TA core
-        # self.tech_analysis: Dict[str, TechnicalAnalysis_Core] = {}
-        
-        # bsp:
-        # (1: long, -1: short, 0: no hold, position open period)
-        self.markers: Dict[str, List[Tuple]] = {}
         
     def on_init(self, context: SelContext):
         print('Preparing Bars in DDR...')
         self.pbar = tqdm(total=len(self.__codes__))
-        
         for idx, code in enumerate(self.__codes__):
             r = context.stra_prepare_bars(code, self.__period__, 1)
-            
             self.code_info[code] = {
                 'idx':idx,
-                'date':None,
-                'hour':None,
-                'min':None,
             }
-            
-            self.init_new_code(code)
-            self.markers[code] = []
-            
             self.pbar.update(1)
             self.pbar.set_description(f'init: {code}', True)
         self.pbar.close()
         
-        self.P = Parallel()
-        self.P.parallel_init(self.code_info, parallel_worker)
+        self.P = Parallel_Process(self.code_info, Main_Alpha_Core)
         
         context.stra_log_text(stdio("Strategy Initiated, timer started..."))
         self.start_time = time()
-        
-    def init_new_code(self, code: str):
-        # initiate new code specific models/structs
-        # self.tech_analysis[code] = TechnicalAnalysis_Core(code=code, train=cfg_cpt.train)
-        pass
-    
+            
     def on_tick(self, context:SelContext, code:str, newTick:dict):
         print(code, 'newTick')
         return
     
     def on_bar(self, context:SelContext, code:str, period:str, newBar:dict):
-        date = str(newBar['date'])
-        hour = str(newBar['time'])[-4:-2]
-        min = str(newBar['time'])[-2:]
-        if date != self.code_info[code]['date']:
-            self.code_info[code]['date'] = date
-            self.code_info[code]['hour'] = hour
-            self.code_info[code]['min'] = min
-            if code == 'Binance.UM.BTCUSDT':
-                print(code, self.code_info[code], newBar)
-        
-        self.P.parallel_feed(code, period, newBar)
-        
+        self.P.parallel_feed(code, newBar)
         return
     
     def on_calculate(self, context:SelContext):
         """
-        on_calc(T0) ->  |   on_bar_A(T1) -> on_bar_A(T2)
-                        |   on_bar_B(T1)    on_bar_B(T2)
-                        V   on_calc(T1)     on_calc(T2)
+        TimeSeries   (cpu1):                    |   on_bar_A(T0)    on_bar_A(T1)    ... 
+        TimeSeries   (cpu2):                    |   on_bar_B(T0)    on_bar_B(T1)    ... 
+        TimeSeries   (... ):                ->  |   ...          -> ...          -> ... 
+        CrossSection (cpu0):    on_calc(skip)   V   on_calc(init)   on_calc(T0)     ... (CS is delaying TS by 1 for better compute efficiency)
         """
-        self.P.parallel_block()
-        # curTime = context.stra_get_time()
-        # np_bars = context.stra_get_bars('Binance.UM.BTCUSDT', self.__period__, 1,)
-        # print('on_calculate: ', curTime, np_bars.closes[-1])
+        if not self.inited:
+            self.barnum += 1
+            if self.barnum == 1:
+                self.inited = True
+            return
+        
+        self.P.parallel_collect()
+        
+        
     
     # def on_calculate(self, context: SelContext):
     #     # all sub-ed bars closed (main/non-main) at this period
@@ -145,38 +113,4 @@ class Main_Alpha(BaseSelStrategy):
         self.elapsed_time = time() - self.start_time
         print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         return
-        for idx, code in enumerate(self.__codes__):
-            df, scaling_methods = self.tech_analysis[code].get_features_df()
-            df.to_parquet(mkdir(f'{cfg_cpt.ML_MODEL_DIR}/data/ts_{code}_{cfg_cpt.start}_{cfg_cpt.end}.parquet'))
-            
-            if idx == 0:
-                print(df.shape)
-                print(df.describe())
-                print(df.info())
-                # from .Model import train
-                # train(df, scaling_methods)
         
-        if cfg_cpt.dump_ind:
-            from Chan.Plot.PlotDriver import ChanPlotter
-            from Util.plot.plot_fee_grid import plot_fee_grid
-            from Util.plot.plot_show import plot_show
-            
-            for code in self.__codes__:
-                TA = self.tech_analysis[code]
-                TA.AdaptiveSuperTrend.get_stats(code)
-                
-                # get labels
-                ts, closes, labels1, labels2 = TA.ts_label.get_labels()
-                indicators = [
-                    TA.AdaptiveSuperTrend,
-                    ts,
-                    closes,
-                    labels1,
-                    labels2,
-                    ]
-                fig = ChanPlotter().plot(
-                    TA.kl_datas, self.markers[code], indicators)
-                fig = plot_fee_grid(fig, dtick=TA.closes[0][-1]*cfg_cpt.FEE)
-                plot_show(fig)
-                break
-        return
