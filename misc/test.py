@@ -14,7 +14,7 @@ def worker_function(worker_id, large_data):
     # time.sleep(2)  # Simulates time-consuming task
     # print(f"Worker {worker_id} finished! Process ID: {os.getpid()}")
 
-def run():
+def test():
     num_processes = 5  # Number of worker processes to spawn
     processes = []
     print("Testing process spawn and worker execution with heavy imports and a large data object:")
@@ -36,4 +36,4 @@ def run():
     print(f"Spawned and executed {num_processes} workers in {(end_time - start_time):.2f} seconds")
 
 if __name__ == "__main__":
-    run()
+    test()

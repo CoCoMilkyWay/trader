@@ -4,7 +4,7 @@ class cfg_cpt:  # Constants Configs
     import os
     
     period, n = 'm', 1  # bar period
-    num = 70  # number of assets (int/None)
+    num = 5  # number of assets (int/None)
     start = 202405010000
     end   = 202405050000
     capital = 10000000
@@ -13,8 +13,8 @@ class cfg_cpt:  # Constants Configs
     train  = True
     
     # misc functions:
-    parallel = True
-    profile  = False
+    parallel = num >= 50
+    profile  = True
     plot     = False
     analyze  = False
     snoop    = False
@@ -39,7 +39,7 @@ class cfg_cpt:  # Constants Configs
     
     # indicators =========================================
     stats_result = './strategy/CPT_Statistics/stats'
-    dump_ind = plot # if normal else False
+    dump_ind = True # if normal else False
     
     # Stats Analysis =========================================
     # analyze_fourier = True

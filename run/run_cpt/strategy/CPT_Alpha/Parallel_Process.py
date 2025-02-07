@@ -9,7 +9,7 @@ from viztracer import VizTracer, get_tracer
 # -------- Configurable Constants --------
 MAX_CODE_SIZE = 64  # Fixed size for 'code' field to avoid dynamic memory allocation
 RING_BUFFER_SIZE = 256  # Ring buffer for signaling worker->main
-CPU_BACKOFF = 0.001
+CPU_BACKOFF = 0.0001
 
 DATA_EMPTY = 0
 DATA_INPUT_READY = 1
@@ -88,15 +88,16 @@ class Parallel_Process:
         physical_cpus = psutil.cpu_count(logical=False)
         if logical_cpus is None or physical_cpus is None:
             raise Exception('Could not determine CPU count')
-        # logical_cpus = 2
-        # physical_cpus = 1
         
+        # ignore hyper-thread of intel cpu(we want more cache hit)
+        hyper_thread = int(logical_cpus / physical_cpus)
+        cpu = physical_cpus - 1
         
         # Pin main process to CPU 0
         set_cpu_affinity(0)
         
         # Determine the number of workers based on the available logical CPUs
-        self.num_workers = min(physical_cpus - 1, len(self.code_info))
+        self.num_workers = min(cpu, physical_cpus-1, len(self.code_info))
         self.num_codes_per_worker = [0 for _ in range(self.num_workers)]
         self.worker_codes = [[] for _ in range(self.num_workers)]
         
@@ -112,7 +113,7 @@ class Parallel_Process:
 
         # Initialize shared memory and workers
         print(f"Initializing: [Main] 1 process -> CPU0,")
-        print(f"              [Worker] {self.num_workers} process -> {logical_cpus-1} Logical ({physical_cpus} Physical) CPUs: ...")
+        print(f"              [Worker] {self.num_workers} process -> {logical_cpus} Logical ({physical_cpus} Physical) CPUs: ...")
         self.shared_control = sharedctypes.RawValue(SharedControl)
         self.shared_control.init[:] = [CONTROL_CLEAR] * 256
         self.shared_control.stop = CONTROL_CLEAR
@@ -149,6 +150,7 @@ class Parallel_Process:
                 if initiated:
                     # print(f"Worker {i+1} signaled ready")
                     break
+                time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
                 
         print("Parallel init complete.")
         
@@ -202,7 +204,7 @@ class Parallel_Process:
         worker_id:  NaN       0     1     2
         """
         
-        set_cpu_affinity(worker_id*2 + 1)  # Pin each worker to a specific core
+        set_cpu_affinity((worker_id+1)*2)  # Pin each worker to a specific core
         print(f'Worker Initiated...')
         
         C = Process_Core(worker_id, worker_codes)
@@ -230,7 +232,7 @@ class Parallel_Process:
                 else:
                     raise Exception(f"Err: Worker {worker_id} has unexpected status {status} at index {mem_idx}.")
                 
-            # time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
+            time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
         
         C.on_backtest_end()
     
@@ -254,7 +256,7 @@ class Parallel_Process:
                         results.append((data.code.decode('utf-8'), data.signal, data.value))
                         data.status = DATA_EMPTY  # Mark slot as empty for reuse
                         break
-                    # time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
+                    time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
                     
         # print('End collecting')
         return results

@@ -26,6 +26,9 @@ def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
     enable_logging()
     
+    from test import test
+    test()
+    
     period = cfg_cpt.period + str(cfg_cpt.n)
     
     wt_assets, symbols = generate_asset_list(num=cfg_cpt.num)

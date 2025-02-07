@@ -53,7 +53,7 @@ class Main_Alpha_Core():
                 # from .Model import train
                 # train(df, scaling_methods)
 
-        if cfg_cpt.dump_ind and self.__id__ == 0:
+        if cfg_cpt.plot and self.__id__ == 0:
             from Chan.Plot.PlotDriver import ChanPlotter
             from Util.plot.plot_fee_grid import plot_fee_grid
             from Util.plot.plot_show import plot_show
