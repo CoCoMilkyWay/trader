@@ -26,10 +26,10 @@ class Main_Alpha_Core():
         if self.__id__ == 0:
             print(f'TA cores Initiated, back-test begin...')
             
-    def on_bar(self, data:SharedData):
+    def on_bar(self, code:str, open:float, high:float, low:float, close:float, vol:float, time:int):
         # multi-level k bar generation
-        TA = self.tech_analysis[data.code.decode('utf-8')]
-        TA.analyze(data.open, data.high, data.low, data.close, data.vol, data.time)
+        TA = self.tech_analysis[code]
+        TA.analyze(open, high, low, close, vol, time)
         
         # indicator guard (prepare and align)
         if not self.inited:

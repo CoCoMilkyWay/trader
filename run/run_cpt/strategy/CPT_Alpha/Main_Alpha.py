@@ -31,22 +31,30 @@ class Main_Alpha(BaseSelStrategy):
         self.code_info: Dict[str, Dict] = {}
         
     def on_init(self, context: SelContext):
+        # 1. prepare meta data
+        for idx, code in enumerate(self.__codes__):
+            self.code_info[code] = {
+                'idx':idx,
+            }
+            
+        # 2. init worker process
+        self.P = Parallel_Process(self.code_info, Main_Alpha_Core, cfg_cpt.parallel)
+        
+        # 3. prepare backtest data
         print('Preparing Bars in DDR...')
         self.pbar = tqdm(total=len(self.__codes__))
         for idx, code in enumerate(self.__codes__):
             r = context.stra_prepare_bars(code, self.__period__, 1)
-            self.code_info[code] = {
-                'idx':idx,
-            }
             self.pbar.update(1)
-            self.pbar.set_description(f'init: {code}', True)
+            self.pbar.set_description(f'Init: {code}', True)
         self.pbar.close()
         
-        self.P = Parallel_Process(self.code_info, Main_Alpha_Core)
+        # 4. check workers
+        self.P.check_workers()
         
         context.stra_log_text(stdio("Strategy Initiated, timer started..."))
         self.start_time = time()
-            
+        
     def on_tick(self, context:SelContext, code:str, newTick:dict):
         print(code, 'newTick')
         return
@@ -109,8 +117,8 @@ class Main_Alpha(BaseSelStrategy):
     #         # self.ST_Train(context, code)
             
     def on_backtest_end(self, context: SelContext):
-        self.P.parallel_close()
         self.elapsed_time = time() - self.start_time
+        self.P.parallel_close()
         print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         return
         

@@ -165,7 +165,7 @@ class TechnicalAnalysis_Core:
                 self.day = day
                 self.hour = hour
                 self.minute  = minute 
-                print(f'{self._code}:{day}-{hour}-{minute}')
+                print(f'{self._code:<22}:{year:04}-{month:>02}-{day:>02}-{hour:>02}-{minute:>02}')
             
         curr_open = open
         curr_high = high

@@ -136,7 +136,8 @@ class ts_label:
                 direction_a = self.switch_directions[0]
                 segment_prices_a = self.switch_segment_prices[0]
                 segment_prices_b = self.switch_segment_prices[1]
-                segment_timestamps_a = self.switch_segment_timestamps[0]
+                if cfg_cpt.dump_ind:
+                    segment_timestamps_a = self.switch_segment_timestamps[0]
                 
                 # Process all points between a and b
                 for i in range(len(segment_prices_a)):

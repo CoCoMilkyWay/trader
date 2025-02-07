@@ -18,7 +18,6 @@ from strategy.CPT_Alpha.Main_Alpha import Main_Alpha
 train = cfg_cpt.train
 
 run = train
-profile = cfg_cpt.profile
 analyze = cfg_cpt.analyze
 snoop = cfg_cpt.snoop if analyze else False
 panel = cfg_cpt.panel if snoop else False
@@ -84,12 +83,7 @@ def run_bt():
         engine.release_backtest()
 
 if __name__ == '__main__':
-    if profile:
-        import cProfile
-        cProfile.run('run_bt()', 'run_bt.prof')
-        # snakeviz run_bt.prof
-    else:
-        run_bt()
+    run_bt()
 
     if panel:
         from wtpy.monitor import WtMonSvr
