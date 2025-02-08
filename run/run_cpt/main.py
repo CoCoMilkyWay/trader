@@ -35,7 +35,6 @@ def run_bt():
     print(f'Data ready({len(symbols)} symbols): ', symbols)
     
     # backtesting =================================================================================
-    print('Initializing Backtest ...')
     engine = WtBtEngine(EngineType.ET_SEL)
     engine.init(folder='.', cfgfile='./config/configbt.yaml')
     engine.configBacktest(cfg_cpt.start, cfg_cpt.end)
@@ -48,9 +47,7 @@ def run_bt():
         if train:
             straInfo = Main_Alpha(name=str_name, codes=wt_assets,period=period)
         engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl='NO_HOLIDAYS', session='ALLDAY', slippage=0, isRatioSlp=False)
-        print('Running Backtest ...')
         engine.run_backtest()
-        print(f'Backtest Done')
     
     if analyze:
         print('Analyzing ...')

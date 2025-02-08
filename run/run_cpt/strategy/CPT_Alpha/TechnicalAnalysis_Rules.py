@@ -1,4 +1,5 @@
 import copy
+import itertools
 from enum import Enum
 from pprint import pprint
 from dataclasses import dataclass
@@ -64,11 +65,42 @@ class TechnicalAnalysis_Rules:
         1. with param = None
         2. empty features
     """
+    
+    # parameters used to parse final indicators
+    P_MA = None
+    P_EMA = None
+    P_VEMA = None
+    P_STDDEV = [20]
+    P_ATR = [10]
+    P_MASSI = [[9], [25]]
+    P_RVI = [[10], [7]]
+    P_GK = [10]
+    P_BBAND = [None, None] # 20, 2
+    P_DONCHIAN = None # 20
+    P_KELTNER = [[20], [2]] # 20, 2
+    P_CANDLESTRENGTH = [10]
+    P_RSI = [14]
+    P_STO_RSI = [3]
+    P_MACD = [9]
+    P_AROON = [25]
+    P_CCI = [20]
+    P_TSI_TREND = [20]
+    P_TSI_TRUE = [[25], [13]]
+    P_ROC = None
+    P_FISHER = [9]
+    P_CMO = [9]
+    P_ADX = [14]
+    P_SQUEEZE = [20]
+    P_WILLIAM_R = [7, 14, 30, 60]
+    P_AOBV = [13]
+    P_AVWAP = [20]
+    P_EOM = [14]
+
     # Technical indicator configurations
     indicator_definitions = [
         # Overlay indicators
         {
-            'param0': None,
+            'param0': P_MA,
             'name': ('ma', 'param0'),
             'constructor': ma,
             'args': [
@@ -78,7 +110,7 @@ class TechnicalAnalysis_Rules:
             'features': []
         },
         {
-            'param0': None,
+            'param0': P_EMA,
             'name': ('ema', 'param0'),
             'constructor': ema,
             'args': [
@@ -88,7 +120,7 @@ class TechnicalAnalysis_Rules:
             'features': []
         },
         {
-            'param0': None,
+            'param0': P_VEMA,
             'name': ('vema', 'param0'),
             'constructor': ema,
             'args': [
@@ -100,7 +132,7 @@ class TechnicalAnalysis_Rules:
 
         # Volatility indicators
         {
-            'param0': 20,
+            'param0': P_STDDEV,
             'name': ('stddev', 'param0'),
             'constructor': stddev,
             'args': [
@@ -112,7 +144,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 10,
+            'param0': P_ATR,
             'name': ('atr', 'param0'),
             'constructor': atr,
             'args': [
@@ -125,8 +157,8 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.ROBUST
         },
         {
-            'param0': 9,
-            'param1': 25,
+            'param0': P_MASSI[0],
+            'param1': P_MASSI[1],
             'name': ('massi', 'param0', 'param1'),
             'constructor': massi,
             'args': [
@@ -139,8 +171,8 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 10,
-            'param1': 7,
+            'param0': P_RVI[0],
+            'param1': P_RVI[1],
             'name': ('rvi', 'param0', 'param1'),
             'constructor': rvi,
             'args': [
@@ -154,7 +186,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.ROBUST
         },
         {
-            'param0': 10,
+            'param0': P_GK,
             'name': ('gk', 'param0'),
             'constructor': gk,
             'args': [
@@ -169,8 +201,8 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': None, #20,
-            'param1': None, #2,
+            'param0': P_BBAND[0],
+            'param1': P_BBAND[1],
             'name': ('bband', 'param0', 'param1'),
             'constructor': bband,
             'args': [
@@ -181,7 +213,7 @@ class TechnicalAnalysis_Rules:
             'features': []
         },
         {
-            'param0': None, #20,
+            'param0': P_DONCHIAN,
             'name': ('donchian', 'param0'),
             'constructor': donchian,
             'args': [
@@ -192,8 +224,8 @@ class TechnicalAnalysis_Rules:
             'features': []
         },
         {
-            'param0': None, #20,
-            'param1': None, #2,
+            'param0': P_KELTNER[0],
+            'param1': P_KELTNER[1],
             'name': ('keltner', 'param0', 'param1'),
             'constructor': keltner,
             'args': [
@@ -218,7 +250,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.ROBUST
         },
         {
-            'param0': 10,
+            'param0': P_CANDLESTRENGTH,
             'name': ('candlestrength', 'param0'),
             'constructor': candlestrength,
             'args': [
@@ -252,7 +284,7 @@ class TechnicalAnalysis_Rules:
 
         # Momentum indicators
         {
-            'param0': 14,
+            'param0': P_RSI,
             'name': ('rsi', 'param0'),
             'constructor': rsi,
             'args': [
@@ -263,8 +295,8 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 3,
-            'name': ('stoch_rsi', 14),
+            'param0': P_STO_RSI,
+            'name': ('stoch_rsi', [14]),
             'constructor': stoch_rsi,
             'args': [
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
@@ -276,7 +308,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 9,
+            'param0': P_MACD,
             'name': ('macd', 'param0'),
             'constructor': macd,
             'args': [
@@ -289,7 +321,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 25,
+            'param0': P_AROON,
             'name': ('aroon', 'param0'),
             'constructor': aroon,
             'args': [
@@ -301,7 +333,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 20,
+            'param0': P_CCI,
             'name': ('cci', 'param0'),
             'constructor': cci,
             'args': [
@@ -316,7 +348,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 20,
+            'param0': P_TSI_TREND,
             'name': ('tsi_trend', 'param0'),
             'constructor': tsi_trend,
             'args': [
@@ -328,8 +360,8 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 25,
-            'param1': 13,
+            'param0': P_TSI_TRUE[0],
+            'param1': P_TSI_TRUE[1],
             'name': ('tsi_true', 'param0', 'param1'),
             'constructor': tsi_true,
             'args': [
@@ -341,7 +373,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': None,
+            'param0': P_ROC,
             'name': ('roc', 'param0'),
             'constructor': roc,
             'args': [
@@ -351,7 +383,7 @@ class TechnicalAnalysis_Rules:
             'features': []
         },
         {
-            'param0': 9,
+            'param0': P_FISHER,
             'name': ('fisher', 'param0'),
             'constructor': fisher,
             'args': [
@@ -363,7 +395,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 9,
+            'param0': P_CMO,
             'name': ('cmo', 'param0'),
             'constructor': cmo,
             'args': [
@@ -374,7 +406,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 14,
+            'param0': P_ADX,
             'name': ('adx', 'param0'),
             'constructor': adx,
             'args': [
@@ -388,7 +420,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 20,
+            'param0': P_SQUEEZE,
             'name': ('squeeze', 'param0'),
             'constructor': squeeze,
             'args': [
@@ -435,33 +467,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 14,
-            'name': ('william_r', 'param0'),
-            'constructor': williams_r,
-            'args': [
-                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                IndicatorArg(ParamType.LITERAL, 'param0'),
-            ],
-            'features': [('wpr', -1)],
-            'scaler': ScalingMethod.STANDARD
-        },
-        {
-            'param0': 50,
-            'name': ('william_r', 'param0'),
-            'constructor': williams_r,
-            'args': [
-                IndicatorArg(ParamType.SOURCE, ('highs', 0)),
-                IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                IndicatorArg(ParamType.LITERAL, 'param0'),
-            ],
-            'features': [('wpr', -1)],
-            'scaler': ScalingMethod.STANDARD
-        },
-        {
-            'param0': 200,
+            'param0': P_WILLIAM_R,
             'name': ('william_r', 'param0'),
             'constructor': williams_r,
             'args': [
@@ -485,7 +491,7 @@ class TechnicalAnalysis_Rules:
 
         # Volume indicators
         {
-            'param0': 13,
+            'param0': P_AOBV,
             'name': ('aobv', 'param0'),
             'constructor': aobv,
             'args': [
@@ -500,7 +506,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 20,
+            'param0': P_AVWAP,
             'name': ('avwap', 'param0'),
             'constructor': avwap,
             'args': [
@@ -516,7 +522,7 @@ class TechnicalAnalysis_Rules:
             'scaler': ScalingMethod.STANDARD
         },
         {
-            'param0': 14,
+            'param0': P_EOM,
             'name': ('eom', 'param0'),
             'constructor': eom,
             'args': [
@@ -542,8 +548,9 @@ class IndicatorManager:
         note that both can be instanced with different parameters
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, id):
         self.parent = parent  # where the indicators are instanced
+        self.id = id  # where the indicators are instanced
         self.indicator_registry: Dict[str, Any] = {}
         self.feature_specs: Dict[str, Dict] = {}
 
@@ -554,31 +561,35 @@ class IndicatorManager:
         real_definitions = {} # definitions with valid parameters and features
         dummy_definitions = {} # all definitions with empty parameters
         for defn in definitions:
-            real_name, dummy_name, real = self._get_indicator_name(defn['name'], defn)
+            real_names, dummy_names, real = self._get_indicator_name(defn['name'], defn)
             
             if real:
-                real_definitions[real_name] = copy.deepcopy(defn)
+                for real_name in real_names:
+                    real_definitions[real_name] = copy.deepcopy(defn)
             
-            if dummy_name not in dummy_definitions.keys():
-                defn = copy.deepcopy(defn)
-                for key in list(defn.keys()):
-                    if key.startswith('param'):
-                        defn[key] = None # dummify parameters
-                dummy_definitions[dummy_name] = defn
-            
+            for dummy_name in dummy_names:
+                if dummy_name not in dummy_definitions.keys():
+                    defn = copy.deepcopy(defn)
+                    for key in list(defn.keys()):
+                        if key.startswith('param'):
+                            defn[key] = None # dummify parameters
+                    dummy_definitions[dummy_name] = defn
+
         # build the complete real dependency tree
         dependencies: Dict[str, Set[str]] = defaultdict(set)
         reverse_deps: Dict[str, Set[str]] = defaultdict(set)
-
+        
         # Check if a definition has dependencies and add them recursively
-        def add_dependencies(name_str: str, defn: Dict):
+        def _add_dependencies(name_str: str, defn: Dict):
+            params = []
+            for part in name_str.split(sep='_'):
+                if part.isdigit():
+                    params.append(int(part))
             for arg in defn['args']:
                 if arg.type == ParamType.REFERENCE:
-                    real_dep, dummy_dep, real = self._get_indicator_name(arg.value, defn)
+                    real_dep, dummy_dep = self._get_dep_name(params, arg.value)
+                    
                     # print(f'add: {name_str} -> {real_dep}')
-                    if not real:
-                        raise ValueError(
-                        f"{name_str}: Check Indicator Dependencies Definition")
                     dependencies[name_str].add(real_dep)
                     reverse_deps[real_dep].add(name_str)
                     
@@ -593,24 +604,24 @@ class IndicatorManager:
                                     i = int(key.lstrip("param"))
                                     real_definitions[real_dep][key] = int(real_dep.split(sep='_')[i+1])
                                 except Exception as e:
-                                    raise KeyError(
-                                    f"Parameter({key}) mismatch building: {name_str} -> {real_dep}")
+                                    raise KeyError(f"Parameter({key}) mismatch building: {name_str} -> {real_dep}")
                                     
                     # Recursively add dependencies of the dependency if it exists in real_definitions
-                    add_dependencies(real_dep, real_definitions[real_dep])
+                    _add_dependencies(real_dep, real_definitions[real_dep])
 
         for real_name, defn in list(real_definitions.items()):  # iterate over copy as it dynamically changes
-            add_dependencies(real_name, defn)
+            _add_dependencies(real_name, defn)
 
         # roots: real indicators with no dep
         roots = {name_str for name_str in real_definitions.keys()
                  if not dependencies[name_str]}
-        
-        # print(f'dummy_definitions:'); pprint(dummy_definitions.keys())
-        # print(f'real_definitions:'); pprint(real_definitions.keys())
-        # print(f'Dependency tree:'); pprint(dependencies)
-        # print(f'Reverse_deps tree:'); pprint(reverse_deps)
-        # print(f'Roots:'); pprint(roots)
+        if self.id == 0:
+            print('TimeSeries Analysis: '); pprint(real_definitions.keys())
+            # print(f'dummy_definitions:'); pprint(dummy_definitions.keys())
+            # print(f'real_definitions:'); pprint(real_definitions.keys())
+            # print(f'Dependency tree:'); pprint(dependencies)
+            # print(f'Reverse_deps tree:'); pprint(reverse_deps)
+            # print(f'Roots:'); pprint(roots)
         
         processed = set()
         queue = list(roots)  # Start with root nodes
@@ -638,51 +649,80 @@ class IndicatorManager:
         if missing:
             raise ValueError(f"Failed to process indicators: {missing}. Circular dependency or missing definition.")
         
-    def _get_indicator_name(self, name_tuple, defn: Dict) -> Tuple[str, str, bool]:
+    def _get_dep_name(self, params: List[int], name_tuple) -> Tuple[str, str]:
+        base, params_raw = name_tuple[0], name_tuple[1:]
+        ref_params = []
+        for param_raw in params_raw: # int(not list) or str('param0', 'param1', ...)
+            if type(param_raw) == str:
+                param_idx = int(param_raw[5:]) # 'paramN' -> N
+                ref_params.append(params[param_idx])
+            elif type(param_raw) == int:
+                ref_params.append(param_raw)
+            else:
+                raise RuntimeError(f"Dep params should be int or string: {name_tuple}")
+        real_dep = f"{base}_{"_".join(map(str, ref_params))}"
+        dummy_dep = base
+        return real_dep, dummy_dep
+    
+    def _get_indicator_name(self, name_tuple, defn: Dict) -> Tuple[list[str], list[str], bool]:
         """Generate unique indicator name from name specification"""
         is_real = True
+        real_name = []
+        dummy_name = []
         if isinstance(name_tuple, tuple):
             base, params_raw = name_tuple[0], name_tuple[1:]
-            params = []
+            params = [] # int or list
             for param_raw in params_raw:
                 if type(param_raw) == str: # "param0", "param1", ...
-                    param_parsed = defn[param_raw]
+                    param_parsed = defn[param_raw] # None or list
                     if param_parsed is None: # "param0" == None
                         is_real = False # this is just a constructor
                         continue
                     else:
                         params.append(param_parsed)
-                else:
+                elif type(param_raw) == list:
                     params.append(param_raw)
-                    
+                else:
+                    raise RuntimeError(f"Indicator params should be None or list: {name_tuple}")
+            
+            # parse names
             if len(params) > 0:
-                real_name = f"{base}_{"_".join(map(str, params))}"
+                combinations = list(itertools.product(*params))
+                for combo in combinations:
+                    real_name.append(f"{base}_{"_".join(map(str, combo))}")
             else:
-                real_name = f"{base}"
-            dummy_name = f"{base}"
+                real_name.append(f"{base}")
+            dummy_name.append(f"{base}")
             return real_name, dummy_name, is_real
-        return str(name_tuple), str(name_tuple), is_real
-
+        
+        raise RuntimeError(f"Cannot get indicator name: {name_tuple}")
+    
     def _create_indicator(self, real_name: str, definition: Dict) -> None:
         """Create indicator instance with resolved parameters"""
         # 1. Resolve indicator name with actual parameters
         if real_name in self.indicator_registry:
             return
-
+        
         # 2. Resolve arguments with parameter substitution
+        params = []
+        for part in real_name.split(sep='_'):
+            if part.isdigit():
+                params.append(int(part))
+                
         resolved_args = []
         for arg in definition['args']:
             if arg.type == ParamType.LITERAL:
                 # Handle parameter references like 'param0'
                 value = arg.value
                 if isinstance(value, str) and value.startswith('param'):
-                    resolved_value = definition[value]
+                    param_idx = int(value[5:]) # 'paramN' -> N
+                    resolved_value = params[param_idx]
                 else:
                     resolved_value = int(value) if type(value) is str else value
                 resolved_args.append(resolved_value)
             elif arg.type == ParamType.REFERENCE:
                 # Dependency already exists due to topological order
-                real_dep, dummy_dep, real = self._get_indicator_name(arg.value, definition)
+                real_dep, dummy_dep = self._get_dep_name(params, arg.value)
                 resolved_args.append(getattr(self.indicator_registry[real_dep], arg.attr))
             elif arg.type == ParamType.SOURCE:
                 # Directly access parent data series

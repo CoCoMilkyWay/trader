@@ -5,8 +5,8 @@ from typing import List, Dict
 from wtpy import SelContext
 from wtpy import BaseSelStrategy
 
-from .Parallel_Process import Parallel_Process
-from .Main_Alpha_Core import Main_Alpha_Core
+from .Parallel_Process_Core import Parallel_Process_Core
+from .Parallel_Process_Worker import Parallel_Process_Worker
 
 from config.cfg_cpt import cfg_cpt
 import warnings
@@ -38,11 +38,12 @@ class Main_Alpha(BaseSelStrategy):
             }
             
         # 2. init worker process
-        self.P = Parallel_Process(self.code_info, Main_Alpha_Core, cfg_cpt.parallel)
+        self.P = Parallel_Process_Core(self.code_info, Parallel_Process_Worker, cfg_cpt.parallel)
         
         # 3. prepare backtest data
         print('Preparing Bars in DDR...')
         self.pbar = tqdm(total=len(self.__codes__))
+        
         for idx, code in enumerate(self.__codes__):
             r = context.stra_prepare_bars(code, self.__period__, 1)
             self.pbar.update(1)
@@ -113,10 +114,10 @@ class Main_Alpha(BaseSelStrategy):
     #         
     #         # strategy
     #         # self.ST_Train(context, code)
-            
+    
     def on_backtest_end(self, context: SelContext):
         self.elapsed_time = time() - self.start_time
         self.P.parallel_close()
         print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         return
-        
+    

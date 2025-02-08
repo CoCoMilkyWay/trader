@@ -81,7 +81,7 @@ class TechnicalAnalysis_Core:
     def _init_indicators(self):
         """Define and initialize all technical indicators"""
         # Indicator management system
-        self.indicator_manager = IndicatorManager(self)
+        self.indicator_manager = IndicatorManager(self, self._code_idx)
         self.indicator_manager.process_definitions(TechnicalAnalysis_Rules.indicator_definitions)
         
     def _init_features_labels_and_scalers(self):
