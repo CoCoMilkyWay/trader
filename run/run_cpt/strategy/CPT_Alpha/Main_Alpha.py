@@ -1,6 +1,6 @@
 from time import time
 from tqdm import tqdm
-from typing import Tuple, List, Dict, Optional
+from typing import List, Dict
 
 from wtpy import SelContext
 from wtpy import BaseSelStrategy
@@ -77,8 +77,6 @@ class Main_Alpha(BaseSelStrategy):
             return
         
         self.P.parallel_collect()
-        
-        
     
     # def on_calculate(self, context: SelContext):
     #     # all sub-ed bars closed (main/non-main) at this period

@@ -202,14 +202,25 @@ def run_single_experiment(
             end_time=end,
             device=device
         )
-
+    
+    def print_tensor(tensor):
+        print("Shape:", tensor.shape)
+        print("Data Type:", tensor.dtype)
+        print(tensor)
+    
     segments = [
-        ("2012-01-01", "2019-12-31"),
+        # ("2012-01-01", "2019-12-31"),
         ("2020-01-01", "2020-06-01"),
     ]
     datasets = [get_dataset(*s) for s in segments]
+    dataset = datasets[0]
+    print_tensor(dataset.data)
+    print(dataset._dates)
+    print(dataset.stock_ids)
     calculators = [QLibStockDataCalculator(d, target) for d in datasets]
-
+    import sys
+    sys.exit()
+    
     def build_pool(exprs: List[Expression]) -> LinearAlphaPool:
         pool = MseAlphaPool(
             capacity=pool_capacity,

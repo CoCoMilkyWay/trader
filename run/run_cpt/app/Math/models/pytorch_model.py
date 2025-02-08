@@ -334,7 +334,7 @@ class Transformer(nn.Module):
         self.input_proj = nn.Linear(input_size, d_model)
         
         # Position encoding
-        self.register_buffer('pe', self._create_positional_encoding())
+        self.pe = self._create_positional_encoding()
         
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
@@ -372,7 +372,7 @@ class Transformer(nn.Module):
                 mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         # Input shape: (batch_size, sequence_length, input_size)
         x = self.input_proj(x)
-        x = x + self.pe[:, :x.size(1)]
+        x = x + self.pe[:, :x.size(1)].to(x.device)
         x = self.dropout(x)
         
         # Create mask if not provided

@@ -57,7 +57,7 @@ def main():
     print("Starting main.py...")
     try:
         if cfg_cpt.profile:
-            subprocess.run(["viztracer", "--tracer_entries", "10000000", "main.py"], check=True)
+            subprocess.run(["viztracer", "--tracer_entries", "100000000", "main.py"], check=True)
         else:
             subprocess.run(["python", "main.py"], check=True)
         print("main.py finished")

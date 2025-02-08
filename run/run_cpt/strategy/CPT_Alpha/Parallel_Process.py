@@ -1,12 +1,12 @@
-import os
 import time
+import torch
 import ctypes
 import psutil
 from multiprocessing import Process, sharedctypes, Lock
 from typing import Dict
-from viztracer import VizTracer, get_tracer
 
 # -------- Configurable Constants --------
+HYPER_THREAD = 2 # ignore hyper-thread of intel cpu(we want more cache hit)
 MAX_CODE_SIZE = 64  # Fixed size for 'code' field to avoid dynamic memory allocation
 RING_BUFFER_SIZE = 256  # Ring buffer for signaling worker->main
 CPU_BACKOFF = 0.0001
@@ -73,15 +73,19 @@ class Parallel_Process:
         self.Process_Core = Process_Core    # Process_Core class
         self.Parallel = Parallel            # Whether use parallel at all
         self.num_workers = 0                # Number of workers
-        self.num_codes_per_worker = []      # Number of codes handled by each worker
-        self.worker_codes = []              # Codes assigned to each worker
-        self.shared_mem = []                # Array of shared memory for each worker
+        self.worker_code_num = []           # Number of codes handled by each worker
+        self.worker_code_info = []          # Codes assigned to each worker
+        self.shared_data = []               # Array of shared memory for each worker
         self.ring_buffers = []              # Ring buffers for signaling results
         self.locks = []                     # Locks for accessing ring buffers
         self.workers = []                   # Worker processes
         
+        # for meta data only
+        self.C_dummy = Process_Core(-1, {'dummy_code':{'idx':0}}, torch.zeros((1)))
+        self.shared_tensor = self._init_shared_tensor()
+        
         if not self.Parallel:
-            self.C = Process_Core(0, [key for key in self.code_info.keys()])
+            self.C = Process_Core(0, self.code_info, self.shared_tensor)
             return
         
         logical_cpus = psutil.cpu_count(logical=True)
@@ -89,8 +93,7 @@ class Parallel_Process:
         if logical_cpus is None or physical_cpus is None:
             raise Exception('Could not determine CPU count')
         
-        # ignore hyper-thread of intel cpu(we want more cache hit)
-        hyper_thread = int(logical_cpus / physical_cpus)
+        # hyper_thread = int(logical_cpus / physical_cpus)
         cpu = physical_cpus - 1
         
         # Pin main process to CPU 0
@@ -98,29 +101,29 @@ class Parallel_Process:
         
         # Determine the number of workers based on the available logical CPUs
         self.num_workers = min(cpu, physical_cpus-1, len(self.code_info))
-        self.num_codes_per_worker = [0 for _ in range(self.num_workers)]
-        self.worker_codes = [[] for _ in range(self.num_workers)]
+        self.worker_code_info = [{} for _ in range(self.num_workers)]
+        self.worker_code_num = [0 for _ in range(self.num_workers)]
         
         # Assign code to workers
         for code, info in self.code_info.items():
             idx = info['idx']
             worker_id = idx % self.num_workers
-            mem_idx = idx // self.num_workers
+            code_idx = idx // self.num_workers
             self.code_info[code]["worker_id"] = worker_id
-            self.code_info[code]["mem_idx"] = mem_idx
-            self.worker_codes[worker_id].append(code)
-            self.num_codes_per_worker[worker_id] += 1
-
+            self.code_info[code]["code_idx"] = code_idx
+            self.worker_code_info[worker_id][code] = info
+            self.worker_code_num[worker_id] += 1
+            
         # Initialize shared memory and workers
-        print(f"Initializing: [Main] 1 process -> CPU0,")
-        print(f"              [Worker] {self.num_workers} process -> {logical_cpus} Logical ({physical_cpus} Physical) CPUs: ...")
+        print(f"Initializing: [Main  ]  1 process -> Logical CPU0,")
+        print(f"              [Worker] {self.num_workers:>2} process -> Logical CPU{[(i+1)*HYPER_THREAD for i in range(self.num_workers)]} (ignore hyper-thread for better cache hit)")
         self.shared_control = sharedctypes.RawValue(SharedControl)
         self.shared_control.init[:] = [CONTROL_CLEAR] * 256
         self.shared_control.stop = CONTROL_CLEAR
         for i in range(self.num_workers):
-            shared_mem = sharedctypes.RawArray(SharedData, self.num_codes_per_worker[i])
-            for j in range(self.num_codes_per_worker[i]):
-                shared_mem[j].status = DATA_EMPTY
+            shared_data = sharedctypes.RawArray(SharedData, self.worker_code_num[i])
+            for j in range(self.worker_code_num[i]):
+                shared_data[j].status = DATA_EMPTY
                 
             ring_buffer = sharedctypes.RawValue(SharedRingBuffer)
             ring_buffer.head = 0
@@ -130,17 +133,31 @@ class Parallel_Process:
             
             p = Process(
                 target=self.parallel_exec,
-                args=(i, self.worker_codes[i], shared_mem, self.shared_control, ring_buffer, lock, self.Process_Core),
+                args=(i, self.worker_code_info[i], shared_data, self.shared_control, ring_buffer, lock, self.Process_Core, self.shared_tensor),
                 name=f"Worker-{i + 1}",
                 daemon=True
             )
             p.start()
             
-            self.shared_mem.append(shared_mem)
+            self.shared_data.append(shared_data)
             self.ring_buffers.append(ring_buffer)
             self.locks.append(lock)
             self.workers.append(p)
-            
+    
+    def _init_shared_tensor(self):
+        N_timestamps = 60*24*10 # 10 days
+        N_columns = len(self.C_dummy.feature_names)+len(self.C_dummy.label_names)
+        N_codes = len(self.code_info.keys())
+        
+        print(f"Initializing Pytorch Tensor: (timestamp({N_timestamps}), feature+label({N_columns}), codes({N_codes}))")
+        # tensor(a,b,c) is stored like:
+        #   for each value a, we have a matrix(b,c):
+        #   for each value b, we have a vector(c): thus c are stored continuously in memory
+        # Therefore, PyTorch uses a row-major (C-contiguous) memory layout
+        # for more efficient cross-section data processing (how are features in each code compare), we store codes dimension together
+        shared_tensor = torch.zeros((N_timestamps, N_columns, N_codes), dtype=torch.float16).share_memory_()
+        return shared_tensor
+    
     def check_workers(self):
         if not self.Parallel:
             return
@@ -161,11 +178,11 @@ class Parallel_Process:
             return
         
         worker_id = self.code_info[code]["worker_id"]
-        mem_idx = self.code_info[code]["mem_idx"]
-        shared_mem = self.shared_mem[worker_id]
-        data = shared_mem[mem_idx]
+        code_idx = self.code_info[code]["code_idx"]
+        shared_data = self.shared_data[worker_id]
+        data = shared_data[code_idx]
         
-        # print(f'Feeding worker {worker_id} mem {mem_idx}')
+        # print(f'Feeding worker {worker_id} mem {code_idx}')
         
         status = data.status # this pass value, not pointer, thus safe
         if status == DATA_EMPTY:  # Only write to the slot if it's empty
@@ -190,13 +207,13 @@ class Parallel_Process:
         with lock:
             next_slot = (ring_buffer.head + 1) % RING_BUFFER_SIZE
             if next_slot != ring_buffer.tail:  # Ensure ring buffer isn't full
-                ring_buffer.buffer[ring_buffer.head] = mem_idx
+                ring_buffer.buffer[ring_buffer.head] = code_idx
                 ring_buffer.head = next_slot
             else:
-                raise RuntimeError(f"Worker {worker_id}: Ring buffer is full, data {mem_idx} lost.")
+                raise RuntimeError(f"Worker {worker_id}: Ring buffer is full, data {code_idx} lost.")
         
     @staticmethod
-    def parallel_exec(worker_id:int, worker_codes:list[str], shared_mem, shared_control, ring_buffer, lock, Process_Core):
+    def parallel_exec(worker_id:int, worker_code_info:Dict[str, Dict], shared_data, shared_control, ring_buffer, lock, Process_Core, shared_tensor):
         """
         Pin this worker to a dedicated CPU (e.g., worker_id + 1)
                     cpu0,     cpu1, cpu2, cpu3
@@ -204,24 +221,24 @@ class Parallel_Process:
         worker_id:  NaN       0     1     2
         """
         
-        set_cpu_affinity((worker_id+1)*2)  # Pin each worker to a specific core
-        print(f'Worker Initiated...')
+        set_cpu_affinity((worker_id+1)*HYPER_THREAD)  # Pin each worker to a specific core
+        # print(f'Worker Initiated...')
         
-        C = Process_Core(worker_id, worker_codes)
+        C = Process_Core(worker_id, worker_code_info, shared_tensor)
         
         shared_control.init[worker_id] = CONTROL_INITED
         
         while shared_control.stop != CONTROL_STOP: # Keep processing indefinitely unless terminated externally
             if ring_buffer.tail != ring_buffer.head:
                 with lock:
-                    mem_idx = ring_buffer.buffer[ring_buffer.tail]
+                    code_idx = ring_buffer.buffer[ring_buffer.tail]
                     ring_buffer.tail = (ring_buffer.tail + 1) % RING_BUFFER_SIZE
                     
-                data = shared_mem[mem_idx]
+                data = shared_data[code_idx]
                 status = data.status
                 if status == DATA_INPUT_READY:
                     # Process the data
-                    # print(f'Processing worker {worker_id} mem {mem_idx} status {status}')
+                    # print(f'Processing worker {worker_id} mem {code_idx} status {status}')
                     C.on_bar(data.code.decode('utf-8'), data.open, data.high, data.low, data.close, data.vol, data.time)
                     data.status = DATA_OUTPUT_READY
                 elif status == DATA_OUTPUT_READY:
@@ -230,7 +247,7 @@ class Parallel_Process:
                     # waiting to be fed/processed in next query
                     pass
                 else:
-                    raise Exception(f"Err: Worker {worker_id} has unexpected status {status} at index {mem_idx}.")
+                    raise Exception(f"Err: Worker {worker_id} has unexpected status {status} at index {code_idx}.")
                 
             time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
         
@@ -245,11 +262,11 @@ class Parallel_Process:
         # print('Start collecting')
         results = []
         for w in range(self.num_workers):
-            shared_mem = self.shared_mem[w]
-            num_codes = self.num_codes_per_worker[w]
+            shared_data = self.shared_data[w]
+            num_codes = self.worker_code_num[w]
             for i in range(num_codes):
                 while self.shared_control.stop != CONTROL_STOP:
-                    data = shared_mem[i]
+                    data = shared_data[i]
                     status = data.status
                     if status == DATA_OUTPUT_READY:
                         # print(f'Collecting worker {w} idx {i}')
@@ -263,7 +280,8 @@ class Parallel_Process:
     
     def parallel_close(self):
         """Gracefully terminate all workers."""
-        
+        # torch.set_printoptions(profile="full")
+        # print(self.shared_tensor)
         if not self.Parallel:
             self.C.on_backtest_end()
             return

@@ -26,9 +26,6 @@ def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
     enable_logging()
     
-    from test import test
-    test()
-    
     period = cfg_cpt.period + str(cfg_cpt.n)
     
     wt_assets, symbols = generate_asset_list(num=cfg_cpt.num)
@@ -52,7 +49,6 @@ def run_bt():
             straInfo = Main_Alpha(name=str_name, codes=wt_assets,period=period)
         engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl='NO_HOLIDAYS', session='ALLDAY', slippage=0, isRatioSlp=False)
         print('Running Backtest ...')
-        print('Use CTRL+4 to interrupt')
         engine.run_backtest()
         print(f'Backtest Done')
     

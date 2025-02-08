@@ -4,7 +4,7 @@ class cfg_cpt:  # Constants Configs
     import os
     
     period, n = 'm', 1  # bar period
-    num = 5  # number of assets (int/None)
+    num = 10  # number of assets (int/None)
     start = 202405010000
     end   = 202405050000
     capital = 10000000
@@ -13,7 +13,7 @@ class cfg_cpt:  # Constants Configs
     train  = True
     
     # misc functions:
-    parallel = num >= 50
+    parallel = True # num >= 50
     profile  = True
     plot     = False
     analyze  = False
