@@ -50,7 +50,10 @@ class squeeze:
         # if bb_width > kc_width:
         #     return 1
         
-        bb_kc_ratio = bb_width / kc_width
+        if kc_width != 0: # when trade stops, KC goes to 0 quickly, causing exception
+            bb_kc_ratio = bb_width / kc_width
+        else:
+            bb_kc_ratio = 10
         
         # if bb_kc_ratio > 0.75:
         #     return 1

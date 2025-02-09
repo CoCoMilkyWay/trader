@@ -146,7 +146,9 @@ class Parallel_Process_Core:
             self.workers.append(p)
     
     def _init_shared_tensor(self):
-        N_timestamps = 60*24*10 # 10 days
+        from config.cfg_cpt import cfg_cpt
+        from Util.UtilCpt import time_diff_in_min
+        N_timestamps = time_diff_in_min(cfg_cpt.start, cfg_cpt.end)
         N_features = len(self.C_dummy.feature_names)
         N_labels = len(self.C_dummy.label_names)
         N_columns = N_features + N_labels
@@ -288,16 +290,19 @@ class Parallel_Process_Core:
         from Util.UtilCpt import mkdir
         meta = [
             self.num_timestamps,
-            self.C.feature_names,
-            self.C.label_names,
+            self.C_dummy.feature_names,
+            self.C_dummy.label_names,
             self.code_info,
         ]
         mkdir('results/')
         torch.save(meta, './results/meta.pt')
         torch.save(self.shared_tensor, './results/tensor.pt')
-        # features_tensor = torch.load('features_tensor.pt')
+        
+        # torch.set_printoptions(profile="full")
         print(self.shared_tensor)
-        self.C.on_backtest_end()
+        
+        if not self.Parallel:
+            self.C.on_backtest_end()
         
         for worker in self.workers:
             worker.terminate()

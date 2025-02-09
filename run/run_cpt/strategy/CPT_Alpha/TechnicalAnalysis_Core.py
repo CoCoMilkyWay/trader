@@ -12,7 +12,7 @@ from Chan.KLine.KLine_List import CKLine_List
 
 from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
 
-from .Labels import ts_label
+from .Labels import ts_label, NUM_LABELS
 from .TechnicalAnalysis_Rules import TechnicalAnalysis_Rules, IndicatorManager, ParamType, IndicatorArg, ScalingMethod
 
 class TechnicalAnalysis_Core:
@@ -75,8 +75,12 @@ class TechnicalAnalysis_Core:
         # non-feature indicators
         self.AdaptiveSuperTrend = AdaptiveSuperTrend(atr_len=60, factor=10) # 1 hours
         
-        # labels
-        self.ts_label = ts_label()
+        # labels (NOTE: int are not mutable)
+        tensor_pointer = {
+            'x': lambda: self._timestamp_idx,
+            'y': lambda: self.n_features,
+            'z': lambda: self._code_idx,}
+        self.ts_label = ts_label(self.shared_tensor, tensor_pointer)
         
     def _init_indicators(self):
         """Define and initialize all technical indicators"""
@@ -87,7 +91,7 @@ class TechnicalAnalysis_Core:
     def _init_features_labels_and_scalers(self):
         # Generate column names and scaling methods from feature specs
         self.n_features = sum(len(spec['features']) for spec in self.indicator_manager.feature_specs.values())
-        self.n_labels = 2
+        self.n_labels = NUM_LABELS
         self.feature_names = []
         self.feature_map = []
         self.scaling_methods = {} # use dict just to be safe
@@ -146,7 +150,7 @@ class TechnicalAnalysis_Core:
             feature_time_series = getattr(instance, attr_name)
             result_list[idx] = feature_time_series[delay] if delay else feature_time_series
         for i in range(self.n_labels):
-            result_list[self.n_features + i] = 0.0 # TODO
+            result_list[self.n_features + i] = 0.0
             
         # Update the selected slice (features, codes, timestamps)
         result_vector = torch.tensor(result_list, dtype=torch.float16)
@@ -252,42 +256,3 @@ class TechnicalAnalysis_Core:
                 self.counts[i] = count
                 break  # Changed from return to break to allow volume initialization
         return results
-    
-    # def get_features_df(self):
-    #     # Generate column names and scaling methods from feature specs
-    #     feature_names = []
-    #     scaling_methods = {}
-    #     
-    #     for indicator_name, spec in self.indicator_manager.feature_specs.items():
-    #         # Get scaler once per indicator (assumes all features from same indicator use same scaler)
-    #         scaler = spec.get('scaler', ScalingMethod.NONE)  # Default to no scaling
-    #         
-    #         for attr_spec in spec['features']:
-    #             # Handle attribute/index specification
-    #             attr_name, idx = attr_spec if isinstance(attr_spec, tuple) else (attr_spec, None)
-    #             
-    #             # Create descriptive column name
-    #             if idx is not None:
-    #                 col_name = f"{indicator_name}_{attr_name}_{abs(idx)}"
-    #             else:
-    #                 col_name = f"{indicator_name}_{attr_name}"
-    #                 
-    #             feature_names.append(col_name)
-    #             scaling_methods[col_name] = scaler  # Associate scaling method with column
-    #             
-    #     # Create label column names
-    #     label_names = [f'label_{i+1}' for i in range(self.n_labels)]
-    #     
-    #     # Create DataFrame with proper typing
-    #     df = pd.DataFrame(
-    #         data=self.features_history[:self.current_row, :self.n_features],  # Exclude labels from features
-    #         columns=feature_names,
-    #         dtype=np.float32
-    #     )
-    #     
-    #     # Add labels if in training mode
-    #     if self._train and self.n_labels > 0:
-    #         labels = self.features_history[:self.current_row, self.n_features:]
-    #         df[label_names] = labels.astype(np.float32)
-    #         
-    #     return df, scaling_methods

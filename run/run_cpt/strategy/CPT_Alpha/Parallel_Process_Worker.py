@@ -59,25 +59,24 @@ class Parallel_Process_Worker():
         #         # from .Model import train
         #         # train(df, scaling_methods)
         
-        if cfg_cpt.plot and self.__id__ == 0:
-            from Chan.Plot.PlotDriver import ChanPlotter
-            from Util.plot.plot_fee_grid import plot_fee_grid
-            from Util.plot.plot_show import plot_show
-            
-            code = self.__codes__[0]
-            TA = self.tech_analysis[code]
-            TA.AdaptiveSuperTrend.get_stats(code)
-            
-            # get labels
-            ts, closes, labels1, labels2 = TA.ts_label.get_labels()
-            indicators = [
-                TA.AdaptiveSuperTrend,
-                ts,
-                closes,
-                labels1,
-                labels2,
-                ]
-            fig = ChanPlotter().plot(
-                TA.kl_datas, [], indicators)
-            fig = plot_fee_grid(fig, dtick=TA.closes[0][-1]*cfg_cpt.FEE)
-            plot_show(fig)
+        # if cfg_cpt.plot and self.__id__ == 0:
+        #     from Chan.Plot.PlotDriver import ChanPlotter
+        #     from Util.plot.plot_fee_grid import plot_fee_grid
+        #     from Util.plot.plot_show import plot_show
+        #     
+        #     code = self.__codes__[0]
+        #     TA = self.tech_analysis[code]
+        #     TA.AdaptiveSuperTrend.get_stats(code)
+        #     
+        #     # get labels
+        #     indicators = [
+        #         TA.AdaptiveSuperTrend,
+        #         ts,
+        #         labels1,
+        #         labels2,
+        #         ]
+        #     fig = ChanPlotter().plot(
+        #         TA.kl_datas, [], indicators)
+        #     fig = plot_fee_grid(fig, dtick=TA.closes[0][-1]*cfg_cpt.FEE)
+        #     plot_show(fig)
+        return

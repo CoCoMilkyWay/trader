@@ -1,7 +1,7 @@
 import os
-import subprocess
 import sys
 import glob
+import subprocess
 from config.cfg_cpt import cfg_cpt
 
 def kill_python_processes_windows(current_pid):

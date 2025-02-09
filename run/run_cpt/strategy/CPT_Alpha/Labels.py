@@ -1,11 +1,14 @@
+import torch
 import numpy as np
 import pandas as pd
-from math import log1p
+from typing import List, Dict, Callable, Optional
 from config.cfg_cpt import cfg_cpt
 
 # ts_momentum_label        : TimeSeries trend/breakout label
 # ts_mean_reversion_label  : TimeSeries mean-reversion label
 # cs_label                 : CrossSectional long-short label
+
+NUM_LABELS = 1
 
 class ts_label:
     """
@@ -55,7 +58,12 @@ class ts_label:
 
     """
     
-    def __init__(self):
+    def __init__(self, shared_tensor:torch.Tensor, tensor_pointer:Dict[str, Callable[[], int]]):
+        self.shared_tensor = shared_tensor
+        self.timestamp_idx = tensor_pointer['x'] # keep being mutable
+        self.column_idx = tensor_pointer['y']()
+        self.code_idx = tensor_pointer['z']()
+        
         self.FEE = cfg_cpt.FEE
         self.RET_thd = 10*self.FEE # punish low absolute returns
         self.A_L = (1-self.FEE/2) # fee adjusted long ratio
@@ -66,17 +74,16 @@ class ts_label:
         self.switch_atrs:list[float] = []  # Last 3 switch atrs
         self.switch_directions:list[bool] = []  # Last 3 switch directions (True for long)
         self.switch_segment_prices:list[list[float]] = []  # Last 3 switch segment prices
-        if cfg_cpt.dump_ind:
-            self.switch_segment_timestamps:list[list[float]] = []  # Last 3 switch segment timestamps
+        # if cfg_cpt.dump_ind:
+        #     self.switch_segment_timestamps:list[list[float]] = []  # Last 3 switch segment timestamps
         
         self.is_long_trend = None
         
         # Output storage
-        self.labels1: list[float] = []
-        self.labels2: list[float] = []
-        if cfg_cpt.dump_ind:
-            self.timestamps: list[float] = []
-            self.closes: list[float] = []
+        # self.labels1: list[float] = []
+        # self.labels2: list[float] = []
+        # if cfg_cpt.dump_ind:
+        #     self.timestamps: list[float] = []
 
     def update(self, ts: float, close: float, atr: float, long_switch: bool, short_switch: bool) -> None:
         """Update state and return current label."""
@@ -101,7 +108,8 @@ class ts_label:
             if drawdown_abs < atr_A:
                 drawdown = drawdown_abs / price_A
             else:
-                drawdown = FACTOR**(drawdown_abs/atr_A-1) * drawdown_abs / price_A
+                # protect ** against overflow
+                drawdown = FACTOR**(min(drawdown_abs/atr_A - 1, 5)) * drawdown_abs / price_A
             
             calmar = ret / (drawdown + 1) # drawdown_adjusted_return
             calmar = np.tanh(calmar/self.RET_thd) # magnitude_adjusted_return
@@ -116,8 +124,8 @@ class ts_label:
             self.switch_atrs.append(atr)
             self.switch_directions.append(new_direction)
             self.switch_segment_prices.append([close])
-            if cfg_cpt.dump_ind:
-                self.switch_segment_timestamps.append([ts])
+            # if cfg_cpt.dump_ind:
+            #     self.switch_segment_timestamps.append([ts])
             
             # Keep only last 3 switches
             if len(self.switch_prices) > 3:
@@ -125,8 +133,8 @@ class ts_label:
                 self.switch_atrs.pop(0)
                 self.switch_directions.pop(0)
                 self.switch_segment_prices.pop(0)
-                if cfg_cpt.dump_ind:
-                    self.switch_segment_timestamps.pop(0)
+                # if cfg_cpt.dump_ind:
+                #     self.switch_segment_timestamps.pop(0)
             
             # Calculate labels if we have enough history (3 switches)
             if len(self.switch_prices) == 3:
@@ -136,11 +144,14 @@ class ts_label:
                 direction_a = self.switch_directions[0]
                 segment_prices_a = self.switch_segment_prices[0]
                 segment_prices_b = self.switch_segment_prices[1]
-                if cfg_cpt.dump_ind:
-                    segment_timestamps_a = self.switch_segment_timestamps[0]
+                # if cfg_cpt.dump_ind:
+                #     segment_timestamps_a = self.switch_segment_timestamps[0]
                 
                 # Process all points between a and b
-                for i in range(len(segment_prices_a)):
+                
+                num_seg_a = len(segment_prices_a)
+                labels = [[0.0 for i in range(num_seg_a)] for i in range(NUM_LABELS)]
+                for i in range(num_seg_a):
                     price_A = segment_prices_a[i]
                     prices_A_to_b = segment_prices_a[i:]
                     prices_A_to_c = segment_prices_a[i:] + segment_prices_b + [price_c]
@@ -151,28 +162,28 @@ class ts_label:
                     calmar1 = _calculate_metrics(price_A, atr_a, prices_A_to_b, price_b, direction_a)
                     calmar2 = _calculate_metrics(price_A, atr_a, prices_A_to_c, price_c, not direction_a)
                     
-                    self.labels1.append(calmar1)
-                    self.labels2.append(calmar2)
-                    if cfg_cpt.dump_ind:
-                        self.closes.append(segment_prices_a[i])
-                        self.timestamps.append(segment_timestamps_a[i])
-            
+                    labels[0][i] = calmar1 + calmar2
+                    # if cfg_cpt.dump_ind:
+                    #     self.timestamps.append(segment_timestamps_a[i])
+
+                # update final tensor:
+                
+                for i in range(NUM_LABELS):
+                    # print(end_idx, num_seg_a, np.shape(labels), self.shared_tensor.shape)
+                    end_idx = self.timestamp_idx()
+                    start_idx = end_idx-num_seg_a
+                    self.shared_tensor[start_idx:end_idx, self.column_idx+i, self.code_idx,] \
+                    = torch.tensor(labels[i], dtype=torch.float16)
+                
             self.is_long_trend = new_direction
             
         else:
             if len(self.switch_prices) > 0:
                 # Collect price in current segment
                 self.switch_segment_prices[-1].append(close)
-                if cfg_cpt.dump_ind:
-                    self.switch_segment_timestamps[-1].append(ts)
-            
-    def get_labels(self):
-        if cfg_cpt.dump_ind:
-            return self.timestamps, self.closes, self.labels1, self.labels2
-        else:
-            return [], [], self.labels1, self.labels2
+                # if cfg_cpt.dump_ind:
+                #     self.switch_segment_timestamps[-1].append(ts)
 
-    
 def dummy_label(df, feature_names, label_names):
     """
     naive logreturn

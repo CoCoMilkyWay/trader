@@ -15,9 +15,8 @@ from Util.UtilCpt import generate_asset_list, generate_database_files, generate_
 from config.cfg_cpt import cfg_cpt
 from strategy.CPT_Alpha.Main_Alpha import Main_Alpha
 
-train = cfg_cpt.train
 
-run = train
+run = True
 analyze = cfg_cpt.analyze
 snoop = cfg_cpt.snoop if analyze else False
 panel = cfg_cpt.panel if snoop else False
@@ -44,8 +43,7 @@ def run_bt():
     bt_folder = f'./outputs_bt'
     
     if run:
-        if train:
-            straInfo = Main_Alpha(name=str_name, codes=wt_assets,period=period)
+        straInfo = Main_Alpha(name=str_name, codes=wt_assets,period=period)
         engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl='NO_HOLIDAYS', session='ALLDAY', slippage=0, isRatioSlp=False)
         engine.run_backtest()
     

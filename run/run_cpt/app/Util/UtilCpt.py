@@ -428,3 +428,23 @@ def enable_logging():
         level=logging.NOTSET,   # Capture all levels
         format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'    # Only output the message without timestamps etc
     )
+
+def time_diff_in_min(start: int, end: int) -> int:
+    from datetime import datetime
+    def parse_time(time: int) -> datetime:
+        time_str = str(time)
+        # Extract time components from the last 10 characters of the string
+        year   = int(time_str[-12:-8])
+        month  = int(time_str[-8:-6])
+        day    = int(time_str[-6:-4])
+        hour   = int(time_str[-4:-2])
+        minute = int(time_str[-2:])
+        return datetime(year, month, day, hour, minute)
+    # Parse both start and end strings into datetime objects
+    start_time = parse_time(start)
+    end_time   = parse_time(end)
+    # Calculate the difference in time
+    delta = end_time - start_time
+    # Convert the time difference to minutes and return it as an integer
+    min_diff = int(delta.total_seconds() // 60)
+    return min_diff
