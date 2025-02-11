@@ -32,7 +32,7 @@ class DataCheckResult:
         except (TypeError, ValueError) as e:
             raise ValueError(f"Failed to convert numeric values to float: {str(e)}")
 
-def CheckDist(df: pd.DataFrame) -> Dict[str, Any]:
+def CheckDist(df: pd.DataFrame, info: List[List]) -> Dict[str, Any]:
     """
     Perform comprehensive data quality checks on all features and targets.
     Args:
@@ -105,7 +105,7 @@ def CheckDist(df: pd.DataFrame) -> Dict[str, Any]:
             warnings=warnings
         )
         
-    def _print_data_dist_summary(df, results) -> None:
+    def _print_data_dist_summary(df, results, info) -> None:
         print("\n=== Data Dist Summary (Before Split) ===")
         # columns summary
         print(f"\nColumns(X) ({df.shape[1]}): {df.shape[0]:,} samples")
@@ -120,9 +120,18 @@ def CheckDist(df: pd.DataFrame) -> Dict[str, Any]:
             'Unique': df.nunique(),
             'Distribution': pd.Series({col: results['columns'][col]['distribution_type'] for col in df.columns}),
             'Suitable': pd.Series({col: results['columns'][col]['suitable'] for col in df.columns}),
-        }).round(4)
+        }).round(3)
+        # Ensure the length of each info column matches df.shape[1]
+        for i in range(len(info)):
+            column_length = len(df.columns)
+            padded_info = info[i] + ['label'] * (column_length - len(info[i]))  # Ensure correct length
+            feature_stats[f'info{i}'] = padded_info[:column_length]  # Truncate if needed
+        # Display the full DataFrame
+        pd.set_option('display.max_rows', None)  # Show all rows
+        pd.set_option('display.max_columns', None)  # Show all columns
+        pd.set_option('display.width', 1000)  # Avoid line wrapping
         print(feature_stats)
-
+        
     def _analyze_distribution_shape(series):
         """
         Analyzes a pandas Series by testing against standard distributions,
@@ -187,5 +196,5 @@ def CheckDist(df: pd.DataFrame) -> Dict[str, Any]:
         results['columns'][col] = column_result.__dict__
 
     # Print summary
-    _print_data_dist_summary(df, results)
+    _print_data_dist_summary(df, results, info)
     return results

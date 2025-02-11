@@ -1,4 +1,4 @@
-from Math.models.pytorch_model import \
+from misc.pytorch_model import \
     ScalingMethod, SplitMethod, \
     DataCheckResult, ModelType, GeneralizedModel, \
     CNN, Recurrent, Transformer, Ensemble

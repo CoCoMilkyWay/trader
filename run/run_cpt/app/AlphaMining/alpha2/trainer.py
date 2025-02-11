@@ -11,7 +11,7 @@ from jax import random as jrandom
 @ray.remote(num_gpus=0.4) # actor 
 class AlphaSearcher:
     def __init__(self, config, computation_data, id):
-         
+        
         self.config = config
         self.computation_data = computation_data
         self.id = id
@@ -21,7 +21,6 @@ class AlphaSearcher:
         self.num_alphas_found = 0
         self.gpu_id = int(ray.get_gpu_ids()[0])
         print(f"Searcher {id} initialized on gpu: {self.gpu_id}")
-
 
     def run_alpha_search(self, network_params, network_training_step, use_uniform_network=False): # task
         if use_uniform_network:
@@ -35,7 +34,6 @@ class AlphaSearcher:
         metric =game.environment.evaluate()
         info = {"network_step": network_training_step, "searcher_id": self.id, "num_alphas_found": self.num_alphas_found,  'metric': metric}
         return game, info
-
 
 @ray.remote(num_gpus=0.4,)
 class NetworkTrainer:

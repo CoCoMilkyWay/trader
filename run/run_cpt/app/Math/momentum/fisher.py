@@ -2,6 +2,12 @@ import array
 import math
 
 class fisher:
+    """"
+    The Fisher Transform is a technical indicator that transforms price data into a Gaussian (normal) distribution, 
+    making it easier to identify turning points in price action. 
+    It emphasizes extreme values, helping traders spot 
+    potential reversals more clearly than raw price movements.
+    """
     def __init__(self,
                  highs: array.array,
                  lows: array.array,

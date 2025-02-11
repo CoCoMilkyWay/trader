@@ -4,9 +4,9 @@ class cfg_cpt:  # Constants Configs
     import os
     
     period, n = 'm', 1  # bar period
-    num = 1  # number of assets (int/None)
-    start = 202001010000
-    end   = 202406010000
+    num = 2  # number of assets (int/None)
+    start = 202101010000
+    end   = 202101030000
     capital = 10000000
     
     # run_mode(1 in 3):
@@ -15,7 +15,8 @@ class cfg_cpt:  # Constants Configs
     # main functions:
     parallel = num >= 30
     profile  = False
-    plot     = True
+    stat     = True
+    plot     = False
     analyze  = False
     snoop    = False
     panel    = False

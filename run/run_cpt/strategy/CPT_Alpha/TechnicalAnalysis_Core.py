@@ -10,7 +10,7 @@ from Chan.Common.CTime import CTime
 from Chan.KLine.KLine_Unit import CKLine_Unit
 from Chan.KLine.KLine_List import CKLine_List
 
-from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
+from Math.sl_tp.Adaptive_SuperTrend import AdaptiveSuperTrend
 
 from .Labels import ts_label, NUM_LABELS
 from .TechnicalAnalysis_Rules import TechnicalAnalysis_Rules, IndicatorManager, ParamType, IndicatorArg, ScalingMethod
@@ -92,13 +92,14 @@ class TechnicalAnalysis_Core:
         # Generate column names and scaling methods from feature specs
         self.n_features = sum(len(spec['features']) for spec in self.indicator_manager.feature_specs.values())
         self.n_labels = NUM_LABELS
-        self.feature_names = []
+        self.feature_names:List[str] = []
+        self.feature_types:List[str] = []
         self.feature_map = []
-        self.scaling_methods = {} # use dict just to be safe
+        self.scaling_methods = [] # use dict just to be safe
         for indicator_name, spec in self.indicator_manager.feature_specs.items():
             # Get scaler once per indicator (assumes all features from same indicator use same scaler)
             scaler = spec.get('scaler', ScalingMethod.NONE)
-            for attr_name, idx in spec['features']:
+            for attr_name, idx, attr_type in spec['features']:
                 # Create descriptive column name
                 if idx is not None:
                     col_name = f"{indicator_name}_{attr_name}_{abs(idx)}"
@@ -106,14 +107,15 @@ class TechnicalAnalysis_Core:
                     col_name = f"{indicator_name}_{attr_name}"
                 
                 self.feature_names.append(col_name)
+                self.feature_types.append(attr_type)
                 self.feature_map.append((spec['instance'], attr_name, idx if idx else None))
-                self.scaling_methods[col_name] = scaler  # Associate scaling method with column
+                self.scaling_methods.append(scaler)
                 
         # Create label column names
-        self.label_names = [f'label_{i+1}' for i in range(self.n_labels)]
+        self.label_names:List[str] = [f'label_{i+1}' for i in range(self.n_labels)]
         
         # Create template for fast instance
-        self.list_template = [0.0 for i in range(self.n_features + self.n_labels)]
+        self.result_list = [0.0 for _ in range(self.n_features + self.n_labels)]
         
     def analyze(self, open:float, high:float, low:float, close:float, vol:float, time:int):
         """Main analysis workflow"""
@@ -145,15 +147,15 @@ class TechnicalAnalysis_Core:
                 self.init = True
                 
         # Store features
-        result_list = copy.deepcopy(self.list_template)
+        # result_list = copy.deepcopy(self.list_template)
         for idx, (instance, attr_name, delay) in enumerate(self.feature_map):
             feature_time_series = getattr(instance, attr_name)
-            result_list[idx] = feature_time_series[delay] if delay else feature_time_series
+            self.result_list[idx] = feature_time_series[delay] if delay else feature_time_series
         for i in range(self.n_labels):
-            result_list[self.n_features + i] = 0.0
+            self.result_list[self.n_features + i] = 0.0
             
         # Update the selected slice (features, codes, timestamps)
-        result_vector = torch.tensor(result_list, dtype=torch.float16)
+        result_vector = torch.tensor(self.result_list, dtype=torch.float16)
         self.shared_tensor[self._timestamp_idx, :, self._code_idx,] = result_vector
         
         # formatted_result = [f"{x:.5f}" for x in result_list]

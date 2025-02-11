@@ -1,6 +1,7 @@
 import array
 
 class massi:
+    """measures the range between high and low stock prices over a specific period to identify potential trend reversals"""
     def __init__(self, 
                  highs: array.array,
                  lows: array.array,

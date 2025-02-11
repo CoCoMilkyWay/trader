@@ -299,7 +299,7 @@ class Parallel_Process_Core:
         torch.save(self.shared_tensor, './results/tensor.pt')
         
         # torch.set_printoptions(profile="full")
-        print(self.shared_tensor)
+        # print(self.shared_tensor)
         
         if not self.Parallel:
             self.C.on_backtest_end()

@@ -552,11 +552,11 @@ class ChanPlotter:
     def draw_ind(self):
         "Draw Indicators: "
         
-        from Math.Chandelier_Stop import ChandelierIndicator
-        from Math.ChandeKroll_Stop import ChandeKrollStop
-        from Math.Parabolic_SAR_Stop import ParabolicSARIndicator
-        from Math.VolumeWeightedBands import VolumeWeightedBands
-        from Math.Adaptive_SuperTrend import AdaptiveSuperTrend
+        from Math.sl_tp.Chandelier_Stop import ChandelierIndicator
+        from Math.sl_tp.ChandeKroll_Stop import ChandeKrollStop
+        from Math.sl_tp.Parabolic_SAR_Stop import ParabolicSARIndicator
+        from Math.util.VolumeWeightedBands import VolumeWeightedBands
+        from Math.sl_tp.Adaptive_SuperTrend import AdaptiveSuperTrend
         
         # plot_chandelier = False
         # plot_chandekroll = False

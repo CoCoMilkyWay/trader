@@ -2,6 +2,10 @@ import array
 import math
 
 class gk:
+    """
+    Garman-Klass Volatility Estimator is more efficient because it considers intraday price movements (high and low prices)
+    especially useful in low-frequency trading strategies, risk management, and options pricing
+    """
     def __init__(self,
                  opens: array.array,
                  highs: array.array,

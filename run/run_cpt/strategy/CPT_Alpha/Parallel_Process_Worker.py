@@ -26,6 +26,7 @@ class Parallel_Process_Worker():
             self.tech_analysis[code] = TechnicalAnalysis_Core(code=code, code_idx=self.__code_idxes__[idx], shared_tensor=shared_tensor, plot=plot)
             if idx == 0:
                 self.feature_names = self.tech_analysis[code].feature_names
+                self.feature_types = self.tech_analysis[code].feature_types
                 self.label_names = self.tech_analysis[code].label_names
                 self.scaling_methods = self.tech_analysis[code].scaling_methods
                 
@@ -45,19 +46,23 @@ class Parallel_Process_Worker():
         # self.ST_Train(context, code)
         
     def on_backtest_end(self):
-        # from Util.CheckDist import CheckDist
-        # for idx, code in enumerate(self.__codes__):
-        #     df, scaling_methods = self.tech_analysis[code].get_features_df()
-        #     df.to_parquet(mkdir(f'{cfg_cpt.ML_MODEL_DIR}/data/ts_{code}_{cfg_cpt.start}_{cfg_cpt.end}.parquet'))
-        #     
-        #     if idx == 0:
-        #         CheckDist(df)
-        #         
-        #         # print(df.shape)
-        #         # print(df.describe())
-        #         # print(df.info())
-        #         # from .Model import train
-        #         # train(df, scaling_methods)
+        if cfg_cpt.stat:
+            from Util.CheckDist import CheckDist
+            from Util.UtilCpt import mkdir
+            import pandas as pd
+            df = pd.DataFrame(self.shared_tensor[:,:,0].to(torch.float32).numpy())
+            df.columns = pd.Index(self.feature_names + self.label_names)
+            CheckDist(df, [self.feature_types])
+        
+        for idx, code in enumerate(self.__codes__):
+            # df.to_parquet(mkdir(f'{cfg_cpt.ML_MODEL_DIR}/data/ts_{code}_{cfg_cpt.start}_{cfg_cpt.end}.parquet'))
+            if idx == 0:
+                pass
+                # print(df.shape)
+                # print(df.describe())
+                # print(df.info())
+                # from .Model import train
+                # train(df, scaling_methods)
         
         # if cfg_cpt.plot and self.__id__ == 0:
         #     from Chan.Plot.PlotDriver import ChanPlotter

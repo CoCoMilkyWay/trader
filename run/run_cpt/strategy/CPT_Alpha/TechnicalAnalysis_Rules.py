@@ -38,8 +38,9 @@ from Math.momentum.td_seq import td_seq
 from Math.volume.aobv import aobv
 from Math.volume.avwap import avwap
 from Math.volume.eom import eom
+from Math.models.LSTM import LSTM
 
-from Math.models.pytorch_model import \
+from Math.models.models import \
     ScalingMethod
     # SplitMethod, \
     # DataCheckResult, ModelType, GeneralizedModel, \
@@ -58,6 +59,15 @@ class IndicatorArg:
     value: Any
     attr: Optional[str] = None
 
+class FeatureType:
+    PRICE = "price"
+    VOLUME = "volume"
+    OSCILLATOR = "oscillator"
+    RATIO = "ratio"
+    CONDITION = "condition"
+    MISC = "misc" # unclear type, could try any operators on them
+    ML = "ml" # machine learning predictor as intermediate alpha
+
 
 class TechnicalAnalysis_Rules:
     """
@@ -68,16 +78,16 @@ class TechnicalAnalysis_Rules:
     
     # parameters used to parse final indicators
     P_MA = None
-    P_EMA = None
-    P_VEMA = None
+    P_EMA = [5]
+    P_VEMA = [5, 20]
     P_STDDEV = [20]
     P_ATR = [10]
     P_MASSI = [[9], [25]]
     P_RVI = [[10], [7]]
     P_GK = [10]
-    P_BBAND = [None, None] # 20, 2
-    P_DONCHIAN = None # 20
-    P_KELTNER = [[20], [2]] # 20, 2
+    P_BBAND = [[5, 20], [2,4]]
+    P_DONCHIAN = [5, 20]
+    P_KELTNER = [[5, 20], [2]]
     P_CANDLESTRENGTH = [10]
     P_RSI = [14]
     P_STO_RSI = [3]
@@ -86,7 +96,7 @@ class TechnicalAnalysis_Rules:
     P_CCI = [20]
     P_TSI_TREND = [20]
     P_TSI_TRUE = [[25], [13]]
-    P_ROC = None
+    P_ROC = [14]
     P_FISHER = [9]
     P_CMO = [9]
     P_ADX = [14]
@@ -95,7 +105,8 @@ class TechnicalAnalysis_Rules:
     P_AOBV = [13]
     P_AVWAP = [20]
     P_EOM = [14]
-
+    P_LSTM = None
+    
     # Technical indicator configurations
     indicator_definitions = [
         # Overlay indicators
@@ -117,7 +128,9 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': []
+            'features': [
+                ('ema', -1, FeatureType.PRICE),
+            ]
         },
         {
             'param0': P_VEMA,
@@ -127,9 +140,11 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': []
+            'features': [
+                ('ema', -1, FeatureType.VOLUME),
+            ]
         },
-
+        
         # Volatility indicators
         {
             'param0': P_STDDEV,
@@ -140,7 +155,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('stddev', -1)],
+            'features': [('stddev', -1, FeatureType.MISC)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -153,7 +168,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('atr', -1)],
+            'features': [('atr', -1, FeatureType.MISC)],
             'scaler': ScalingMethod.ROBUST
         },
         {
@@ -167,7 +182,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 'param1'),
             ],
-            'features': [('mass_index', -1)],
+            'features': [('mass_index', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -182,7 +197,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 'param1'),
             ],
-            'features': [('rvi', -1)],
+            'features': [('rvi', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.ROBUST
         },
         {
@@ -197,7 +212,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 252),
             ],
-            'features': [('volatility', -1)],
+            'features': [('volatility', -1, FeatureType.MISC)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -210,7 +225,10 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.REFERENCE, ('stddev', 'param0'), 'stddev'),
                 IndicatorArg(ParamType.LITERAL, 'param1'),
             ],
-            'features': []
+            'features': [
+                ('upper_band', -1, FeatureType.PRICE),
+                ('lower_band', -1, FeatureType.PRICE),
+            ]
         },
         {
             'param0': P_DONCHIAN,
@@ -221,7 +239,11 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('lows', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': []
+            'features': [
+                ('upper_band', -1, FeatureType.PRICE),
+                ('middle_band', -1, FeatureType.PRICE),
+                ('lower_band', -1, FeatureType.PRICE),
+            ]
         },
         {
             'param0': P_KELTNER[0],
@@ -233,9 +255,12 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.REFERENCE, ('atr', 10), 'atr'),
                 IndicatorArg(ParamType.LITERAL, 'param1'),
             ],
-            'features': []
+            'features': [
+                ('upper_band', -1, FeatureType.PRICE),
+                ('lower_band', -1, FeatureType.PRICE),
+            ]
         },
-
+        
         # Performance indicators
         {
             'name': ('logreturn',),
@@ -244,8 +269,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
             ],
             'features': [
-                ('log_returns', -1), ('log_returns', -2), ('log_returns', -3),
-                ('log_returns', -4), ('log_returns', -5)
+                ('log_returns', -1, FeatureType.RATIO),
             ],
             'scaler': ScalingMethod.ROBUST
         },
@@ -263,12 +287,9 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.REFERENCE, ('atr', 'param0'), 'atr'),
             ],
             'features': [
-                ('strength', -1), ('strength', -2), ('strength', -3),
-                ('strength', -4), ('strength', -5),
-                ('tr_mult', -1), ('tr_mult', -2), ('tr_mult', -3),
-                ('tr_mult', -4), ('tr_mult', -5),
-                ('v_mult', -1), ('v_mult', -2), ('v_mult', -3),
-                ('v_mult', -4), ('v_mult', -5)
+                ('strength', -1, FeatureType.OSCILLATOR),
+                ('tr_mult',  -1, FeatureType.RATIO),
+                ('v_mult',   -1, FeatureType.RATIO),
             ],
             'scaler': ScalingMethod.ROBUST
         },
@@ -278,10 +299,13 @@ class TechnicalAnalysis_Rules:
             'args': [
                 IndicatorArg(ParamType.SOURCE, ('timestamp',)),
             ],
-            'features': [('day_of_week', None), ('hour_of_day', None)],
+            'features': [
+                ('day_of_week', None, FeatureType.OSCILLATOR),
+                ('hour_of_day', None, FeatureType.OSCILLATOR),
+                ],
             'scaler': ScalingMethod.STANDARD
         },
-
+        
         # Momentum indicators
         {
             'param0': P_RSI,
@@ -291,7 +315,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('rsi', -1)],
+            'features': [('rsi', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -304,7 +328,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('histogram', -1)],
+            'features': [('histogram', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -317,7 +341,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.REFERENCE, ('ema', 26), 'ema'),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('histogram', -1)],
+            'features': [('histogram', -1, FeatureType.MISC)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -329,7 +353,10 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('lows', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('aroon_up', -1), ('aroon_down', -1)],
+            'features': [
+                ('aroon_up',   -1, FeatureType.OSCILLATOR),
+                ('aroon_down', -1, FeatureType.OSCILLATOR),
+                ],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -344,7 +371,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 0.015),
             ],
-            'features': [('cci', -1)],
+            'features': [('cci', -1, FeatureType.MISC)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -356,7 +383,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('tsi', -1)],
+            'features': [('tsi', -1, FeatureType.RATIO)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -369,7 +396,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 'param1'),
             ],
-            'features': [('tsi', -1)],
+            'features': [('tsi', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -380,7 +407,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': []
+            'features': [('roc', -1, FeatureType.OSCILLATOR)],
         },
         {
             'param0': P_FISHER,
@@ -391,7 +418,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('lows', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('fisher', -1)],
+            'features': [('fisher', -1, FeatureType.RATIO)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -402,7 +429,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('cmo', -1)],
+            'features': [('cmo', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -416,7 +443,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('adx', -1)],
+            'features': [('adx', -1, FeatureType.MISC)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -431,7 +458,10 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.REFERENCE, ('keltner', 'param0', 2), 'lower_band'),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('squeeze_rating', -1), ('momentum', -1)],
+            'features': [
+                ('squeeze_rating', -1, FeatureType.RATIO),
+                ('momentum',       -1, FeatureType.MISC),
+                ],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -448,7 +478,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 2 ),
                 IndicatorArg(ParamType.LITERAL, 1 ),
             ],
-            'features': [('uo', -1)],
+            'features': [('uo', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -463,7 +493,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, [1, 2, 3, 4]),
                 IndicatorArg(ParamType.LITERAL, 9),
             ],
-            'features': [('histogram', -1)],
+            'features': [('histogram', -1, FeatureType.RATIO)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -476,7 +506,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('wpr', -1)],
+            'features': [('wpr', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -485,7 +515,7 @@ class TechnicalAnalysis_Rules:
             'args': [
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
             ],
-            'features': [('setup_index', None)],
+            'features': [('setup_index', None, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
         },
 
@@ -502,7 +532,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('histogram', -1)],
+            'features': [('histogram', -1, FeatureType.RATIO)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -518,7 +548,7 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.LITERAL, 'param0'),
                 IndicatorArg(ParamType.LITERAL, 0),
             ],
-            'features': [('deviation', -1)],
+            'features': [('deviation', -1, FeatureType.RATIO)],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -531,8 +561,22 @@ class TechnicalAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('volumes', 0)),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
-            'features': [('emv_osc', -1)],
+            'features': [('emv_osc', -1, FeatureType.RATIO)],
             'scaler': ScalingMethod.STANDARD
+        },
+        {
+            'param0': P_LSTM,
+            'name': ('lstm', 'param0'),
+            'constructor': LSTM,
+            'args': [
+                IndicatorArg(ParamType.REFERENCE, ('candlestrength', P_CANDLESTRENGTH[0]), 'strength'),
+                IndicatorArg(ParamType.REFERENCE, ('candlestrength', P_CANDLESTRENGTH[0]), 'tr_mult'),
+                IndicatorArg(ParamType.REFERENCE, ('candlestrength', P_CANDLESTRENGTH[0]), 'v_mult'),
+                IndicatorArg(ParamType.REFERENCE, ('atr', P_ATR[0]), 'atr'),
+                IndicatorArg(ParamType.REFERENCE, ('rsi', P_RSI[0]), 'rsi'),
+                IndicatorArg(ParamType.REFERENCE, ('logreturn', ), 'log_returns'),
+            ],
+            'features': [('prediction', -1, FeatureType.ML)],
         },
     ]
 

@@ -112,3 +112,24 @@
 # |                     |                     | ') - Q(s,a)]        | Q(s',a'; θ⁻) -      | Q^π(s_t,a_t) ]      | Critic: A(s,a) =    | clip(ratio_t, 1±ε) |
 # |                     |                     |                     | Q(s,a;θ))^2 ]       |                     | Q(s,a) - V(s)       | A_t ) ]            |
 # +---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+--------------------+
+# 
+# To problem with vast exploration space and extremely sparse rewards:
+# +------------------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+--------------------------------------------------------------------+
+# |                Method                    |                         Key Idea                            |                        Advantages                             |                         Disadvantages                              |
+# +------------------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+--------------------------------------------------------------------+
+# | Intrinsic Motivation & Curiosity-Driven  | Augment extrinsic rewards with intrinsic signals            | - Provides continual feedback in sparse-reward settings       | - Balancing intrinsic vs. extrinsic rewards is challenging         |
+# | Methods                                  | (e.g., prediction error, state novelty)                     | - Encourages exploration in high-dimensional spaces           | - Risk of “gaming” the intrinsic signal                            |
+# +------------------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+--------------------------------------------------------------------+
+# | Count-Based / Pseudo-Count Methods       | Reward novelty based on state visit counts or pseudo-counts | - Principled measure of novelty                               | - Direct counting isn’t feasible in large spaces                   |
+# |                                          | (or approximations thereof)                                 | - Explicitly encourages exploration                           | - Density estimation and hashing can be computationally demanding  |
+# +------------------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+--------------------------------------------------------------------+
+# | Hierarchical Reinforcement Learning      | Decompose tasks into sub-goals or options to simplify       | - Reduces effective exploration space                         | - Requires design/discovery of effective hierarchies               |
+# | (HRL)                                    | exploration and improve long-horizon credit assignment      | - Can improve sample efficiency if sub-goals are well chosen  | - Poor sub-goal selection can hinder learning                      |
+# +------------------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+--------------------------------------------------------------------+
+# | Maximum Entropy & Uncertainty-Aware      | Incorporate entropy bonuses or uncertainty estimates        | - Balances exploration and exploitation                       | - Entropy bonus tuning can be delicate                             |
+# | Approaches                               | into policy updates                                         | - Provides robust performance in stochastic environments      | - Estimating uncertainty in high-dimensional spaces is challenging |
+# +------------------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+--------------------------------------------------------------------+
+# | Model-Based Approaches                   | Learn a model of the environment to simulate future outcomes| - Enables planning and simulated rollouts to guide exploration| - Learning accurate models in complex domains is difficult         |
+# |                                          | and guide exploration                                       | - Can improve sample efficiency by “imagining” trajectories   | - Model errors may misguide exploration in rarely-visited areas    |
+# +------------------------------------------+-------------------------------------------------------------+---------------------------------------------------------------+--------------------------------------------------------------------+
+# 

@@ -2,6 +2,7 @@ import array
 from math import sqrt
 
 class rvi:
+    """Relative Vigor Index measures the strength of a trend by comparing the closing price to the trading range over a specific period"""
     def __init__(self,
                  closes: array.array,
                  highs: array.array,
