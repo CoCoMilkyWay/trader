@@ -1,21 +1,16 @@
-import os
+import os, sys
 import torch
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+from pprint import pprint
+sys.path.append(os.path.join(os.path.dirname(__file__), "."))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+
+from Mining.Data.Data import Data
 
 class Miner:
     def __init__(self):
-        self.meta = torch.load('./Data/meta.pt')
-        self.num_timestamps = self.meta[0]
-        self.feature_names = self.meta[1]
-        self.label_names = self.meta[2]
-        self.code_info = self.meta[3]
-        
-        self.tensor = torch.load('./Data/tensor.pt')
-
-        print(f'Days:{self.num_timestamps/60/24}')
-        print(f'Codes:{len(self.code_info.keys())}')
-        print(f'Features:{len(self.feature_names)}')
-        print(f'Labels:{len(self.label_names)}')
+        self.Data = Data(init=True)
         
 if __name__ == '__main__':
     M = Miner()
+

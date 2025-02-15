@@ -46,12 +46,10 @@ from Math.models.models import \
     # DataCheckResult, ModelType, GeneralizedModel, \
     # CNN, Recurrent, Transformer, Ensemble
 
-
 class ParamType(Enum):
     SOURCE = 1       # Data source like closes[0]
     REFERENCE = 2    # Other indicator reference
     LITERAL = 3      # Literal value
-
 
 @dataclass
 class IndicatorArg:
@@ -67,7 +65,6 @@ class FeatureType:
     CONDITION = "condition"
     MISC = "misc" # unclear type, could try any operators on them
     ML = "ml" # machine learning predictor as intermediate alpha
-
 
 class TechnicalAnalysis_Rules:
     """
@@ -781,13 +778,13 @@ class IndicatorManager:
                         f"Failed to parse source arg {real_name}: {arg}")
             else:
                 raise ValueError(f"Unknown argument type {arg.type}")
-
+            
         # 3. Instantiate and register
         # print(f'creating {real_name}: {resolved_args}')
         instance = definition['constructor'](*resolved_args)
         self.indicator_registry[real_name] = instance
         setattr(self.parent, real_name, instance)
-
+        
         # 4. Store feature configuration
         if 'features' in definition:
             self.feature_specs[real_name] = {

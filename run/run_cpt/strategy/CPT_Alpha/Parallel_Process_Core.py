@@ -148,7 +148,9 @@ class Parallel_Process_Core:
     def _init_shared_tensor(self):
         from config.cfg_cpt import cfg_cpt
         from Util.UtilCpt import time_diff_in_min
-        N_timestamps = time_diff_in_min(cfg_cpt.start, cfg_cpt.end)
+        self.start = cfg_cpt.start
+        self.end = cfg_cpt.end
+        N_timestamps = time_diff_in_min(self.start, self.end)
         N_features = len(self.C_dummy.feature_names)
         N_labels = len(self.C_dummy.label_names)
         N_columns = N_features + N_labels
@@ -288,12 +290,23 @@ class Parallel_Process_Core:
     def parallel_close(self):
         """Gracefully terminate all workers."""
         from Util.UtilCpt import mkdir
-        meta = [
-            self.num_timestamps,
-            self.C_dummy.feature_names,
-            self.C_dummy.label_names,
-            self.code_info,
-        ]
+        meta = {
+            'timestamps':[self.num_timestamps, self.start, self.end],
+            'features':[],
+            'labels':[],
+            'codes': [],
+        }
+        for idx, feature in enumerate(self.C_dummy.feature_names):
+            meta['features'].append((
+                str(feature),
+                str(self.C_dummy.feature_types[idx]),
+                str(self.C_dummy.scaling_methods[idx]),
+                ))
+        for idx, label in enumerate(self.C_dummy.label_names):
+            meta['labels'].append((str(label),))
+        code_names = sorted(self.code_info.keys(), key=lambda k: self.code_info[k]['idx'])
+        for idx, code in enumerate(code_names):
+            meta['codes'].append((str(code),))
         mkdir('results/')
         torch.save(meta, './results/meta.pt')
         torch.save(self.shared_tensor, './results/tensor.pt')

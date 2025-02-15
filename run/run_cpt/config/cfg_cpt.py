@@ -4,9 +4,9 @@ class cfg_cpt:  # Constants Configs
     import os
     
     period, n = 'm', 1  # bar period
-    num = 2  # number of assets (int/None)
+    num = 10  # number of assets (int/None)
     start = 202101010000
-    end   = 202101030000
+    end   = 202103010000
     capital = 10000000
     
     # run_mode(1 in 3):
