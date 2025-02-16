@@ -493,7 +493,7 @@ class SkewRToken(BinaryOpToken):
     def cal(*values: Value):
         def _Skew(X: Tensor, dim: int):
             # skew = m3 / m2^(3/2)
-            central = val0.value - val0.value.mean(dim=dim, keepdim=True)
+            central = X - X.mean(dim=dim, keepdim=True)
             m3 = (central ** 3).mean(dim=dim)
             m2 = (central ** 2).mean(dim=dim)
             return m3 / m2 ** 1.5
@@ -601,7 +601,7 @@ class MadRToken(BinaryOpToken):
     def cal(*values: Value):
         def _Mad(X: Tensor, dim: int):
             central = X - X.mean(dim=dim, keepdim=True)
-            return central.abs().mean(dim=-1)
+            return central.abs().mean(dim=dim)
         val0, val1 = values
         res_val = RollingOp_1D(_Mad, val0.value, val1.value, 0)
         res_dim = copy_dim(val0.dimension)

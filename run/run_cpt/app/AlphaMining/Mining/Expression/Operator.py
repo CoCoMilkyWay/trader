@@ -5,8 +5,9 @@ from enum import IntEnum
 from typing import List, Type, Union, Tuple
 
 from Mining.Expression.Expression import Expression
-from Mining.Expression.Content import ContentType, Content
+from Mining.Expression.Dimension import DimensionType, Dimension
 from Mining.Expression.Operand import OperandType, Operand, into_operand, _operand_input, _operand_output
+from Mining.Expression.Dimension import DimensionType as T
 from Mining.Data.Data import Data
 
 # Operator base classes
@@ -38,7 +39,7 @@ class Operator(Expression):
         for i, arg in enumerate(args):
             if not isinstance(arg, Operand):
                 raise RuntimeError(f"{arg} is not a valid expression")
-            if ContentType.timedelta in arg.Content:
+            if DimensionType.timedelta in arg.Dimension:
                 raise RuntimeError(f"{self.__name__} expects a normal expression for operand {i + 1}, "
                             f"but got {arg} (a DeltaTime)")
             any_is_featured = any_is_featured or arg.is_featured
@@ -52,7 +53,7 @@ class Operator(Expression):
         return True
 
     def _check_delta_time(self, arg) -> bool:
-        if ContentType.timedelta not in arg.Content:
+        if DimensionType.timedelta not in arg.Dimension:
             raise RuntimeError(f"{self.__name__} expects a DeltaTime as its last operand, but {arg} is not")
         return True
 
@@ -62,6 +63,17 @@ class Operator(Expression):
 
     def __str__(self) -> str:
         return f"{type(self).__name__}({','.join(str(op) for op in self.operands)})"
+
+
+def get_subtensor(X: Tensor, i: slice, axis: int) -> Tensor:
+    # Create a list of slices (slice(None) for all dimensions initially)
+    slices = [slice(None)] * X.ndim  # Initialize with selecting all elements
+    # Set the index for the chosen axis (i is not a slice anymore)
+    slices[axis] = i
+
+    # Return the subtensor at index i along the given axis
+    return X[tuple(slices)]
+
 
 def RollingOp_1D(Op, X, window, axis):
     '''Return the result of applying Op to a rolling window over a specified axis'''
@@ -122,10 +134,13 @@ def RollingOp_2D(Op, X, Y, window, axis):
     return result
 
 class UnaryOperator(Operator):
-    def __init__(self, operand0:_operand_input, content:Content) -> None:
-        self._operand0 = into_operand(operand0, content)
+    def __init__(self, operand0:_operand_input, dimension:Dimension) -> None:
+        self._operand0 = into_operand(operand0, dimension)
         assert self._operand0.OperandType == OperandType.matrix
-        self.content = self._output_content()
+        self.init()
+
+    @abstractmethod
+    def init(self) -> None: ...
 
     def n_args(self) -> int: return 1
 
@@ -135,17 +150,16 @@ class UnaryOperator(Operator):
         check = True
         check = check and self._check_arity(*args)
         check = check and self._check_exprs_featured([args[0]])
-        check = check and self._check_content()
+        check_dim, dimension = self._check_dimension()
+        self.dimension = Dimension([dimension])
+        check = check and check_dim
         return check
 
     def evaluate(self, data: Data, period: slice = slice(0, 1)) -> _operand_output:
-        return self._apply(self._operand0.evaluate(data, period))
+        return self._apply(self._operand0.evaluate(data))
 
     @abstractmethod
-    def _output_content(self) -> bool: ...
-
-    @abstractmethod
-    def _check_content(self) -> bool: ...
+    def _check_dimension(self) -> Tuple[bool, DimensionType]: ...
 
     @abstractmethod
     def _apply(self, _operand0: _operand_output) -> _operand_output: ...
@@ -158,12 +172,15 @@ class UnaryOperator(Operator):
 
 
 class BinaryOperator(Operator):
-    def __init__(self, operand0:_operand_input, operand1:_operand_input, content:Content) -> None:
-        self._operand0 = into_operand(operand0, content)
-        self._operand1 = into_operand(operand1, content)
+    def __init__(self, operand0:_operand_input, operand1:_operand_input, dimension:Dimension) -> None:
+        self._operand0 = into_operand(operand0, dimension)
+        self._operand1 = into_operand(operand1, dimension)
         assert self._operand0.OperandType == OperandType.matrix
-        self.rolling = ContentType.timedelta in self._operand1.Content
-        self.content = self._output_content()
+        self.rolling = DimensionType.timedelta in self._operand1.Dimension
+        self.init()
+
+    @abstractmethod
+    def init(self) -> None: ...
 
     def n_args(self) -> int: return 2
 
@@ -178,20 +195,19 @@ class BinaryOperator(Operator):
             check = check and self._check_delta_time([args[1]])
         else:
             check = check and self._check_exprs_featured([args[1]])
-        check = check and self._check_content()
+        check_dim, dimension = self._check_dimension()
+        self.dimension = Dimension([dimension])
+        check = check and check_dim
         return check
 
     def evaluate(self, data: Data, period: slice = slice(0, 1)) -> _operand_output:
         return self._apply(
-            self._operand0.evaluate(data, period),
-            self._operand1.evaluate(data, period),
-            )
+            self._operand0.evaluate(data),
+            self._operand1.evaluate(data),
+        )
 
     @abstractmethod
-    def _output_content(self) -> bool: ...
-
-    @abstractmethod
-    def _check_content(self) -> bool: ...
+    def _check_dimension(self) -> Tuple[bool, DimensionType]: ...
 
     @abstractmethod
     def _apply(self, _operand0: _operand_output, _operand1: _operand_output) -> _operand_output: ...
@@ -216,14 +232,17 @@ class BinaryOperator(Operator):
     #     return self._apply(values)                                  # (L, S)
     
 class TernaryOperator(Operator):
-    def __init__(self, operand0:_operand_input, operand1:_operand_input, operand2:_operand_input, content:Content) -> None:
-        self._operand0 = into_operand(operand0, content)
-        self._operand1 = into_operand(operand1, content)
-        self._operand2 = into_operand(operand2, content)
+    def __init__(self, operand0:_operand_input, operand1:_operand_input, operand2:_operand_input, dimension:Dimension) -> None:
+        self._operand0 = into_operand(operand0, dimension)
+        self._operand1 = into_operand(operand1, dimension)
+        self._operand2 = into_operand(operand2, dimension)
         assert self._operand0.OperandType == OperandType.matrix
         assert self._operand1.OperandType == OperandType.matrix
-        self.rolling = ContentType.timedelta in self._operand2.Content
-        self.content = self._output_content()
+        self.rolling = DimensionType.timedelta in self._operand2.Dimension
+        self.init()
+
+    @abstractmethod
+    def init(self) -> None: ...
 
     def n_args(self) -> int: return 3
 
@@ -239,21 +258,20 @@ class TernaryOperator(Operator):
             check = check and self._check_delta_time([args[2]])
         else:
             check = check and self._check_exprs_featured([args[2]])
-        check = check and self._check_content()
+        check_dim, dimension = self._check_dimension()
+        self.dimension = Dimension([dimension])
+        check = check and check_dim
         return check
 
     def evaluate(self, data: Data, period: slice = slice(0, 1)) -> _operand_output:
         return self._apply(
-            self._operand0.evaluate(data, period),
-            self._operand1.evaluate(data, period),
-            self._operand2.evaluate(data, period),
+            self._operand0.evaluate(data),
+            self._operand1.evaluate(data),
+            self._operand2.evaluate(data),
             )
 
     @abstractmethod
-    def _output_content(self) -> bool: ...
-
-    @abstractmethod
-    def _check_content(self) -> bool: ...
+    def _check_dimension(self) -> Tuple[bool, DimensionType]: ...
 
     @abstractmethod
     def _apply(self, _operand0: _operand_output, _operand1: _operand_output, _operand2: _operand_output) -> _operand_output: ...
@@ -267,418 +285,548 @@ class TernaryOperator(Operator):
     def is_featured(self):
         return self._operand0.is_featured or self._operand1.is_featured or self._operand2.is_featured
 
-def __check_content(
-    content_array:list[list[str]],
+def __check_dimension(
+    dimension_map:list[list[list[T]]],
     operand:Union[UnaryOperator, BinaryOperator, TernaryOperator],
-    identical_operands:List[int] = [], # ascending
-    ) -> bool:
+    ) -> Tuple[bool, DimensionType]:
+    """"
+    'price', 'volume', 'ratio', 'misc', 'oscillator', 'timedelta', 'condition',
+    map = [
+        [[T.price], [T.price,T.misc], [T.timedelta], T.ratio],
+        [[T.volume], [T.volume,T.misc], [T.timedelta], T.ratio],
+        [[T.ratio], [T.ratio,T.misc], [T.timedelta], T.ratio],
+        [[T.misc], [T.price,T.volume,T.ratio,T.misc,T.oscillator], [T.timedelta], T.ratio],
+        [[T.oscillator], [T.oscillator,T.misc], [T.timedelta], T.ratio],
+    ]
+    return __check_dimension(map, self)
     """
-    'price', 'volume', 'ratio', 'misc', 'timedelta', 'oscillator', 'condition',
-    [[allow_list_operand_0],[allow_list_operand_1],...]
-    """
-    num_operands = len(content_array)
-    check = True
-    for i in range(num_operands):
-        content:Content = getattr(operand, f'_operand{i}').Content
-        check = check and content.are_in(Content(content_array[i]))
-        if i in identical_operands:
-            if i == identical_operands[0]:
-                root = content
-            else:
-                check = check and content.identical(root)
-    return check
+    num_rules = len(dimension_map)
+    num_operands = len(dimension_map[0]) - 1
+    for rule_idx in range(num_rules):
+        check = True
+        for oprd_idx in range(num_operands):
+            dimension:Dimension = getattr(operand, f'_operand{oprd_idx}').Dimension
+            check = check and dimension.are_in(Dimension(dimension_map[rule_idx][oprd_idx]))
+        if check: return True, dimension_map[rule_idx][-1] # type: ignore
+    return False, T.misc
 
 
 # Operator implementations
 
 class Abs(UnaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price],T.price],
+            [[T.volume],T.volume],
+            [[T.ratio],T.ratio],
+            [[T.misc],T.misc],
+            [[T.oscillator],T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, operand: Tensor) -> Tensor: return operand.abs()
 
 
 class Sign(UnaryOperator):
-    def _output_content(self) -> Content:
-        return Content(['condition'])
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['ratio', 'misc', 'oscillator',],
-            ], self, [])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.ratio],T.condition],
+            [[T.misc],T.condition],
+            [[T.oscillator],T.condition],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, operand: Tensor) -> Tensor: return operand.sign() # -1. 0. 1.
 
 
 class Log1p(UnaryOperator):
-    def _output_content(self) -> Content:
-        content = self._operand0.Content
-        if ['oscillator'] in content: return Content(['misc'])
-        return content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.volume],T.misc],
+            [[T.ratio],T.ratio],
+            [[T.misc],T.misc],
+            [[T.oscillator],T.misc],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, operand: Tensor) -> Tensor: return operand.abs().log1p()
 
 
-class CSRank(UnaryOperator):
-    def _output_content(self) -> Content:
-        return Content(['misc'])
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [])
+class CS_Rank(UnaryOperator):
+    def init(self):
+        self.TS = False
+        self.CS = True
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price],T.ratio],
+            [[T.volume],T.ratio],
+            [[T.ratio],T.ratio],
+            [[T.misc],T.ratio],
+            [[T.oscillator],T.ratio],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, operand: Tensor) -> Tensor:
         nan_mask = operand.isnan()
         n = (~nan_mask).sum(dim=1, keepdim=True)
+        # argsort(): small -> large -> NaN(masked off again)
         rank = operand.argsort().argsort() / n
         rank[nan_mask] = torch.nan
         return rank
 
 
 class Add(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.price], T.price],
+            [[T.volume], [T.volume], T.volume],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.misc], T.misc],
+            [[T.oscillator], [T.oscillator], T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs + rhs
 
 
 class Sub(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.price], T.price],
+            [[T.volume], [T.volume], T.volume],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.misc], T.misc],
+            [[T.oscillator], [T.oscillator], T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs - rhs
 
 
 class Mul(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.ratio], T.price],
+            [[T.volume], [T.ratio], T.volume],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.ratio], T.misc],
+            [[T.oscillator], [T.ratio], T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs * rhs
 
 
 class Div(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.price], T.ratio],
+            [[T.volume], [T.volume], T.ratio],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.misc], T.ratio],
+            [[T.oscillator], [T.oscillator], T.ratio],
+            
+            [[T.price], [T.ratio], T.price],
+            [[T.volume], [T.ratio], T.volume],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.ratio], T.misc],
+            [[T.oscillator], [T.ratio], T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs / rhs
 
 
 class Pow(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.ratio], T.price],
+            [[T.volume], [T.ratio], T.volume],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.ratio], T.misc],
+            [[T.oscillator], [T.ratio], T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs ** rhs
 
 
-class Greater(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
+class Max(BinaryOperator):
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.price], T.price],
+            [[T.volume], [T.volume], T.volume],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.misc], T.misc],
+            [[T.oscillator], [T.oscillator], T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs.max(rhs)
 
 
-class Less(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
+class Min(BinaryOperator):
+    def init(self):
+        self.TS = False
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.price], T.price],
+            [[T.volume], [T.volume], T.volume],
+            [[T.ratio], [T.ratio], T.ratio],
+            [[T.misc], [T.misc], T.misc],
+            [[T.oscillator], [T.oscillator], T.oscillator],
+        ]
+        return __check_dimension(map, self)
     def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs.min(rhs)
 
 
-class Ref(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    # Ref is not *really* a rolling operator, in that other rolling operators
-    # deal with the values in (-dt, 0], while Ref only deal with the values
-    # at -dt. Nonetheless, it should be classified as rolling since it modifies
-    # the time window.
+class TS_Ref(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
 
-    def evaluate(self, data: StockData, period: slice = slice(0, 1)) -> Tensor:
-        start = period.start - self._delta_time
-        stop = period.stop - self._delta_time
-        return self._operand.evaluate(data, slice(start, stop))
-
-    def _apply(self, operand: Tensor) -> Tensor:
-        # This is just for fulfilling the RollingOperator interface
-        ...
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _DelT(X: Tensor, dim: int):
+            return get_subtensor(X=X, i=slice(-1, None), axis=dim)
+        return RollingOp_1D(_DelT, operand0, operand1, 0)
 
 
-class Mean(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor: return operand.mean(dim=-1)
+class TS_Delta(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _DelT(X: Tensor, dim: int):
+            return get_subtensor(X=X, i=slice(0, None), axis=dim) \
+                - get_subtensor(X=X, i=slice(-1, None), axis=dim)
+        return RollingOp_1D(_DelT, operand0, operand1, 0)
+
+class TS_Mean(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        return RollingOp_1D(torch.mean, operand0, operand1, 0)
+
+class TS_Sum(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        return RollingOp_1D(torch.sum, operand0, operand1, 0)
+
+class TS_Std(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        return RollingOp_1D(torch.std, operand0, operand1, 0)
+
+class TS_Var(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        return RollingOp_1D(torch.var, operand0, operand1, 0)
+
+class TS_Skew(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _Skew(X: Tensor, dim: int):
+            # skew = m3 / m2^(3/2)
+            central = X - X.mean(dim=dim, keepdim=True)
+            m3 = (central ** 3).mean(dim=dim)
+            m2 = (central ** 2).mean(dim=dim)
+            return m3 / m2 ** 1.5
+        return RollingOp_1D(_Skew, operand0, operand1, 0)
+
+class TS_Kurt(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _Kurt(X: Tensor, dim: int):
+            # kurt = m4 / var^2 - 3
+            central = X - X.mean(dim=dim, keepdim=True)
+            m4 = (central ** 4).mean(dim=dim)
+            var = X.var(dim=dim)
+            return m4 / var ** 2 - 3
+        return RollingOp_1D(_Kurt, operand0, operand1, 0)
+
+class TS_Max(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        return RollingOp_1D(torch.max, operand0, operand1, 0)[0]
+
+class TS_Min(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        return RollingOp_1D(torch.min, operand0, operand1, 0)[0]
+
+class TS_Med(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        return RollingOp_1D(torch.median, operand0, operand1, 0)[0]
+
+class TS_Mad(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _Mad(X: Tensor, dim: int):
+            central = X - X.mean(dim=dim, keepdim=True)
+            return central.abs().mean(dim=dim)
+        return RollingOp_1D(_Mad, operand0, operand1, 0)
 
 
-class Sum(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor: return operand.sum(dim=-1)
+class TS_Rank(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.ratio],
+            [[T.volume], [T.timedelta], T.ratio],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.ratio],
+            [[T.oscillator], [T.timedelta], T.ratio],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _Rank(X: Tensor, dim: int):
+            n = X.shape[dim]
+            # Extract the last value along the specified axis
+            last = X.index_select(dim, torch.tensor([-1])).unsqueeze(dim)
+            left = (last < X).count_nonzero(dim=dim)
+            right = (last <= X).count_nonzero(dim=dim)
+            return (right + left + (right > left)) / (2 * n)
+        return RollingOp_1D(_Rank, operand0, operand1, 0)
 
 
-class Std(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor: return operand.std(dim=-1)
+class TS_WMA(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _WMA(X: Tensor, dim: int):
+            n = X.shape[dim]
+            weights = torch.arange(n, dtype=X.dtype, device=X.device)
+            weights /= weights.sum()
+            return (weights * X).sum(dim=dim)
+        return RollingOp_1D(_WMA, operand0, operand1, 0)
 
 
-class Var(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor: return operand.var(dim=-1)
+class TS_EMA(BinaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.timedelta], T.price],
+            [[T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        def _EMA(X: Tensor, dim: int):
+            n = X.shape[dim]
+            alpha = 1 - 2 / (1 + n)
+            power = torch.arange(n, 0, -1, dtype=X.dtype, device=X.device)
+            weights = alpha ** power
+            weights /= weights.sum()
+            return (weights * X).sum(dim=dim)
+        return RollingOp_1D(_EMA, operand0, operand1, 0)
 
 
-class Skew(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor:
-        # skew = m3 / m2^(3/2)
-        central = operand - operand.mean(dim=-1, keepdim=True)
-        m3 = (central ** 3).mean(dim=-1)
-        m2 = (central ** 2).mean(dim=-1)
-        return m3 / m2 ** 1.5
+class TS_Cov(TernaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.price], [T.timedelta], T.price],
+            [[T.volume], [T.volume], [T.timedelta], T.volume],
+            [[T.ratio], [T.ratio], [T.timedelta], T.ratio],
+            [[T.misc], [T.misc], [T.timedelta], T.misc],
+            [[T.oscillator], [T.oscillator], [T.timedelta], T.oscillator],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: Tensor, operand2: int) -> Tensor:
+        def _Cov(X: Tensor, Y: Tensor, dim: int):
+            n = X.shape[dim]
+            clhs = X - X.mean(dim=dim, keepdim=True)
+            crhs = Y - Y.mean(dim=dim, keepdim=True)
+            return (clhs * crhs).sum(dim=dim) / (n - 1)
+        return RollingOp_2D(_Cov, operand0, operand1, operand2, 0)
 
+class TS_Corr(TernaryOperator):
+    def init(self):
+        self.TS = True
+        self.CS = False
+    def _check_dimension(self) -> Tuple[bool, DimensionType]:
+        map = [
+            [[T.price], [T.price,T.misc], [T.timedelta], T.ratio],
+            [[T.volume], [T.volume,T.misc], [T.timedelta], T.ratio],
+            [[T.ratio], [T.ratio,T.misc], [T.timedelta], T.ratio],
+            [[T.misc], [T.price,T.volume,T.ratio,T.misc,T.oscillator], [T.timedelta], T.ratio],
+            [[T.oscillator], [T.oscillator,T.misc], [T.timedelta], T.ratio],
+        ]
+        return __check_dimension(map, self)
+    def _apply(self, operand0: Tensor, operand1: Tensor, operand2: int) -> Tensor:
+        def _Corr(X: Tensor, Y: Tensor, dim: int):
+            clhs = X - X.mean(dim=dim, keepdim=True)
+            crhs = Y - Y.mean(dim=dim, keepdim=True)
+            ncov = (clhs * crhs).sum(dim=dim)
+            nlvar = (clhs ** 2).sum(dim=dim)
+            nrvar = (crhs ** 2).sum(dim=dim)
+            stdmul = (nlvar * nrvar).sqrt()
+            stdmul[(nlvar < 1e-6) | (nrvar < 1e-6)] = 1
+            return ncov / stdmul
+        return RollingOp_2D(_Corr, operand0, operand1, operand2, 0)
 
-class Kurt(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor:
-        # kurt = m4 / var^2 - 3
-        central = operand - operand.mean(dim=-1, keepdim=True)
-        m4 = (central ** 4).mean(dim=-1)
-        var = operand.var(dim=-1)
-        return m4 / var ** 2 - 3
-
-
-class Max(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor: return operand.max(dim=-1)[0]
-
-
-class Min(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor: return operand.min(dim=-1)[0]
-
-
-class Med(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(
-        self, operand: Tensor) -> Tensor: return operand.median(dim=-1)[0]
-
-
-class Mad(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor:
-        central = operand - operand.mean(dim=-1, keepdim=True)
-        return central.abs().mean(dim=-1)
-
-
-class Rank(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor:
-        n = operand.shape[-1]
-        last = operand[:, :, -1, None]
-        left = (last < operand).count_nonzero(dim=-1)
-        right = (last <= operand).count_nonzero(dim=-1)
-        result = (right + left + (right > left)) / (2 * n)
-        return result
-
-
-class Delta(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    # Delta is not *really* a rolling operator, in that other rolling operators
-    # deal with the values in (-dt, 0], while Delta only deal with the values
-    # at -dt and 0. Nonetheless, it should be classified as rolling since it
-    # modifies the time window.
-
-    def evaluate(self, data: StockData, period: slice = slice(0, 1)) -> Tensor:
-        start = period.start - self._delta_time
-        stop = period.stop
-        values = self._operand.evaluate(data, slice(start, stop))
-        return values[self._delta_time:] - values[:-self._delta_time]
-
-    def _apply(self, operand: Tensor) -> Tensor:
-        # This is just for fulfilling the RollingOperator interface
-        ...
-
-
-class WMA(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor:
-        n = operand.shape[-1]
-        weights = torch.arange(n, dtype=operand.dtype, device=operand.device)
-        weights /= weights.sum()
-        return (weights * operand).sum(dim=-1)
-
-
-class EMA(BinaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, operand: Tensor) -> Tensor:
-        n = operand.shape[-1]
-        alpha = 1 - 2 / (1 + n)
-        power = torch.arange(n, 0, -1, dtype=operand.dtype,
-                             device=operand.device)
-        weights = alpha ** power
-        weights /= weights.sum()
-        return (weights * operand).sum(dim=-1)
-
-
-class Cov(TernaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor:
-        n = lhs.shape[-1]
-        clhs = lhs - lhs.mean(dim=-1, keepdim=True)
-        crhs = rhs - rhs.mean(dim=-1, keepdim=True)
-        return (clhs * crhs).sum(dim=-1) / (n - 1)
-
-
-class Corr(TernaryOperator):
-    def _output_content(self) -> Content:
-        return self._operand0.Content
-    def _check_content(self) -> bool:
-        return __check_content([
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ['price', 'volume', 'ratio', 'misc', 'oscillator',],
-            ], self, [0,1,])
-    def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor:
-        clhs = lhs - lhs.mean(dim=-1, keepdim=True)
-        crhs = rhs - rhs.mean(dim=-1, keepdim=True)
-        ncov = (clhs * crhs).sum(dim=-1)
-        nlvar = (clhs ** 2).sum(dim=-1)
-        nrvar = (crhs ** 2).sum(dim=-1)
-        stdmul = (nlvar * nrvar).sqrt()
-        stdmul[(nlvar < 1e-6) | (nrvar < 1e-6)] = 1
-        return ncov / stdmul
-
-
-Operators: List[Type[Operator]] = [
-    # Unary
-    Abs, Sign, Log1p, CSRank,
-    # Binary
-    Add, Sub, Mul, Div, Pow, Greater, Less,
-    # Rolling
-    Ref, Mean, Sum, Std, Var, Skew, Kurt, Max, Min,
-    Med, Mad, Rank, Delta, WMA, EMA,
-    # Pair rolling
-    Cov, Corr
-]
