@@ -139,6 +139,7 @@ class Data:
         new_instance.tensor = data
         return new_instance
 
+
 """
 meta = {
  'codes': [('Binance.UM.BTCUSDT',),

@@ -17,15 +17,19 @@ class DimensionType(IntEnum):
 
 
 class Dimension():
-    def __init__(self, args: List[DimensionType]|List[str]):
-        self._dimension_list:List[DimensionType] = []
+    def __init__(self, args: List[DimensionType] | List[str]):
+        self._dimension_list: List[DimensionType] = []
         for arg in args:
             if isinstance(arg, str):
-                self._dimension_list.append(Dimension_Map(arg)._dimension_list[0])
+                self._dimension_list.append(
+                    Dimension_Map(arg)._dimension_list[0])
             elif isinstance(arg, DimensionType):
                 self._dimension_list.append(arg)
+            else:
+                raise RuntimeError(
+                    f"Illegal Dimension input type: {arg}/{type(arg)}")
 
-    def __contains__(self, dimension: DimensionType|str|List[DimensionType]|List[str]) -> bool:
+    def __contains__(self, dimension: DimensionType | str | List[DimensionType] | List[str]) -> bool:
         """Check if a DimensionType or a list of strings is in the Dimension instance."""
         if isinstance(dimension, DimensionType):
             return dimension in self._dimension_list
@@ -37,8 +41,15 @@ class Dimension():
                 if isinstance(item, DimensionType):
                     contain = contain and item in self._dimension_list
                 elif isinstance(item, str):
-                    contain = contain and Dimension_Map(item)._dimension_list[0] in self._dimension_list
+                    contain = contain and Dimension_Map(
+                        item)._dimension_list[0] in self._dimension_list
             return contain
+
+    def __str__(self) -> str:
+        s = []
+        for dim in self._dimension_list:
+            s.append(dim.name)
+        return f"({', '.join(s)})"
 
     def add(self, dimension: Union[DimensionType, 'Dimension', List[str]]):
         # Add dimension_type, all elements from another Dimension instance, or a list of strings
@@ -55,9 +66,11 @@ class Dimension():
                 if item not in self._dimension_list:
                     self._dimension_list.append(item)
         else:
-            raise ValueError("Input must be either DimensionType, Dimension instance, or a list of strings.")
-        
-        return Dimension(self._dimension_list)  # Return a new Dimension instance with the updated list
+            raise ValueError(
+                "Input must be either DimensionType, Dimension instance, or a list of strings.")
+
+        # Return a new Dimension instance with the updated list
+        return Dimension(self._dimension_list)
 
     def remove(self, dimension: Union[DimensionType, 'Dimension', List[str]]):
         # Remove dimension_type, all elements from another Dimension instance, or a list of strings
@@ -74,9 +87,11 @@ class Dimension():
                 if dimension_type in self._dimension_list:
                     self._dimension_list.remove(dimension_type)
         else:
-            raise ValueError("Input must be either DimensionType, Dimension instance, or a list of strings.")
-        
-        return Dimension(self._dimension_list)  # Return a new Dimension instance with the updated list
+            raise ValueError(
+                "Input must be either DimensionType, Dimension instance, or a list of strings.")
+
+        # Return a new Dimension instance with the updated list
+        return Dimension(self._dimension_list)
 
     def are_in(self, other_dimension: 'Dimension') -> bool:
         """
@@ -85,27 +100,29 @@ class Dimension():
         """
         if not isinstance(other_dimension, Dimension):
             raise ValueError("Input must be a Dimension instance.")
-        
+
         return all(type_ in other_dimension for type_ in self._dimension_list)
 
     def are_not_in(self, other_dimension: 'Dimension') -> bool:
         if not isinstance(other_dimension, Dimension):
             raise ValueError("Input must be a Dimension instance.")
-        
+
         return all(type_ not in other_dimension for type_ in self._dimension_list)
-    
+
     def identical(self, other_dimension: 'Dimension') -> bool:
         def are_lists_identical(list1, list2) -> bool:
-            if len(list1) != len(list2):return False
+            if len(list1) != len(list2):
+                return False
             list2_copy = list2[:]
             for item in list1:
-                if item in list2_copy:list2_copy.remove(item)
-                else:return False
+                if item in list2_copy:
+                    list2_copy.remove(item)
+                else:
+                    return False
             return len(list2_copy) == 0
         if not isinstance(other_dimension, Dimension):
             raise ValueError("Input must be a Dimension instance.")
         return are_lists_identical(self._dimension_list, other_dimension._dimension_list)
-
 
 
 def Dimension_Map(dim: Union[str, List[str]]) -> Dimension:
@@ -138,4 +155,5 @@ def Dimension_Map(dim: Union[str, List[str]]) -> Dimension:
         else:
             raise RuntimeError(f"No matching operand dimension found: {d}")
 
-    return Dimension(dimension_types)  # Return a Dimension instance with the collected dimension types
+    # Return a Dimension instance with the collected dimension types
+    return Dimension(dimension_types)

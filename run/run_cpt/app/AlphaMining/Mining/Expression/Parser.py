@@ -1,10 +1,11 @@
 import re
 from typing import Type, List, Dict, Set, Union, Optional, cast, overload, Literal
-from Mining.Expression.Expression import Expression
-from Mining.Expression.Operator import Operator
-from Mining.Expression.Operand import Operand
+from Mining.Expression.Dimension import Dimension
+from Mining.Expression.Operator import Operator, UnaryOperator, BinaryOperator, TernaryOperator
+from Mining.Expression.Operand import Operand, into_operand
 from Mining.Util.Misc_Util import find_last_if
-from Mining.Config import FEATURES, OPERATORS
+from Mining.Config import \
+    FEATURES, DIMENSIONS, OPERATORS, OPERAND, CONST_TIMEDELTAS, CONST_RATIOS, CONST_OSCILLATORS
 from pprint import pprint
 
 # Compiled regex pattern for general token extraction.
@@ -20,9 +21,12 @@ _PATTERN = re.compile(r'([+-]?[\d.]+|\W|\w+)')
 # Does NOT match non-word characters or word sequences.
 _NUMERIC = re.compile(r'[+-]?[\d.]+')
 
-_StackItem = Union[List[Type[Operator]], Expression]
+# save instanced operand and un-instanced operator in stack
+# {'Abs': [<class 'xxx.Operator.Abs'>],...}
 _OpMap = Dict[str, List[Type[Operator]]]
-_DTLike = Union[float]#, Constant, DeltaTime]
+# Operand(), Operator or Operator()
+_StackItem = Union[Operand, Operator, Type[Operator]]
+_DTLike = Union[int, Operand]
 
 
 class ExpressionParsingError(Exception):
@@ -33,167 +37,207 @@ class ExpressionParser:
     def __init__(
         self,
         operators: List[Type[Operator]] = OPERATORS,
-        ignore_case: bool = False, # do not distinguish upper/lowercases
+        ignore_case: bool = False,  # do not distinguish upper/lowercases
         suffix_needed: bool = False,
-        dollar_needed: bool = False,
-        additional_operator_mapping: Optional[_OpMap] = None # {"Max": [Greater],...}
+        prefix_needed: bool = False,
+        # {"Max": [Greater],...}
+        additional_operator_mapping: Optional[_OpMap] = None
     ):
         self._ignore_case = ignore_case
-        self._allow_np_dt = False # allow non-positive timedelta
-        self._suffix_needed = suffix_needed
-        self._dollar_needed = dollar_needed
-        self._features = FEATURES
+        self._allow_np_dt = False  # allow non-positive timedelta
+        self._suffix_needed = suffix_needed  # timedelta has 'd' as suffix
+        self._prefix_needed = prefix_needed  # features has '$' as prefix
+        self._features: List[str] = FEATURES
+        self._dimensions: List[Dimension] = DIMENSIONS
         self._operators: _OpMap = {op.__name__: [op] for op in operators}
-        pprint(self._operators)
         if additional_operator_mapping is not None:
             self._merge_op_mapping(additional_operator_mapping)
         if ignore_case:
-            self._operators = {k.lower(): v for k, v in self._operators.items()}
+            self._operators = {
+                k.lower(): v for k, v in self._operators.items()}
         self._stack: List[_StackItem] = []
         self._tokens: List[str] = []
 
-    def parse(self, expr: str) -> Expression:
-        print(expr)
+    def parse(self, expr: str) -> Optional[Operand]:
         self._stack = []
         self._tokens = [t for t in _PATTERN.findall(expr) if not t.isspace()]
         self._tokens.reverse()
-        print(self._tokens)
         while len(self._tokens) > 0:
-            self._stack.append(self._get_next_item())
-            self._process_punctuation()
+            item = self._get_next_item()
+            self._stack.append(item)
+            valid = self._process_punctuation()
+            if not valid:
+                return None
         if len(self._stack) != 1:
             raise ExpressionParsingError("Multiple items remain in the stack")
         if len(self._stack) == 0:
             raise ExpressionParsingError("Nothing was parsed")
-        if isinstance(self._stack[0], Expression):
+        if isinstance(self._stack[0], Operand):
             return self._stack[0]
-        raise ExpressionParsingError(f"{self._stack[0]} is not a valid expression")
-    
+        raise ExpressionParsingError(
+            f"{self._stack[0]}/{type(self._stack[0])} is not a valid Operator")
+
     def _merge_op_mapping(self, map: _OpMap) -> None:
         for name, ops in map.items():
             if (old_ops := self._operators.get(name)) is not None:
                 self._operators[name] = list(dict.fromkeys(old_ops + ops))
             else:
                 self._operators[name] = ops
-    
+
     def _get_next_item(self) -> _StackItem:
         top = self._pop_token()
-        if top == '$':      # Feature next
+        # Operand(Feature)
+        if top == '$':
             top = self._pop_token()
-            if (feature := self._features.get(top)) is None:
+            if top not in self._features:
                 raise ExpressionParsingError(f"Can't find the feature {top}")
-            return Feature(feature)
-        elif self._tokens_eq(top, "Constant"):
-            if self._pop_token() != '(':
-                raise ExpressionParsingError("\"Constant\" should be followed by a left parenthesis")
-            value = self._to_float(self._pop_token())
-            if self._pop_token() != ')':
-                raise ExpressionParsingError("\"Constant\" should be closed by a right parenthesis")
-            return Constant(value)
+            return into_operand(top, self._dimensions[self._features.index(top)])
+        elif top in self._features and not self._prefix_needed:
+            return into_operand(top, self._dimensions[self._features.index(top)])
+        # Operand(Constant)
         elif _NUMERIC.fullmatch(top) is not None:
-            value = self._to_float(top)
             if self._peek_token() == 'd':
                 self._pop_token()
-                return self._as_delta_time(value)
+                return self._as_delta_time(int(top))
             else:
-                return Constant(value)
+                value = self._to_float(top)
+                if value in CONST_RATIOS:
+                    return into_operand(value, Dimension(['ratio']))
+                elif value in CONST_OSCILLATORS:
+                    return into_operand(value, Dimension(['oscillator']))
+                else:
+                    return into_operand(value, Dimension(['misc']))
+        # Operator
+        elif (ops := self._operators.get(top)) is not None:
+            return ops[0]
+        # elif self._tokens_eq(top, "Constant"):
+        #     if self._pop_token() != '(':
+        #         raise ExpressionParsingError("\"Constant\" should be followed by a left parenthesis")
+        #     value = self._to_float(self._pop_token())
+        #     if self._pop_token() != ')':
+        #         raise ExpressionParsingError("\"Constant\" should be closed by a right parenthesis")
+        #     return Constant(value)
         else:
-            if not self._dollar_needed and (feature := self._features.get(top)) is not None:
-                return Feature(feature)
-            elif (ops := self._operators.get(top)) is not None:
-                return ops
-            else:
-                raise ExpressionParsingError(f"Cannot find the operator/feature name {top}")
+            raise ExpressionParsingError(f"Cannot parse item:'{top}'")
+
+    def _process_punctuation(self) -> bool:
+        if len(self._tokens) == 0:
+            return True
+        top = self._pop_token()
+        stack_top_is_ops = len(self._stack) != 0 and \
+            self._is_operator(self._stack[-1])
+        if (top == '(') != stack_top_is_ops:
+            raise ExpressionParsingError(
+                "A left parenthesis should follow an operator name")
+        if top == '(' or top == ',':
+            return True
+        elif top == ')':
+            valid = True
+            valid &= self._instance_operator_with_operands()  # Pop an operator with its operands
+            valid &= self._process_punctuation()  # There might be consecutive right parens
+            return valid
+        else:
+            raise ExpressionParsingError(f"Unexpected token {top}")
+
+    def _instance_operator_with_operands(self) -> bool:
+        if (op_idx := find_last_if(self._stack, lambda item: self._is_operator(item))) == -1:
+            raise ExpressionParsingError("Unmatched right parenthesis")
+        op = cast(Type[Operator], self._stack[op_idx])
+        operands = self._stack[op_idx + 1:]
+        self._stack = self._stack[:op_idx]
+        # print('DEBUG: ', self._stack, op, operands)
+        if any(not isinstance(operand, Operand) for operand in operands):
+            raise ExpressionParsingError(
+                f"operands fetched contains operators:{operands}")
+        operands = cast(List[Operand], operands)
+        n_operands = len(operands)
+        if issubclass(op, UnaryOperator):
+            assert n_operands == 1
+            operator = op(operands[0], None)
+        if issubclass(op, BinaryOperator):
+            assert n_operands == 2
+            operator = op(operands[0], operands[1], None)
+        if issubclass(op, TernaryOperator):
+            assert n_operands == 3
+            operator = op(operands[0], operands[1], operands[2], None)
+        if operator.valid:
+            self._stack.append(operator.output)
+        else:
+            print(f"Not a valid formula: {operator}")
+            return False
+        return True
             
-    # def _process_punctuation(self) -> None:
-    #     if len(self._tokens) == 0:
-    #         return
-    #     top = self._pop_token()
-    #     stack_top_is_ops = len(self._stack) != 0 and not isinstance(self._stack[-1], Expression)
-    #     if (top == '(') != stack_top_is_ops:
-    #         raise ExpressionParsingError("A left parenthesis should follow an operator name")
-    #     if top == '(' or top == ',':
-    #         return
-    #     elif top == ')':
-    #         self._build_one_subexpr()       # Pop an operator with its operands
-    #         self._process_punctuation()     # There might be consecutive right parens
-    #     else:
-    #         raise ExpressionParsingError(f"Unexpected token {top}")
-    #     
-    # def _build_one_subexpr(self) -> None:
-    #     if (op_idx := find_last_if(self._stack, lambda item: isinstance(item, list))) == -1:
-    #         raise ExpressionParsingError("Unmatched right parenthesis")
-    #     ops = cast(List[Type[Operator]], self._stack[op_idx])
-    #     operands = self._stack[op_idx + 1:]
-    #     self._stack = self._stack[:op_idx]
-    #     if any(not isinstance(item, Expression) for item in operands):
-    #         raise ExpressionParsingError("An operator name cannot be used as an operand")
-    #     operands = cast(List[Expression], operands)
-    #     dt_operands = operands
-    #     if (not self._suffix_needed and
-    #         isinstance(operands[-1], Constant) and
-    #             (dt := self._as_delta_time(operands[-1], noexcept=True)) is not None):
-    #         dt_operands = operands.copy()
-    #         dt_operands[-1] = dt
-    #     msgs: Set[str] = set()
-    #     for op in ops:
-    #         used_operands = operands
-    #         if issubclass(op, (RollingOperator, PairRollingOperator)):
-    #             used_operands = dt_operands
-    #         if (msg := op.validate_parameters(*used_operands)).is_none:
-    #             self._stack.append(op(*used_operands))      # type: ignore
-    #             return
-    #         else:
-    #             msgs.add(msg.value_or(""))
-    #     raise ExpressionParsingError("; ".join(msgs))
-    # 
-    # def _tokens_eq(self, lhs: str, rhs: str) -> bool:
-    #     if self._ignore_case:
-    #         return lhs.lower() == rhs.lower()
-    #     else:
-    #         return lhs == rhs
-    #     
-    # @classmethod
-    # def _to_float(cls, token: str) -> float:
-    #     try:
-    #         return float(token)
-    #     except:
-    #         raise ExpressionParsingError(f"{token} can't be converted to float")
-    #     
-    # def _pop_token(self) -> str:
-    #     if len(self._tokens) == 0:
-    #         raise ExpressionParsingError("No more tokens left")
-    #     top = self._tokens.pop()
-    #     return top.lower() if self._ignore_case else top
-    # 
-    # def _peek_token(self) -> Optional[str]:
-    #     return self._tokens[-1] if len(self._tokens) != 0 else None
-    # 
-    # @overload
-    # def _as_delta_time(self, value: _DTLike, noexcept: Literal[False] = False) -> DeltaTime: ...
-    # @overload
-    # def _as_delta_time(self, value: _DTLike, noexcept: Literal[True]) -> Optional[DeltaTime]: ...
-    # @overload
-    # def _as_delta_time(self, value: _DTLike, noexcept: bool) -> Optional[DeltaTime]: ...
-    # 
-    # def _as_delta_time(self, value: _DTLike, noexcept: bool = False):
-    #     def maybe_raise(message: str) -> None:
-    #         if not noexcept:
-    #             raise ExpressionParsingError(message)
-    #     
-    #     if isinstance(value, DeltaTime):
-    #         return value
-    #     if isinstance(value, Constant):
-    #         value = value.value
-    #     if not float(value).is_integer():
-    #         maybe_raise(f"A DeltaTime should be integral, but {value} is not")
-    #         return
-    #     if int(value) <= 0 and not self._allow_np_dt:
-    #         maybe_raise(f"A DeltaTime should refer to a positive time difference, but got {int(value)}d")
-    #         return
-    #     return DeltaTime(int(value))
+    def _tokens_eq(self, lhs: str, rhs: str) -> bool:
+        if self._ignore_case:
+            return lhs.lower() == rhs.lower()
+        else:
+            return lhs == rhs
+
+    @classmethod
+    def _to_float(cls, token: str) -> float:
+        try:
+            return float(token)
+        except:
+            raise ExpressionParsingError(
+                f"{token} can't be converted to float")
+
+    def _pop_token(self) -> str:
+        if len(self._tokens) == 0:
+            raise ExpressionParsingError("No more tokens left")
+        top = self._tokens.pop()
+        return top.lower() if self._ignore_case else top
+
+    def _peek_token(self) -> Optional[str]:
+        return self._tokens[-1] if len(self._tokens) != 0 else None
+
+    def _as_delta_time(self, value: _DTLike) -> Operand:
+        if isinstance(value, Operand):
+            if Dimension(['timedelta']).are_in(value.Dimension):
+                return value
+            else:
+                raise ExpressionParsingError(
+                    f"Non-timedelta dimension found")
+        elif isinstance(value, int):
+            if int(value) <= 0:
+                raise ExpressionParsingError(
+                    f"timedelta should have positive time difference, but got {int(value)}d")
+            return into_operand(value, Dimension(['timedelta']))
+        else:
+            raise ExpressionParsingError(
+                f"timedelta should be integral, but {value} is not")
+
+    def _is_operator(self, item) -> bool:
+        return isinstance(item, type) and issubclass(item, Operator)
 
 
-def parse_expression(expr: str) -> Expression:
-    "Parse an expression using the default expression parser."
+def parse_expression(expr: str) -> Optional[Operand]:
+    "Parse an formula to operator using the default parser."
     return ExpressionParser().parse(expr)
+
+
+"""
+[{
+    "pool_state": [
+        ["Sub(EMA($close,20d),EMA($close,50d))", -0.015287576109810203],
+        ["Greater(Delta($low,10d),Delta($low,30d))", -0.03610591847090697],
+        ["Div(Max($close,20d),Min($close,20d))", 0.035015690003175975],
+        ["Sub(Delta($close,5d),Delta($close,20d))", -0.00890889276138164],
+        ["Greater(EMA($close,10d),EMA($close,30d))", 0.21338035711674033],
+        ["Sub(Ref($close,1d),$close)", 0.024938661240208257],
+        ["Mul(Div(EMA($high,20d),EMA($low,20d)),$close)", -0.23607067191730652],
+        ["Div(EMA($volume,20d),EMA($volume,50d))", 0.023835846374445344],
+        ["Cov(EMA($low,20d),$close,30d)", 0.018949387850385493],
+        ["Sub(Ref($open,1d),$open)", 0.020497391380293373],
+        ["Sub(Max($high,10d),Min($low,10d))", 0.07658269026844951],
+        ["Mul(Div(Ref($close,5d),$close),$volume)", 0.1467226878454179],
+        ["Greater(Mean($volume,5d),Mean($volume,15d))", -0.12168162745698041],
+        ["Div(EMA($close,10d),EMA($close,50d))", -0.08405487681107944],
+        ["Greater(Max($high,30d),Min($low,30d))", -0.06598538822776981],
+        ["Div(EMA($high,10d),EMA($low,20d))", -0.06568499894188438],
+        ["Mul(EMA($high,10d),EMA($low,50d))", 0.0210411200962911],
+        ["Sub(Ref($low,1d),$low)", 0.004484002269237874],
+        ["Cov(EMA($high,50d),$low,30d)", 0.019576081994501074],
+        ["Div(Mean($high,20d),Mean($low,20d))", 0.031151629181337657]
+        ], "train_ic": 0.203954815864563, "train_ric": 0.091729536652565, "test_ics": [], "test_rics": []
+    }]
+"""

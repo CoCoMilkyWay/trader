@@ -18,5 +18,3 @@ class Expression(metaclass=ABCMeta):
     @property
     @abstractmethod
     def is_featured(self) -> bool: ...
-
-
