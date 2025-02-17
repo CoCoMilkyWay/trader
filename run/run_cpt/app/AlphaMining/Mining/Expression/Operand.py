@@ -65,7 +65,7 @@ class Operand(Expression):
                                   fill_value=self.Value, dtype=data.dtype, device=data.device)
             elif type(self.Value) == str:  # feature
                 feature_idx = data.features.index(self.Value)
-                return data.tensor[start:stop, feature_idx, :]
+                return data.features_tensor[start:stop, feature_idx, :]
             else:
                 raise RuntimeError(
                     f"Wrong matrix operand/dimension type: {self.OperandType}/{type(self.Value)}")

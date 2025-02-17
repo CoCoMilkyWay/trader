@@ -2,8 +2,8 @@ from typing import Tuple, Dict, Any, Callable
 from abc import ABCMeta, abstractmethod
 
 import torch
-from ..data.calculator import AlphaCalculator
-from ..data.expression import Expression
+from Mining.Expression.Operand import Operand
+from Mining.Metrics.Calculator import AlphaCalculator
 
 
 class AlphaPoolBase(metaclass=ABCMeta):
@@ -18,7 +18,7 @@ class AlphaPoolBase(metaclass=ABCMeta):
         self.calculator = calculator
         self.device = device
         self.eval_cnt = 0
-        self.best_ic_ret: float = -1.
+        self.best_ic: float = -1.
 
     @property
     def vacancy(self) -> int:
@@ -37,7 +37,8 @@ class AlphaPoolBase(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def try_new_expr(self, expr: Expression) -> float: ...
+    def try_new_expr(self, expr: Operand) -> float: ...
 
     @abstractmethod
-    def test_ensemble(self, calculator: AlphaCalculator) -> Tuple[float, float]: ...
+    def test_composite(self, calculator: AlphaCalculator) -> Tuple[float, float]: ...
+

@@ -33,8 +33,12 @@ MAX_FUTURE = 0
 DATAPATH = f"{os.path.dirname(__file__)}/Data/Example/TimeSeries"
 DATA = Data(DATAPATH, MAX_PAST, MAX_FUTURE, init=True)
 FEATURES = DATA.features
+LABELS = DATA.labels
 DIMENSIONS = DATA.dimensions
 SCALARS = DATA.scalar
+
+# AlphaPool ===================================================================
+IC_LOWER_BOUND = -1
 
 # =============================================================================
 

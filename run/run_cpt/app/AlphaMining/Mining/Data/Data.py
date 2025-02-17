@@ -39,7 +39,7 @@ class Data:
         codes_key = 'codes'
 
         # actually not necessary, will affect metric accuracy
-        # if you are testing higher timeframe (e.g. days/weeks)
+        # if you are testing higher timeframe (e.g. timestamps/weeks)
         # mostly be okay if you are testing on minute-bar
         self.max_past = max_past
         self.max_future = max_future
@@ -57,6 +57,7 @@ class Data:
         self.timestamps = []
         self.codes = []
         self.features = []
+        self.labels = []
         self.dimensions = []
         self.scalar = []
 
@@ -69,10 +70,16 @@ class Data:
             self.dimensions.append(Dimension_Map(dimension))
             self.scalar.append(scalar)
 
+        for label, in meta[labels_key]:
+            self.labels.append(label)
+
         self.codes = meta[codes_key]
 
         # strip labels
-        self.tensor: Tensor = tensor[:, :self.n_features-1, :].to(self.dtype)
+        self.features_tensor: Tensor = tensor[:,
+                                              :self.n_features-1, :].to(self.dtype)
+        self.labels_tensor: Tensor = tensor[:, self.n_features:self.n_columns, :].to(
+            self.dtype)
 
         print(f"Data Start:{start}, End:{end}")
         print(f"Num of Features:{self.n_features}, Labels:{self.n_labels}")
@@ -93,15 +100,20 @@ class Data:
         expanded_start = max(0, expanded_start)
         expanded_stop = min(self.n_timestamps, expanded_stop)
         idx_range = slice(expanded_start, expanded_stop)
-        data = self.tensor[idx_range]  # (N_timestamps, N_columns, N_codes)
+        # (N_timestamps, N_columns, N_codes)
+        features_tensor = self.features_tensor[idx_range]
+        # (N_timestamps, N_columns, N_codes)
+        labels_tensor = self.labels_tensor[idx_range]
         # This is for removing code that is non-existent in the period of choice
         # (NaN value on all features/labels)
-        remaining = data.isnan().reshape(-1,
-                                         data.shape[-1]).all(dim=0).logical_not().nonzero().flatten()
-        data = data[:, :, remaining]
+        remaining = features_tensor.isnan().\
+            reshape(-1, features_tensor.shape[-1]).\
+            all(dim=0).logical_not().nonzero().flatten()
+        features_tensor = features_tensor[:, :, remaining]
+        labels_tensor = labels_tensor[:, :, remaining]
         real_start = expanded_start + self.max_past
         real_end = expanded_stop - self.max_future - 1
-        return self.deepcopy_with_time_index(real_start, real_end, data)
+        return self.deepcopy_with_time_index(real_start, real_end, features_tensor, labels_tensor)
 
     def find_datetime_slice(self, start_time: Optional[str] = None, end_time: Optional[str] = None) -> slice:
         """
@@ -124,19 +136,21 @@ class Data:
                 f"Datetime {time} is out of range: available [{self.timestamps[0]}, {self.timestamps[-1]}]")
         return idx
 
-    def deepcopy_with_time_index(self, start: int, end: int, data: Tensor):
+    def deepcopy_with_time_index(self, start: int, end: int, features_tensor: Tensor, labels_tensor: Tensor):
         """Create a deepcopy of the instance, excluding specified attributes."""
         # Create a new instance with just the relevant attributes
         new_instance = self.__class__(
             self.path, self.max_past, self.max_future)
-        exclude_attrs = ['n_timestamps', 'timestamps', 'tensor']
+        exclude_attrs = ['n_timestamps', 'timestamps',
+                         'features_tensor', 'labels_tensor']
         # Copying the remaining attributes
         for attr, value in self.__dict__.items():
             if attr not in exclude_attrs:
                 setattr(new_instance, attr, copy.deepcopy(value))
         new_instance.timestamps = self.timestamps[start:end]
         new_instance.n_timestamps = len(new_instance.timestamps)
-        new_instance.tensor = data
+        new_instance.features_tensor = features_tensor
+        new_instance.labels_tensor = labels_tensor
         return new_instance
 
 

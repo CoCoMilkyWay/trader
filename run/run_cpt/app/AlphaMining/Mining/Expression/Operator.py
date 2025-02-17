@@ -592,6 +592,7 @@ class TS_Ref(BinaryOperator):
         def _DelT(X: Tensor, dim: int):
             result = get_subtensor(
                 X=X, i=slice(-1, None), axis=dim).squeeze(dim=dim)
+            assert result.dim() == 2
             return result
         return RollingOp_1D(_DelT, operand0, operand1, 0)
 
@@ -617,6 +618,7 @@ class TS_Delta(BinaryOperator):
                 get_subtensor(X=X, i=slice(0, 1), axis=dim).squeeze(dim=dim) - \
                 get_subtensor(X=X, i=slice(-1, None),
                               axis=dim).squeeze(dim=dim)
+            assert result.dim() == 2
             return result
         return RollingOp_1D(_DelT, operand0, operand1, 0)
 
