@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 from enum import IntEnum
-from typing import Union, Callable, Optional
+from typing import List, Dict, Union, Callable, Optional
 from Mining.Expression.Expression import Expression
 from Mining.Expression.Dimension import DimensionType, Dimension
 from Mining.Data.Data import Data
@@ -21,19 +21,24 @@ class Operand(Expression):
         self.Value = Value
         self.OperandType = OperandType
         self.Dimension = Dimension
+        # Cache for evaluated result
+        self.result = None
+        # self.IC: Dict[str, float] = {}
+        # self.ric: Dict[str, float] = {}
+        # self.icir: Dict[str, float] = {}
+        # self.ricir: Dict[str, float] = {}
 
     def final_evaluate(self, data: Data) -> Tensor:
         """
         interface that is called only once, and is guaranteed by top level
         to be a valid operator output, thus must output a tensor
         """
-        result = self.evaluate(data)
-        if type(result) == Tensor:
-            print(f"Evaluating(Final):{self}, Shape:{result.shape}")
-            return result
-        else:
-            raise RuntimeError(
-                f"not a valid operator result with tensor value: {type(result)}")
+        if self.result is None:
+            self.result = self.evaluate(data)
+            print(f"Evaluating(Final):{self}, "
+                  f"Shape:{list(self.result.size())}") # type: ignore
+        assert type(self.result) == Tensor
+        return self.result
 
     def evaluate(self, data: Data) -> _operand_output:
         start = data.max_past

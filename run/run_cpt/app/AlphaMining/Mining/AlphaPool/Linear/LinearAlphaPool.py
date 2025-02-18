@@ -165,12 +165,12 @@ class LinearAlphaPool(AlphaPoolBase, metaclass=ABCMeta):
         for expr in _exprs:
             if self.size >= self.capacity:  # Stop if capacity is reached
                 break
-            try:
-                ic, ic_mut = self._calc_ics(expr, ic_mut_threshold=None)
-            except:
-                # Handle calculation errors
-                raise RuntimeError(
-                    f"Data range error performing ic calculations")
+            # try:
+            ic, ic_mut = self._calc_ics(expr, ic_mut_threshold=None)
+            # except:
+            #     # Handle calculation errors
+            #     raise RuntimeError(
+            #         f"Data range error performing ic calculations")
 
             assert ic is not None and ic_mut is not None  # Ensure IC values are valid
             # Add the expression to the pool
@@ -178,23 +178,23 @@ class LinearAlphaPool(AlphaPoolBase, metaclass=ABCMeta):
             added.append(expr)  # Track the added expression
             assert self.size <= self.capacity  # Ensure size is within capacity
 
-        # Set weights if provided or optimize
-        self.weights = np.array(weights) if weights else self.optimize()
-
-        # Calculate new IC and objective
-        new_ic, new_obj = self.calculate_ic_and_objective()
-        # Update best IC and objective if better
-        self._update_best_if_better(new_ic, new_obj)
-
-        self.update_history.append(  # Log the additions to the pool
-            AddRemoveAlphas(
-                added_exprs=added,
-                removed_idx=[],
-                old_pool=old_pool,
-                old_pool_ic=old_ic,
-                new_pool_ic=new_ic,
-            )
-        )
+        ## Set weights if provided or optimize
+        #self.weights = np.array(weights) if weights else self.optimize()
+#
+        ## Calculate new IC and objective
+        #new_ic, new_obj = self.calculate_ic_and_objective()
+        ## Update best IC and objective if better
+        #self._update_best_if_better(new_ic, new_obj)
+#
+        #self.update_history.append(  # Log the additions to the pool
+        #    AddRemoveAlphas(
+        #        added_exprs=added,
+        #        removed_idx=[],
+        #        old_pool=old_pool,
+        #        old_pool_ic=old_ic,
+        #        new_pool_ic=new_ic,
+        #    )
+        #)
 
     def leave_only(self, indices: Iterable[int]) -> None:
         """Leaves only the alphas at the given indices intact, and removes all others."""
@@ -305,9 +305,10 @@ class LinearAlphaPool(AlphaPoolBase, metaclass=ABCMeta):
         ic_mut_threshold: Optional[float] = None
     ) -> Tuple[float, Optional[List[float]]]:
         """Calculate the single IC and mutual ICs for a given formula."""
-        single_ic = self.calculator.calc_single_IC(
-            expr)  # Calculate the single IC for the expression
-        if not self._under_thres_alpha and single_ic < self._ic_lower_bound:  # Check IC lower bound
+        # Calculate the single IC for the expression
+        single_ic = self.calculator.calc_single_IC(expr)
+        # Check IC lower bound
+        if not self._under_thres_alpha and single_ic < self._ic_lower_bound:
             return single_ic, None  # Return single IC if it fails threshold
 
         mutual_ics = []  # Initialize list for mutual IC values

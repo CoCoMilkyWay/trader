@@ -76,7 +76,6 @@ class AlphaCalculator(metaclass=ABCMeta):
         'First combine the alphas linearly,'
         'then Calculate both IC and Rank IC between the linear combination and a predefined target.'
 
-
 class TensorAlphaCalculator(AlphaCalculator):
     def __init__(self, target: Optional[Tensor]) -> None:
         self._target = target
@@ -106,14 +105,14 @@ class TensorAlphaCalculator(AlphaCalculator):
 
     def _calc_rIC(self, value1: Tensor, value2: Tensor) -> float:
         return batch_spearmanr(value1, value2).mean().item()
-
+    
     def _IR_from_batch(self, batch: Tensor) -> float:
         mean, std = batch.mean(), batch.std()
         return (mean / std).item()
-
+    
     def _calc_ICIR(self, value1: Tensor, value2: Tensor) -> float:
         return self._IR_from_batch(batch_pearsonr(value1, value2))
-
+    
     def _calc_rICIR(self, value1: Tensor, value2: Tensor) -> float:
         return self._IR_from_batch(batch_spearmanr(value1, value2))
 
@@ -183,9 +182,11 @@ class ExpressionCalculator(TensorAlphaCalculator):
             label_idx = self.data.labels.index(target)
             start = data.max_past
             stop = data.max_past + data.n_timestamps + data.max_future - 1
-            super().__init__(data.labels_tensor[start:stop, label_idx, :])
-        super().__init__(None)
-        
+            target_tensor = data.labels_tensor[start:stop, label_idx, :]
+            super().__init__(target_tensor)
+        else:
+            super().__init__(None)
+
     def evaluate_alpha(self, expr: Operand) -> Tensor:
         return expr.final_evaluate(self.data)
 

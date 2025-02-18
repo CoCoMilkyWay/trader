@@ -10,7 +10,7 @@ from Mining.Expression.Operand import OperandType, Operand, into_operand, _opera
 from Mining.Expression.Dimension import DimensionType as T
 from Mining.Data.Data import Data
 
-DEBUG_PRINT = True
+DEBUG_PRINT = False
 
 # Operator base classes
 
