@@ -1,14 +1,15 @@
+from typing import List, Dict, Union
+from datetime import datetime, timedelta
 
-def list_timestamps(start: int, end: int, use_datetime:bool) -> list:
-    from datetime import datetime, timedelta
-    
+
+def list_timestamps(start: int, end: int, use_datetime: bool = True):
     def parse_time(time: int) -> datetime:
         time_str = str(time)
         # Expecting a 12-digit integer: YYYYMMDDHHMM
-        year   = int(time_str[-12:-8])
-        month  = int(time_str[-8:-6])
-        day    = int(time_str[-6:-4])
-        hour   = int(time_str[-4:-2])
+        year = int(time_str[-12:-8])
+        month = int(time_str[-8:-6])
+        day = int(time_str[-6:-4])
+        hour = int(time_str[-4:-2])
         minute = int(time_str[-2:])
         return datetime(year, month, day, hour, minute)
 
@@ -19,16 +20,16 @@ def list_timestamps(start: int, end: int, use_datetime:bool) -> list:
 
     # Parse the input integers into datetime objects
     start_time = parse_time(start)
-    end_time   = parse_time(end)
+    end_time = parse_time(end)
 
     # Generate timestamps for every minute from start_time to end_time (inclusive)
     current_time = start_time
-    timestamps = []
+    timestamps: list = []
     while current_time < end_time:
         if use_datetime:
             timestamps.append(current_time)
         else:
             timestamps.append(format_time(current_time))
         current_time += timedelta(minutes=1)
-    
+
     return timestamps

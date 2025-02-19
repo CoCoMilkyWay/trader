@@ -3,8 +3,6 @@ from Mining.Data.Data import Data
 from Mining.Expression.Operator import *
 from Mining.Expression.Operand import *
 
-DEBUG_PRINT = True
-
 # OPERANDS (CONSTANT) =========================================================
 CONST_TIMEDELTAS = [1, 5, 10, 20, 30, 40, 50, 60, 120, 240]
 CONST_RATIOS = [0.01, 0.05, 0.1, 0.3, 0.5, 1, 3, 5, 10]
@@ -41,9 +39,22 @@ SCALARS = DATA.scalar
 CAPACITY = 30
 IC_LOWER_BOUND = -1
 
-# =============================================================================
+# RL TokenGenerator ===========================================================
+SIZE_OP = len(OPERATORS)
+SIZE_FEATURE = len(FEATURES)
+SIZE_CONSTANT_TD = len(CONST_TIMEDELTAS)
+SIZE_CONSTANT_RT = len(CONST_RATIOS)
+SIZE_CONSTANT_OS = len(CONST_OSCILLATORS)
+SIZE_SEP = 1
+SIZE_ACTION = SIZE_OP + SIZE_FEATURE + \
+    SIZE_CONSTANT_TD + SIZE_CONSTANT_RT + SIZE_CONSTANT_OS +\
+    SIZE_SEP
+SIZE_NULL = 1
 
 MAX_EXPR_LENGTH = 15
-MAX_EPISODE_LENGTH = 256
 
+# RL Game =====================================================================
+
+MAX_EPISODE_LENGTH = 256
 REWARD_PER_STEP = 0.
+

@@ -54,12 +54,12 @@ class Data:
         assert (self.n_columns == self.n_features + self.n_labels)
         assert (self.n_codes == len(meta[codes_key]))
 
-        self.timestamps = []
-        self.codes = []
-        self.features = []
-        self.labels = []
-        self.dimensions = []
-        self.scalar = []
+        self.timestamps:List[datetime] = []
+        self.codes:List[str] = []
+        self.features:List[str] = []
+        self.labels:List[str] = []
+        self.dimensions:List[Dimension] = []
+        self.scalar:List[str] = []
 
         n_timestamps, start, end = meta[timestamps_key]
         self.timestamps = list_timestamps(start, end, True)

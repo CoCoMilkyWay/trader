@@ -98,7 +98,7 @@ class ExpressionParser:
         elif _NUMERIC.fullmatch(top) is not None:
             if self._peek_token() == 'd':
                 self._pop_token()
-                return self._as_delta_time(int(top))
+                return into_operand(int(top), Dimension(['timedelta']))
             else:
                 value = self._to_float(top)
                 if value in CONST_RATIOS:
@@ -153,13 +153,13 @@ class ExpressionParser:
         n_operands = len(operands)
         if issubclass(op, UnaryOperator):
             assert n_operands == 1
-            operator = op(operands[0], None)
+            operator = op(operands[0])
         if issubclass(op, BinaryOperator):
             assert n_operands == 2
-            operator = op(operands[0], operands[1], None)
+            operator = op(operands[0], operands[1])
         if issubclass(op, TernaryOperator):
             assert n_operands == 3
-            operator = op(operands[0], operands[1], operands[2], None)
+            operator = op(operands[0], operands[1], operands[2])
         if operator.valid:
             self._stack.append(operator.output)
         else:
@@ -189,22 +189,6 @@ class ExpressionParser:
 
     def _peek_token(self) -> Optional[str]:
         return self._tokens[-1] if len(self._tokens) != 0 else None
-
-    def _as_delta_time(self, value: _DTLike) -> Operand:
-        if isinstance(value, Operand):
-            if Dimension(['timedelta']).are_in(value.Dimension):
-                return value
-            else:
-                raise ExpressionParsingError(
-                    f"Non-timedelta dimension found")
-        elif isinstance(value, int):
-            if int(value) <= 0:
-                raise ExpressionParsingError(
-                    f"timedelta should have positive time difference, but got {int(value)}d")
-            return into_operand(value, Dimension(['timedelta']))
-        else:
-            raise ExpressionParsingError(
-                f"timedelta should be integral, but {value} is not")
 
     def _is_operator(self, item) -> bool:
         return isinstance(item, type) and issubclass(item, Operator)

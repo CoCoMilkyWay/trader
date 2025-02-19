@@ -10,7 +10,7 @@ from Mining.Expression.Operand import OperandType, Operand, into_operand, _opera
 from Mining.Expression.Dimension import DimensionType as T
 from Mining.Data.Data import Data
 
-DEBUG_PRINT = False
+DEBUG_PRINT = True  # True/False
 
 # Operator base classes
 
@@ -25,37 +25,53 @@ _operator_output = Tensor
 
 
 class Operator(Expression):
+    @classmethod
     @abstractmethod
-    def n_args(self) -> int: ...
+    def n_args(cls) -> int: ...
 
+    @classmethod
     @abstractmethod
-    def category_type(self) -> OperatorType: ...
-
+    def category_type(cls) -> OperatorType: ...
+    
     @abstractmethod
-    def validate_parameters(self) -> bool: ...
-
+    def validate_parameters(cls) -> bool: ...
+    
+    @property
+    @abstractmethod
+    def output(self) -> Operand: ...
+    
+    @property
+    @abstractmethod
+    def valid(self) -> bool: ...
+    
     def _check_exprs_featured(self, args: list[Operand]) -> bool:
         any_is_featured: bool = False
         for i, arg in enumerate(args):
+            if arg.OperandType != OperandType.matrix:
+                return False
             if not isinstance(arg, Operand):
-                raise RuntimeError(f"{arg} is not a valid expression")
+                # raise RuntimeError(f"{arg} is not a valid expression")
+                return False
             if DimensionType.timedelta in arg.Dimension:
-                raise RuntimeError(f"{self.__name__} expects a normal expression for operand {i + 1}, "
-                                   f"but got {arg} (a DeltaTime)")
+                # raise RuntimeError(f"{self.__name__} expects a normal expression for operand {i + 1}, "
+                #                    f"but got {arg} (a DeltaTime)")
+                return False
             any_is_featured = any_is_featured or arg.is_featured
         if not any_is_featured:
-            if len(args) == 1:
-                raise RuntimeError(f"{self.__name__} expects a featured expression for its operand, "
-                                   f"but {args[0]} is not featured")
-            else:
-                raise RuntimeError(f"{self.__name__} expects at least one featured expression for its operands, "
-                                   f"but none of {args} is featured")
+            return False
+            # if len(args) == 1:
+            #     raise RuntimeError(f"{self.__name__} expects a featured expression for its operand, "
+            #                        f"but {args[0]} is not featured")
+            # else:
+            #     raise RuntimeError(f"{self.__name__} expects at least one featured expression for its operands, "
+            #                        f"but none of {args} is featured")
         return True
 
     def _check_delta_time(self, arg) -> bool:
         if DimensionType.timedelta not in arg.Dimension:
-            raise RuntimeError(
-                f"{self.__name__} expects a DeltaTime as its last operand, but {arg} is not")
+            return False
+            # raise RuntimeError(
+            #     f"{self.__name__} expects a DeltaTime as its last operand, but {arg} is not")
         return True
 
     @property
@@ -157,23 +173,22 @@ def RollingOp_2D(Op: Callable, X: Tensor, Y: Tensor, window: int, axis: int):
 
 
 class UnaryOperator(Operator):
-    def __init__(self, operand0: _operand_input, dimension: Optional[Dimension]) -> None:
-        self._operand0 = into_operand(operand0, dimension)
-        assert self._operand0.OperandType == OperandType.matrix
+    def __init__(self, _operand0: Operand) -> None:
+        self._operand0 = _operand0
         self.TS = False
         self.CS = False
         self.init()
-        if self.TS:
-            assert DimensionType.timedelta in self._operand0.Dimension
-        self.valid: bool = self.validate_parameters()
-        self.output: Operand = into_operand(self.evaluate, Dim=self.dimension)
+        self._valid: bool = self.validate_parameters()
+        self._output: Operand = into_operand(self.evaluate, Dim=self.dimension)
 
     @abstractmethod
     def init(self) -> None: ...
 
-    def n_args(self) -> int: return 1
+    @classmethod
+    def n_args(cls) -> int: return 1
 
-    def category_type(self): return OperatorType.unary
+    @classmethod
+    def category_type(cls): return OperatorType.unary
 
     def validate_parameters(self) -> bool:
         check = True
@@ -201,26 +216,33 @@ class UnaryOperator(Operator):
     @property
     def is_featured(self): return self._operand0.is_featured
 
+    @property
+    def output(self) -> Operand:
+        return self._output
+
+    @property
+    def valid(self) -> bool:
+        return self._valid
+
 
 class BinaryOperator(Operator):
-    def __init__(self, operand0: _operand_input, operand1: _operand_input, dimension: Optional[Dimension]) -> None:
-        self._operand0 = into_operand(operand0, dimension)
-        self._operand1 = into_operand(operand1, dimension)
-        assert self._operand0.OperandType == OperandType.matrix
+    def __init__(self, operand0: Operand, operand1: Operand) -> None:
+        self._operand0 = operand0
+        self._operand1 = operand1
         self.TS = False
         self.CS = False
         self.init()
-        if self.TS:
-            assert DimensionType.timedelta in self._operand1.Dimension
-        self.valid: bool = self.validate_parameters()
-        self.output: Operand = into_operand(self.evaluate, Dim=self.dimension)
+        self._valid: bool = self.validate_parameters()
+        self._output: Operand = into_operand(self.evaluate, Dim=self.dimension)
 
     @abstractmethod
     def init(self) -> None: ...
 
-    def n_args(self) -> int: return 2
+    @classmethod
+    def n_args(cls) -> int: return 2
 
-    def category_type(self):
+    @classmethod
+    def category_type(cls):
         return OperatorType.binary
 
     def validate_parameters(self) -> bool:
@@ -256,6 +278,14 @@ class BinaryOperator(Operator):
     def is_featured(
         self): return self._operand0.is_featured or self._operand1.is_featured
 
+    @property
+    def output(self) -> Operand:
+        return self._output
+
+    @property
+    def valid(self) -> bool:
+        return self._valid
+
     # def evaluate(self, data: Data, period: slice = slice(0, 1)) -> Tensor:
     #     start = period.start - self._delta_time + 1
     #     stop = period.stop
@@ -269,26 +299,24 @@ class BinaryOperator(Operator):
 
 
 class TernaryOperator(Operator):
-    def __init__(self, operand0: _operand_input, operand1: _operand_input, operand2: _operand_input, dimension: Optional[Dimension]) -> None:
-        self._operand0 = into_operand(operand0, dimension)
-        self._operand1 = into_operand(operand1, dimension)
-        self._operand2 = into_operand(operand2, dimension)
-        assert self._operand0.OperandType == OperandType.matrix
-        assert self._operand1.OperandType == OperandType.matrix
+    def __init__(self, operand0: Operand, operand1: Operand, operand2: Operand) -> None:
+        self._operand0 = operand0
+        self._operand1 = operand1
+        self._operand2 = operand2
         self.TS = False
         self.CS = False
         self.init()
-        if self.TS:
-            assert DimensionType.timedelta in self._operand2.Dimension
-        self.valid: bool = self.validate_parameters()
-        self.output: Operand = into_operand(self.evaluate, Dim=self.dimension)
+        self._valid: bool = self.validate_parameters()
+        self._output: Operand = into_operand(self.evaluate, Dim=self.dimension)
 
     @abstractmethod
     def init(self) -> None: ...
 
-    def n_args(self) -> int: return 3
+    @classmethod
+    def n_args(cls) -> int: return 3
 
-    def category_type(self):
+    @classmethod
+    def category_type(cls):
         return OperatorType.ternary
 
     def validate_parameters(self) -> bool:
@@ -326,6 +354,14 @@ class TernaryOperator(Operator):
     @property
     def is_featured(self):
         return self._operand0.is_featured or self._operand1.is_featured or self._operand2.is_featured
+
+    @property
+    def output(self) -> Operand:
+        return self._output
+
+    @property
+    def valid(self) -> bool:
+        return self._valid
 
 
 def check_dimension_policy(

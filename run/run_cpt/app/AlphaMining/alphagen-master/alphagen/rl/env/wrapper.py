@@ -57,30 +57,30 @@ class AlphaEnvWrapper(gym.Wrapper):
     def reward(self, reward: float) -> float:
         return reward + REWARD_PER_STEP
 
-    def action_masks(self) -> np.ndarray:
-        res = np.zeros(self.size_action, dtype=bool)
-        valid = self.env.valid_action_types()
-
-        offset = 0              # Operators
-        for i in range(offset, offset + SIZE_OP):
-            if valid['op'][OPERATORS[i - offset].category_type()]:
-                res[i] = True
-        offset += SIZE_OP
-        if valid['select'][1]:  # Features
-            res[offset:offset + SIZE_FEATURE] = True
-        offset += SIZE_FEATURE
-        if valid['select'][2]:  # Constants
-            res[offset:offset + SIZE_CONSTANT] = True
-        offset += SIZE_CONSTANT
-        if valid['select'][3]:  # Delta time
-            res[offset:offset + SIZE_DELTA_TIME] = True
-        offset += SIZE_DELTA_TIME
-        if valid['select'][1]:  # Sub-expressions
-            res[offset:offset + len(self.subexprs)] = True
-        offset += len(self.subexprs)
-        if valid['select'][4]:  # SEP
-            res[offset] = True
-        return res
+    # def action_masks(self) -> np.ndarray:
+    #     res = np.zeros(self.size_action, dtype=bool)
+    #     valid = self.env.valid_action_types()
+    # 
+    #     offset = 0              # Operators
+    #     for i in range(offset, offset + SIZE_OP):
+    #         if valid['op'][OPERATORS[i - offset].category_type()]:
+    #             res[i] = True
+    #     offset += SIZE_OP
+    #     if valid['select'][1]:  # Features
+    #         res[offset:offset + SIZE_FEATURE] = True
+    #     offset += SIZE_FEATURE
+    #     if valid['select'][2]:  # Constants
+    #         res[offset:offset + SIZE_CONSTANT] = True
+    #     offset += SIZE_CONSTANT
+    #     if valid['select'][3]:  # Delta time
+    #         res[offset:offset + SIZE_DELTA_TIME] = True
+    #     offset += SIZE_DELTA_TIME
+    #     if valid['select'][1]:  # Sub-expressions
+    #         res[offset:offset + len(self.subexprs)] = True
+    #     offset += len(self.subexprs)
+    #     if valid['select'][4]:  # SEP
+    #         res[offset] = True
+    #     return res
 
     def action_to_token(self, action: int) -> Token:
         if action < 0:
