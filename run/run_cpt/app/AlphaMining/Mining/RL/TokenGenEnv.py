@@ -157,15 +157,19 @@ class TokenGenEnv(gym.Env):
 
         raise AssertionError(
             "Invalid action index: unable to convert to token.")
+        
+"""
+import gymnasium as gym
 
-# class Wrapper(gym.Wrapper):
-#     def __init__(self, env: gym.Env):
-#         super().__init__(env)
-#
-#     def reset(self, **kwargs):
-#         obs, info = self.env.reset(**kwargs)
-#         return obs
-#
-#     def step(self, action: int):
-#         obs, reward, done, truncated, info = self.env.step(action)
-#         return obs, reward, done, info
+class TokenGenWrapper(gym.Wrapper):
+    def __init__(self, env: gym.Env):
+        super().__init__(env)
+        
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        return obs
+    
+    def step(self, action: int):
+        obs, reward, done, truncated, info = self.env.step(action)
+        return obs, reward, done, info
+"""
