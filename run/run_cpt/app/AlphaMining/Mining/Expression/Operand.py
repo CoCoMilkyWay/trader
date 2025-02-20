@@ -66,7 +66,7 @@ class Operand(Expression):
                 assert (self.Value.dim() == 2)
                 return self.Value
             elif type(self.Value) == float:
-                return torch.full(size=(data.n_timestamps, data.n_codes),
+                return torch.full(size=(data.n_timestamps-1, data.n_codes),
                                   fill_value=self.Value, dtype=data.dtype, device=data.device)
             elif type(self.Value) == str:  # feature
                 feature_idx = data.features.index(self.Value)
@@ -88,10 +88,12 @@ class Operand(Expression):
         elif self.OperandType == OperandType.matrix:
             if type(self.Value) == str:
                 return '$' + self.Value.lower()
+            if type(self.Value) == float:
+                return str(self.Value)
             if callable(self.Value):
                 return str(self.Value.__self__)
             else:
-                raise RuntimeError(f"Try parsing intermediate operand name")
+                raise RuntimeError(f"Try parsing intermediate operand name: {self.Value}")
         else:
             raise RuntimeError(f"Unknown operand type when parsing name")
 

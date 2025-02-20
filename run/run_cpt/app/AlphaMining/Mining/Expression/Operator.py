@@ -25,6 +25,10 @@ _operator_output = Tensor
 
 
 class Operator(Expression):
+    def __init__(self) -> None:
+        if DEBUG_PRINT:
+            self.error: List[str] = []
+
     @classmethod
     @abstractmethod
     def n_args(cls) -> int: ...
@@ -32,46 +36,50 @@ class Operator(Expression):
     @classmethod
     @abstractmethod
     def category_type(cls) -> OperatorType: ...
-    
+
     @abstractmethod
     def validate_parameters(cls) -> bool: ...
-    
+
     @property
     @abstractmethod
     def output(self) -> Operand: ...
-    
+
+    def error_log(self, error: str) -> None:
+        if DEBUG_PRINT:
+            self.error.append(error)
+
     @property
     @abstractmethod
     def valid(self) -> bool: ...
-    
+
     def _check_exprs_featured(self, args: list[Operand]) -> bool:
         any_is_featured: bool = False
         for i, arg in enumerate(args):
             if arg.OperandType != OperandType.matrix:
                 return False
             if not isinstance(arg, Operand):
-                # raise RuntimeError(f"{arg} is not a valid expression")
+                self.error_log(f"arg is not a valid expression")
                 return False
             if DimensionType.timedelta in arg.Dimension:
-                # raise RuntimeError(f"{self.__name__} expects a normal expression for operand {i + 1}, "
-                #                    f"but got {arg} (a DeltaTime)")
+                self.error_log(f"expects a normal expression for operand {i + 1}, "
+                               f"but got arg (a DeltaTime)")
                 return False
             any_is_featured = any_is_featured or arg.is_featured
         if not any_is_featured:
+            if len(args) == 1:
+                self.error_log(f"expects a featured expression for its operand, "
+                               f"but args[0] is not featured")
+            else:
+                self.error_log(f"expects at least one featured expression for its operands, "
+                               f"but none of args is featured")
             return False
-            # if len(args) == 1:
-            #     raise RuntimeError(f"{self.__name__} expects a featured expression for its operand, "
-            #                        f"but {args[0]} is not featured")
-            # else:
-            #     raise RuntimeError(f"{self.__name__} expects at least one featured expression for its operands, "
-            #                        f"but none of {args} is featured")
         return True
 
     def _check_delta_time(self, arg) -> bool:
         if DimensionType.timedelta not in arg.Dimension:
+            self.error_log(
+                f"expects a DeltaTime as its last operand, but arg is not")
             return False
-            # raise RuntimeError(
-            #     f"{self.__name__} expects a DeltaTime as its last operand, but {arg} is not")
         return True
 
     @property
@@ -122,6 +130,8 @@ def get_subtensor(X: Tensor, i: slice, axis: int) -> Tensor:
 
 def RollingOp_1D(Op: Callable, X: Tensor, window: int, axis: int):
     '''Return the result of applying Op to a rolling window over a specified axis'''
+    # print(Op, X.shape, window)
+    assert (type(window) == int), window
     # Ensure axis is positive
     axis = axis % X.ndim
     # Repeat the first row (window - 1) times
@@ -151,7 +161,8 @@ def RollingOp_2D(Op: Callable, X: Tensor, Y: Tensor, window: int, axis: int):
     Returns:
     - The result of applying Op to the rolling windows of X and Y.
     '''
-    assert (type(window) == int)
+    # print(Op, X.shape, Y.shape, window)
+    assert (type(window) == int), window
     # Ensure axis is positive
     axis = axis % X.ndim
 
@@ -174,6 +185,7 @@ def RollingOp_2D(Op: Callable, X: Tensor, Y: Tensor, window: int, axis: int):
 
 class UnaryOperator(Operator):
     def __init__(self, _operand0: Operand) -> None:
+        super().__init__()
         self._operand0 = _operand0
         self.TS = False
         self.CS = False
@@ -198,6 +210,8 @@ class UnaryOperator(Operator):
             check = check and self._check_exprs_featured([self._operand0])
         check_dim, dimension = self._check_dimension()
         self.dimension = Dimension([dimension])
+        if not check_dim:
+            self.error_log(f"no matching dimension policy")
         check = check and check_dim
         return check
 
@@ -227,6 +241,7 @@ class UnaryOperator(Operator):
 
 class BinaryOperator(Operator):
     def __init__(self, operand0: Operand, operand1: Operand) -> None:
+        super().__init__()
         self._operand0 = operand0
         self._operand1 = operand1
         self.TS = False
@@ -300,6 +315,7 @@ class BinaryOperator(Operator):
 
 class TernaryOperator(Operator):
     def __init__(self, operand0: Operand, operand1: Operand, operand2: Operand) -> None:
+        super().__init__()
         self._operand0 = operand0
         self._operand1 = operand1
         self._operand2 = operand2
@@ -379,6 +395,9 @@ def check_dimension_policy(
     ]
     return check_dimension_policy(map, self)
     """
+    setattr(operand, 'map',
+            # store map for building combination later (1-time job)
+            dimension_map)
     num_rules = len(dimension_map)
     num_operands = len(dimension_map[0]) - 1
     for rule_idx in range(num_rules):
@@ -392,8 +411,8 @@ def check_dimension_policy(
             return True, dimension_map[rule_idx][-1]  # type: ignore
     return False, T.misc
 
-
 # Operator implementations
+
 
 class Abs(UnaryOperator):
     def init(self):

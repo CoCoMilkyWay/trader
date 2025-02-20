@@ -13,7 +13,6 @@ from Mining.Expression.Parser import ExpressionParser
 from Mining.Metrics.Calculator import ExpressionCalculator
 from Mining.AlphaPool.AlphaPoolBase import AlphaPoolBase
 
-from pprint import pprint
 
 class TokenGenEnv(gym.Env):
     """Reinforcement Learning environment for generating expressions based on Gymnasium framework."""
@@ -62,18 +61,23 @@ class TokenGenEnv(gym.Env):
     def step(self, action_index: int):
         """Apply the action to the environment, update the state, and return the result of the step."""
         if self.counter == 0:
-            action_index = SIZE_OP + SIZE_FEATURE + 3
+            init_mask = [False]*SIZE_OP+[True]*SIZE_FEATURE+[False]*SIZE_CONSTANT_TD + \
+                [True]*SIZE_CONSTANT_RT+[True] * \
+                SIZE_CONSTANT_OS+[False]*SIZE_SEP
+            true_indices = np.where(init_mask)[0]
+            action_index = np.random.choice(true_indices)
         else:
             mask = self.info['action_masks']
             true_indices = np.where(mask)[0]
             if true_indices.size > 0:  # Check if there are any True values
                 action_index = np.random.choice(true_indices)
             else:
+                raise RuntimeError(
+                    f"Garbage Expression generated:{self._tokens}")
                 return self.state, 0.0, True, False, {}
-        
+
         action = self.get_action(action_index)
-        print(f"Getting Token: {action}")
-        
+
         if isinstance(action, SyntaxToken) and action.syntax == SyntaxType.SEP:
             reward = self._evaluate_expression()
             done = True
@@ -84,8 +88,7 @@ class TokenGenEnv(gym.Env):
             reward = 0.0
         else:
             done = True
-            reward = self._evaluate_expression() if self.builder.is_valid() else -1.0
-
+            reward = 0.0
         # Ensure reward is not NaN
         reward = 0.0 if math.isnan(reward) else reward
 
@@ -99,7 +102,11 @@ class TokenGenEnv(gym.Env):
         terminated = done  # Episode termination flag
         truncated = False  # Not used; can be adjusted as needed
         info = self.info = self.builder.get_action_masks()  # Debug information
-        print(f"op/feature/const/stop", info['valid'], info['op'])
+        # print(f"op_uni:{len(info['op'][1])}, op_bin:{len(info['op'][2])}, op_ter:{len(info['op'][3])}, "
+        #       f"feature:{info['valid'][1]}, "
+        #       f"con_dt:{info['valid'][2]}, con_rt:{info['valid'][3]}, con_os:{info['valid'][4]}, "
+        #       f"stop:{info['valid'][5]}"
+        # )
         return observation, reward, terminated, truncated, info
 
     def get_action(self, action: int) -> Token:

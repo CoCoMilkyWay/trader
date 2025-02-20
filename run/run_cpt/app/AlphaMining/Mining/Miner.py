@@ -13,8 +13,9 @@ from Mining.Expression.Builder import ExpressionBuilder
 from Mining.Expression.Parser import ExpressionParser
 from Mining.Metrics.Calculator import ExpressionCalculator
 from Mining.AlphaPool.Linear.LinearAlphaPool import MseAlphaPool
-
 from Mining.RL.TokenGenEnv import TokenGenEnv
+
+from Mining.Util.RNG_Util import set_seed
 
 import gymnasium as gym
 from stable_baselines3 import PPO
@@ -31,6 +32,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 
 class Miner:
     def __init__(self):
+        # set_seed(1000)
         self.Data = DATA
         self.builder = ExpressionBuilder()
         self.parser = ExpressionParser()

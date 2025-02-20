@@ -138,22 +138,24 @@ def Dimension_Map(dim: Union[str, List[str]]) -> Dimension:
 
     dimension_types = []
     for d in dim:
-        if d == 'price':
-            dimension_types.append(DimensionType.price)
-        elif d == 'volume':
-            dimension_types.append(DimensionType.volume)
-        elif d == 'oscillator':
-            dimension_types.append(DimensionType.oscillator)
-        elif d == 'ratio':
-            dimension_types.append(DimensionType.ratio)
-        elif d == 'condition':
-            dimension_types.append(DimensionType.condition)
-        elif d == 'misc':
-            dimension_types.append(DimensionType.misc)
-        elif d == 'timedelta':
-            dimension_types.append(DimensionType.timedelta)
-        else:
-            raise RuntimeError(f"No matching operand dimension found: {d}")
-
+        dimension_types.append(DimensionType_Map(d))
     # Return a Dimension instance with the collected dimension types
     return Dimension(dimension_types)
+
+def DimensionType_Map(d: str) -> DimensionType:
+    if d == 'price':
+        return DimensionType.price
+    elif d == 'volume':
+        return DimensionType.volume
+    elif d == 'oscillator':
+        return DimensionType.oscillator
+    elif d == 'ratio':
+        return DimensionType.ratio
+    elif d == 'condition':
+        return DimensionType.condition
+    elif d == 'misc':
+        return DimensionType.misc
+    elif d == 'timedelta':
+        return DimensionType.timedelta
+    else:
+        raise RuntimeError(f"No matching operand dimension found: {d}")

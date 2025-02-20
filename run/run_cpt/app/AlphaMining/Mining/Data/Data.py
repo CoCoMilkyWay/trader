@@ -27,7 +27,7 @@ class Data:
         # (N_timestamps, N_columns, N_codes)
         tensor = torch.load(f'{path}/tensor.pt', weights_only=True)
         meta = torch.load(f'{path}/meta.pt', weights_only=True)
-        self.device: torch.device = torch.device("cuda:0")
+        self.device: torch.device = torch.device("cpu:0")
         self.dtype = torch.float
 
         # from pprint import pprint
