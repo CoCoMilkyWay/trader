@@ -21,9 +21,6 @@ class OperatorType(IntEnum):
     ternary = 2
 
 
-_operator_output = Tensor
-
-
 class Operator(Expression):
     def __init__(self) -> None:
         if DEBUG_PRINT:
@@ -183,6 +180,11 @@ def RollingOp_2D(Op: Callable, X: Tensor, Y: Tensor, window: int, axis: int):
     return result
 
 
+def debug_checksize(O: Operator, T: Tensor):
+    # assert T.shape == torch.Size([84719, 10]), f"{O}:{T.shape}"
+    return
+
+
 class UnaryOperator(Operator):
     def __init__(self, _operand0: Operand) -> None:
         super().__init__()
@@ -215,14 +217,16 @@ class UnaryOperator(Operator):
         check = check and check_dim
         return check
 
-    def evaluate(self, data: Data, period: slice = slice(0, 1)) -> _operator_output:
-        return self._apply(self._operand0.evaluate(data))
+    def evaluate(self, data: Data, period: slice = slice(0, 1)) -> Tensor:
+        result = self._apply(self._operand0.evaluate(data))
+        debug_checksize(self, result)
+        return result
 
     @abstractmethod
     def _check_dimension(self) -> Tuple[bool, DimensionType]: ...
 
     @abstractmethod
-    def _apply(self, _operand0: _operand_output) -> _operator_output: ...
+    def _apply(self, _operand0: _operand_output) -> Tensor: ...
 
     @property
     def operands(self): return self._operand0,
@@ -272,11 +276,13 @@ class BinaryOperator(Operator):
         check = check and check_dim
         return check
 
-    def evaluate(self, data: Data, period: slice = slice(0, 1)) -> _operator_output:
-        return self._apply(
+    def evaluate(self, data: Data, period: slice = slice(0, 1)) -> Tensor:
+        result = self._apply(
             self._operand0.evaluate(data),
             self._operand1.evaluate(data),
         )
+        debug_checksize(self, result)
+        return result
 
     @abstractmethod
     def _check_dimension(self) -> Tuple[bool, DimensionType]: ...
@@ -284,7 +290,7 @@ class BinaryOperator(Operator):
     @abstractmethod
     def _apply(self,
                _operand0: _operand_output,
-               _operand1: _operand_output) -> _operator_output: ...
+               _operand1: _operand_output) -> Tensor: ...
 
     @property
     def operands(self): return self._operand0, self._operand1
@@ -348,12 +354,14 @@ class TernaryOperator(Operator):
         check = check and check_dim
         return check
 
-    def evaluate(self, data: Data, period: slice = slice(0, 1)) -> _operator_output:
-        return self._apply(
+    def evaluate(self, data: Data, period: slice = slice(0, 1)) -> Tensor:
+        result = self._apply(
             self._operand0.evaluate(data),
             self._operand1.evaluate(data),
             self._operand2.evaluate(data),
         )
+        debug_checksize(self, result)
+        return result
 
     @abstractmethod
     def _check_dimension(self) -> Tuple[bool, DimensionType]: ...
@@ -362,7 +370,7 @@ class TernaryOperator(Operator):
     def _apply(self,
                _operand0: _operand_output,
                _operand1: _operand_output,
-               _operand2: _operand_output) -> _operator_output: ...
+               _operand2: _operand_output) -> Tensor: ...
 
     @property
     def operands(self): return self._operand0, self._operand1, self._operand2
@@ -751,7 +759,12 @@ class TS_Var(BinaryOperator):
         return check_dimension_policy(map, self)
 
     def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
-        return RollingOp_1D(torch.var, operand0, operand1, 0)
+        def _Var(X: Tensor, dim: int):
+            if X.size(dim) == 1:
+                # as variance cannot be computed meaningfully
+                return torch.zeros(X.size()[:-1], dtype=X.dtype, device=X.device)
+            return X.var(dim=dim)
+        return RollingOp_1D(_Var, operand0, operand1, 0)
 
 
 class TS_Skew(BinaryOperator):
@@ -797,6 +810,9 @@ class TS_Kurt(BinaryOperator):
     def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
         def _Kurt(X: Tensor, dim: int):
             # kurt = m4 / var^2 - 3
+            if X.size(dim) == 1:
+                # as kurtosis cannot be computed meaningfully
+                return torch.zeros(X.size()[:-1], dtype=X.dtype, device=X.device)
             central = X - X.mean(dim=dim, keepdim=True)
             m4 = (central ** 4).mean(dim=dim)
             var = X.var(dim=dim)
@@ -901,8 +917,8 @@ class TS_Rank(BinaryOperator):
     def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
         def _Rank(X: Tensor, dim: int):
             n = X.shape[dim]
-            # Extract the last value along the specified axis
-            last = X.index_select(dim, torch.tensor([-1])).unsqueeze(dim)
+            # gets the last element along the specified dimension
+            last = X.narrow(dim, n - 1, 1)  # (dim, start, length)
             left = (last < X).count_nonzero(dim=dim)
             right = (last <= X).count_nonzero(dim=dim)
             return (right + left + (right > left)) / (2 * n)

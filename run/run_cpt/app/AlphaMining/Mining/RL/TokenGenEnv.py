@@ -102,6 +102,7 @@ class TokenGenEnv(gym.Env):
         terminated = done  # Episode termination flag
         truncated = False  # Not used; can be adjusted as needed
         info = self.info = self.builder.get_action_masks()  # Debug information
+        # print(self._tokens)
         # print(f"op_uni:{len(info['op'][1])}, op_bin:{len(info['op'][2])}, op_ter:{len(info['op'][3])}, "
         #       f"feature:{info['valid'][1]}, "
         #       f"con_dt:{info['valid'][2]}, con_rt:{info['valid'][3]}, con_os:{info['valid'][4]}, "
@@ -122,6 +123,7 @@ class TokenGenEnv(gym.Env):
         expression: Operand = self.builder.get_built_expression()
         reward = self.pool.try_new_formula(expression)
         self.eval_count += 1  # Increment evaluation count
+        print(reward)
         return reward
 
     def convert_action_idx_to_token(self, action: int) -> Token:

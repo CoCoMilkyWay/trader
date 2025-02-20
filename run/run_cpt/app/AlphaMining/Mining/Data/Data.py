@@ -76,10 +76,10 @@ class Data:
         self.codes = meta[codes_key]
 
         # strip labels
-        self.features_tensor: Tensor = tensor[:,
-                                              :self.n_features-1, :].to(self.dtype)
-        self.labels_tensor: Tensor = tensor[:, self.n_features:self.n_columns, :].to(
-            self.dtype)
+        self.features_tensor: Tensor = \
+            tensor[:,:self.n_features, :].to(self.dtype)
+        self.labels_tensor: Tensor = \
+            tensor[:, self.n_features:self.n_columns, :].to(self.dtype)
 
         print(f"Data Start:{start}, End:{end}")
         print(f"Num of Features:{self.n_features}, Labels:{self.n_labels}")

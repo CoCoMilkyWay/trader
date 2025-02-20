@@ -42,7 +42,7 @@ class Miner:
         self.env = TokenGenEnv(self.builder, self.parser, self.pool)
         
         model = PPO("MlpPolicy", self.env, verbose=1)
-        model.learn(total_timesteps=10000)
+        model.learn(total_timesteps=10000000)
         
         # with open(f"{os.path.join(os.path.dirname(__file__), ".")}/report.json") as f:
         #     report = json.load(f)

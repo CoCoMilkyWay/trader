@@ -36,7 +36,7 @@ class Operand(Expression):
         if self.result is None:
             self.result = self.evaluate(data)
             print(f"Evaluating(Final):{self}, "
-                  f"Shape:{list(self.result.size())}") # type: ignore
+                  f"Shape:{list(self.result.size())}")  # type: ignore
         assert type(self.result) == Tensor
         return self.result
 
@@ -93,7 +93,8 @@ class Operand(Expression):
             if callable(self.Value):
                 return str(self.Value.__self__)
             else:
-                raise RuntimeError(f"Try parsing intermediate operand name: {self.Value}")
+                raise RuntimeError(
+                    f"Try parsing intermediate operand name: {self.Value}")
         else:
             raise RuntimeError(f"Unknown operand type when parsing name")
 
