@@ -78,6 +78,27 @@ class ExpressionBuilder:
         self.stack.append(into_operand(
             feature, DIMENSIONS[FEATURES.index(feature)]))
 
+    def get_init_action_masks(self) -> Dict:
+        valid_op = False
+        valid_feature = True
+        valid_const_dt = False
+        valid_const_rt = True
+        valid_const_os = True
+        valid_stop = False
+
+        return {
+            'valid': [valid_op, valid_feature, valid_const_dt, valid_const_rt, valid_const_os, valid_stop],
+            'action_masks':
+                [valid_op]*SIZE_OP + [valid_feature]*SIZE_FEATURE +
+                [valid_const_dt]*SIZE_CONSTANT_TD + [valid_const_rt]*SIZE_CONSTANT_RT +
+                [valid_const_os]*SIZE_CONSTANT_OS + [valid_stop]*SIZE_SEP,
+            'op': {
+                1: [],  # UnaryOperator
+                2: [],  # BinaryOperator
+                3: [],  # TernaryOperator
+            }
+        }
+
     def get_action_masks(self) -> Dict:
         """
         Generate action masks based on the current state of the stack.
@@ -87,7 +108,7 @@ class ExpressionBuilder:
         """
         # TODO
         forbidden_output_dim = ['condition']
-        
+
         masks = np.zeros(SIZE_ACTION, dtype=bool)
         is_featured = False
         # Get operands after the last operator in the stack
@@ -98,7 +119,7 @@ class ExpressionBuilder:
             operator = self.stack[op_idx]
             assert isinstance(operator, Operator), str(operator)
             operands = [operator.output] + self.stack[op_idx + 1:]
-        
+
         operands_num = len(operands)
         operands_dim = []
 
@@ -120,8 +141,8 @@ class ExpressionBuilder:
                     # operands_dim: [['price'], ['timedelta']]
                     # operator_dim: ['price', 'timedelta', 'price']
                     if all([operator_dim[i] in operands_dim[i] for i in range(operands_num)]):
-                        if operator_dim[-1] in forbidden_output_dim: # TODO
-                            continue # TODO
+                        if operator_dim[-1] in forbidden_output_dim:  # TODO
+                            continue  # TODO
                         masks[operator_idx] = True
                         valid_op_type[operands_num -
                                       1].append(str(OPERATORS[operator_idx]))

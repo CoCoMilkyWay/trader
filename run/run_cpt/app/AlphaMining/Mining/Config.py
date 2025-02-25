@@ -38,10 +38,10 @@ DIMENSIONS = DATA.dimensions
 SCALARS = DATA.scalar
 
 # AlphaPool ===================================================================
-CAPACITY = 30
+CAPACITY = 3
 IC_LOWER_BOUND = -1
 
-# RL TokenGenerator ===========================================================
+# RL Env(Simulator) ===========================================================
 SIZE_OP = len(OPERATORS)
 SIZE_FEATURE = len(FEATURES)
 SIZE_CONSTANT_TD = len(CONST_TIMEDELTAS)
@@ -53,10 +53,11 @@ SIZE_ACTION = SIZE_OP + SIZE_FEATURE + \
     SIZE_SEP
 SIZE_NULL = 1
 
-MAX_EXPR_LENGTH = 15
-
-# RL Game =====================================================================
-
+MAX_EXPR_LENGTH = 20
 MAX_EPISODE_LENGTH = 256
 REWARD_PER_STEP = 0.
+
+# RL Agent(PolicyCore) ========================================================
+EPISODES = 1000
+
 

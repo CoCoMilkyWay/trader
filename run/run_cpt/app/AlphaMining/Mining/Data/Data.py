@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple, Optional
 
 from Mining.Expression.Dimension import Dimension, Dimension_Map
 from Mining.Util.Data_Util import list_timestamps
+from Mining.Util.Data_Util import count_nan_and_inf
 
 
 class Data:
@@ -26,6 +27,9 @@ class Data:
     def init(self, path: str, max_past: int, max_future: int):
         # (N_timestamps, N_columns, N_codes)
         tensor = torch.load(f'{path}/tensor.pt', weights_only=True)
+        num_nan, num_inf = count_nan_and_inf(tensor)
+        print(f"Features and Labels: nan:{num_nan} inf:{num_inf}")
+        tensor[torch.isinf(tensor)] = 0
         meta = torch.load(f'{path}/meta.pt', weights_only=True)
         self.device: torch.device = torch.device("cpu:0")
         self.dtype = torch.float

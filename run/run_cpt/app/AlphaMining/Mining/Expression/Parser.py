@@ -26,8 +26,6 @@ _NUMERIC = re.compile(r'[+-]?[\d.]+')
 _OpMap = Dict[str, List[Type[Operator]]]
 # Operand(), Operator or Operator()
 _StackItem = Union[Operand, Operator, Type[Operator]]
-_DTLike = Union[int, Operand]
-
 
 class ExpressionParsingError(Exception):
     pass
@@ -126,7 +124,7 @@ class ExpressionParser:
         top = self._pop_token()
         stack_top_is_ops = len(self._stack) != 0 and \
             self._is_operator(self._stack[-1])
-        if (top == '(') != stack_top_is_ops:
+        if (top == '(') and not stack_top_is_ops:
             raise ExpressionParsingError(
                 "A left parenthesis should follow an operator name")
         if top == '(' or top == ',':

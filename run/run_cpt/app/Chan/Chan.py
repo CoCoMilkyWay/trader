@@ -9,7 +9,6 @@ from pprint import pprint
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from Chan.ChanConfig import CChanConfig
 from Chan.Common.CEnum import KL_TYPE, FX_TYPE

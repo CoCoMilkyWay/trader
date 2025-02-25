@@ -6,6 +6,7 @@ from Mining.Expression.Expression import Expression
 from Mining.Expression.Dimension import DimensionType, Dimension
 from Mining.Data.Data import Data
 
+from Mining.Util.Data_Util import count_nan_and_inf
 
 class OperandType(IntEnum):
     scalar = 0  # timedelta
@@ -34,10 +35,15 @@ class Operand(Expression):
         to be a valid operator output, thus must output a tensor
         """
         if self.result is None:
+            print(f"Evaluating(Final):{self}, ")
             self.result = self.evaluate(data)
-            print(f"Evaluating(Final):{self}, "
-                  f"Shape:{list(self.result.size())}")  # type: ignore
-        assert type(self.result) == Tensor
+            assert type(self.result) == Tensor
+            n_nan, n_inf = count_nan_and_inf(self.result)
+            print(f"Shape:{list(self.result.size())}, "
+                  f"NaN:{n_nan} Inf:{n_inf}"
+                  )
+        else:
+            assert type(self.result) == Tensor
         return self.result
 
     def evaluate(self, data: Data) -> _operand_output:

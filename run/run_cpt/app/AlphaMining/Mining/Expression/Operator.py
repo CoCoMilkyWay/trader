@@ -9,9 +9,10 @@ from Mining.Expression.Dimension import DimensionType, Dimension
 from Mining.Expression.Operand import OperandType, Operand, into_operand, _operand_input, _operand_output
 from Mining.Expression.Dimension import DimensionType as T
 from Mining.Data.Data import Data
+from Mining.Util.Data_Util import count_nan_and_inf, tensor_probe
 
 DEBUG_PRINT = True  # True/False
-
+EPSILON = 1e-8  # want 'ratio' to be between 0.01 and 100
 # Operator base classes
 
 
@@ -52,15 +53,15 @@ class Operator(Expression):
     def _check_exprs_featured(self, args: list[Operand]) -> bool:
         any_is_featured: bool = False
         for i, arg in enumerate(args):
-            if arg.OperandType != OperandType.matrix:
-                return False
+            # if arg.OperandType != OperandType.matrix:
+            #     return False
             if not isinstance(arg, Operand):
                 self.error_log(f"arg is not a valid expression")
                 return False
-            if DimensionType.timedelta in arg.Dimension:
-                self.error_log(f"expects a normal expression for operand {i + 1}, "
-                               f"but got arg (a DeltaTime)")
-                return False
+            # if DimensionType.timedelta in arg.Dimension:
+            #     self.error_log(f"expects a normal expression for operand {i + 1}, "
+            #                    f"but got arg (a DeltaTime)")
+            #     return False
             any_is_featured = any_is_featured or arg.is_featured
         if not any_is_featured:
             if len(args) == 1:
@@ -181,7 +182,9 @@ def RollingOp_2D(Op: Callable, X: Tensor, Y: Tensor, window: int, axis: int):
 
 
 def debug_checksize(O: Operator, T: Tensor):
-    # assert T.shape == torch.Size([84719, 10]), f"{O}:{T.shape}"
+    # assert (s := T.shape) == torch.Size([84719, 10]), f"{O}:{s}"
+    # num_nan, num_inf = count_nan_and_inf(T)
+    # assert num_nan == 0 and num_inf == 0, f"{O}:{num_nan} {num_inf}"
     return
 
 
@@ -208,6 +211,7 @@ class UnaryOperator(Operator):
         check = True
         if self.TS:
             check = check and self._check_delta_time(self._operand0)
+            raise RuntimeError(f"Unary Operator cannot be rolling operator")
         else:
             check = check and self._check_exprs_featured([self._operand0])
         check_dim, dimension = self._check_dimension()
@@ -266,11 +270,10 @@ class BinaryOperator(Operator):
 
     def validate_parameters(self) -> bool:
         check = True
-        check = check and self._check_exprs_featured([self._operand0])
+        check = check and self._check_exprs_featured(
+            [self._operand0, self._operand1])
         if self.TS:
             check = check and self._check_delta_time(self._operand1)
-        else:
-            check = check and self._check_exprs_featured([self._operand1])
         check_dim, dimension = self._check_dimension()
         self.dimension = Dimension([dimension])
         check = check and check_dim
@@ -343,12 +346,10 @@ class TernaryOperator(Operator):
 
     def validate_parameters(self) -> bool:
         check = True
-        check = check and self._check_exprs_featured([self._operand0])
-        check = check and self._check_exprs_featured([self._operand1])
+        check = check and self._check_exprs_featured(
+            [self._operand0, self._operand1, self._operand2])
         if self.TS:
             check = check and self._check_delta_time(self._operand2)
-        else:
-            check = check and self._check_exprs_featured([self._operand2])
         check_dim, dimension = self._check_dimension()
         self.dimension = Dimension([dimension])
         check = check and check_dim
@@ -579,7 +580,10 @@ class Div(BinaryOperator):
         ]
         return check_dimension_policy(map, self)
 
-    def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs / rhs
+    def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor:
+        safe_rhs = torch.where(torch.abs(rhs) < EPSILON,
+                               EPSILON*torch.ones_like(rhs), rhs)
+        return lhs / safe_rhs
 
 
 class Pow(BinaryOperator):
@@ -597,7 +601,16 @@ class Pow(BinaryOperator):
         ]
         return check_dimension_policy(map, self)
 
-    def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor: return lhs ** rhs
+    def _apply(self, lhs: Tensor, rhs: Tensor) -> Tensor:
+        # 1. Negative Base with Non-Integer Exponent:
+        # 2. Zero Raised to a Negative Power
+
+        # # for value stability
+        # MAX = 1  # cap power to MAX
+        # print("=======================")
+        # # rhs = torch.where(rhs > 0, MAX*torch.tanh(rhs/MAX), -MAX*torch.tanh(rhs.abs()/MAX))
+        # rhs = torch.where(rhs.abs() > MAX, torch.sign(rhs)*MAX, rhs)
+        return torch.where(lhs == 0, 0, torch.where(lhs > 0, lhs**rhs, -torch.abs(lhs)**rhs))
 
 
 class Max(BinaryOperator):
@@ -740,6 +753,8 @@ class TS_Std(BinaryOperator):
         return check_dimension_policy(map, self)
 
     def _apply(self, operand0: Tensor, operand1: int) -> Tensor:
+        if operand1 == 1:
+            return torch.zeros_like(operand0)
         return RollingOp_1D(torch.std, operand0, operand1, 0)
 
 
@@ -788,7 +803,9 @@ class TS_Skew(BinaryOperator):
             central = X - X.mean(dim=dim, keepdim=True)
             m3 = (central ** 3).mean(dim=dim)
             m2 = (central ** 2).mean(dim=dim)
-            return m3 / m2 ** 1.5
+            m2 = torch.where(torch.abs(m2) < EPSILON,
+                             EPSILON*torch.ones_like(m2), m2)
+            return torch.where(m2 == 0, torch.zeros_like(m2), m3 / m2 ** 1.5)
         return RollingOp_1D(_Skew, operand0, operand1, 0)
 
 
@@ -816,7 +833,9 @@ class TS_Kurt(BinaryOperator):
             central = X - X.mean(dim=dim, keepdim=True)
             m4 = (central ** 4).mean(dim=dim)
             var = X.var(dim=dim)
-            return m4 / var ** 2 - 3
+            var = torch.where(torch.abs(var) < EPSILON,
+                              EPSILON*torch.ones_like(var), var)
+            return torch.where(var == 0, torch.zeros_like(var), m4 / var ** 2 - 3)
         return RollingOp_1D(_Kurt, operand0, operand1, 0)
 
 
@@ -946,6 +965,8 @@ class TS_WMA(BinaryOperator):
             weights = torch.arange(n, dtype=X.dtype, device=X.device)
             weights /= weights.sum()
             return (weights * X).sum(dim=dim)
+        if operand1 == 1:
+            return operand0
         return RollingOp_1D(_WMA, operand0, operand1, 0)
 
 
@@ -972,6 +993,8 @@ class TS_EMA(BinaryOperator):
             weights = alpha ** power
             weights /= weights.sum()
             return (weights * X).sum(dim=dim)
+        if operand1 == 1:
+            return operand0
         return RollingOp_1D(_EMA, operand0, operand1, 0)
 
 
@@ -996,6 +1019,9 @@ class TS_Cov(TernaryOperator):
             clhs = X - X.mean(dim=dim, keepdim=True)
             crhs = Y - Y.mean(dim=dim, keepdim=True)
             return (clhs * crhs).sum(dim=dim) / (n - 1)
+        if operand2 == 1:
+            # for 2 scalars, covariance is simply 0
+            return torch.zeros_like(operand0)
         return RollingOp_2D(_Cov, operand0, operand1, operand2, 0)
 
 

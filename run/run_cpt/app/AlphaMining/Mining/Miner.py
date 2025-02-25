@@ -13,13 +13,11 @@ from Mining.Expression.Builder import ExpressionBuilder
 from Mining.Expression.Parser import ExpressionParser
 from Mining.Metrics.Calculator import ExpressionCalculator
 from Mining.AlphaPool.Linear.LinearAlphaPool import MseAlphaPool
-from Mining.RL.TokenGenEnv import TokenGenEnv
 
 from Mining.Util.RNG_Util import set_seed
 
-import gymnasium as gym
-from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv
+from Mining.RL.Env.TokenGenEnv import TokenGenEnv
+from Mining.RL.Agent.MCTS_MDP_Agent import MCTS_MDP_Agent
 
 # ---------------------------------------------------------------------+
 #        RL(baselines3/Keras/...)                                      |
@@ -39,24 +37,25 @@ class Miner:
         self.calculator = ExpressionCalculator(self.Data, 'label_1')
         self.pool = MseAlphaPool(CAPACITY, self.calculator)
         
+        self.test_basic()
+        
+        # RL loop
         self.env = TokenGenEnv(self.builder, self.parser, self.pool)
-        
-        model = PPO("MlpPolicy", self.env, verbose=1)
-        model.learn(total_timesteps=10000000)
-        
-        # with open(f"{os.path.join(os.path.dirname(__file__), ".")}/report.json") as f:
-        #     report = json.load(f)
-        # alpha_exprs: List[str] = [expr for expr, _ in report[-1]["alphas"]]
-        # 
-        # # alphas with operator/operand linked, but not evaluated
-        # alpha_built: List[Operand] = [a for expr in alpha_exprs if
-        #                               (a := self.parser.parse(expr)) is not None]
-        # print(f"Built formulas: {len(alpha_built)}")
-        # 
-        # self.start_time = time()
-        # self.pool.load_formulas(alpha_built[:100])
-        # self.end_time = time()
-        # print(f'load_formulas time elapsed: {(time() - self.start_time):2f}s')
+        self.agent = MCTS_MDP_Agent(self.env)
+        self.agent.run()
 
+    def test_basic(self):
+        """ tets basic parser, evaluate, alpha-pool functions"""
+        with open(f"{os.path.join(os.path.dirname(__file__), ".")}/Data/report.json") as f:
+            report = json.load(f)
+        alpha_exprs: List[str] = [expr for expr, _ in report[-1]["alphas"]]
+        alpha_built: List[Operand] = [a for expr in alpha_exprs if
+                                      (a := self.parser.parse(expr)) is not None]
+        print(f"Built formulas: {len(alpha_built)}")
+        # self.start_time = time()
+        self.pool.load_formulas(alpha_built[:100])
+        # self.end_time = time()
+        # print(f'load_formulas time elapsed: {(time() - self.start_time):2f}s\n\n')
+        
 if __name__ == '__main__':
     M = Miner()
