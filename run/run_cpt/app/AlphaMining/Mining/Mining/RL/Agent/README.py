@@ -1,0 +1,51 @@
+# 3rd-party Agent/Policy implementations:
+# +--------------------------+--------------------------------------+-----------------------+---------------+--------------------------+-------------------+--------------------+--------------------+----------------------------+---------------------------------------------+
+# | Library/Framework        | Algorithm Support                    | Scalability           | Ease of Use   | Framework Compatibility  | Community Support | Documentation Quality | Customizability | Performance/Benchmarks     | Visualization Support                       |
+# +--------------------------+--------------------------------------+-----------------------+---------------+--------------------------+-------------------+--------------------+--------------------+----------------------------+---------------------------------------------+
+# | Stable Baselines3        | PPO, A2C, DDPG, SAC, DQN, TRPO, etc. | Moderate              | High          | PyTorch                  | Strong and active | High               | Moderate           | Good (well-tested)         | Some built-in features, can integrate with others |
+# | Ray RLLib                | PPO, A3C, DDPG, DQN, IMPALA, etc.    | High (distributed)    | Moderate-High | TensorFlow, PyTorch      | Active and robust | High               | Moderate           | Good (comprehensive)       | Integrates with tools like TensorBoard      |
+# | OpenAI Spinning Up       | DQN, PPO, TRPO, A2C, etc.            | Low to Moderate       | High          | TensorFlow               | Moderate          | High               | Low                | Moderate (educational)     | Limited, focuses on teaching                |
+# | TF-Agents                | DQN, PPO, REINFORCE, etc.            | Moderate              | Moderate      | TensorFlow               | Moderate          | Moderate           | High               | Moderate (vary by task)    | Supports TensorBoard                        |
+# | Keras-RL                 | DQN, DDPG, PPO, TRPO                 | Low                   | High          | Keras                    | Moderate          | Moderate           | Moderate           | Moderate (Keras-based)     | Limited                                     |
+# | Coach                    | DQN, A3C, PPO, etc.                  | Moderate              | Moderate      | TensorFlow               | Moderate          | Moderate           | High               | Moderate                   | Limited                                     |
+# | Tianshou                 | DQN, PPO, DDPG, SAC, etc.            | Moderate              | High          | PyTorch                  | Growing           | High               | High               | Moderate (active community)| Limited, but flexible                       |
+# | Acme                     | DQN, PPO, DDPG, IMPALA               | Moderate to High      | Moderate      | TensorFlow, JAX          | Moderate          | High               | High               | Varies (research focus)    | Limited                                     |
+# | RLlib                    | PPO, A3C, DDPG, DQN, etc.            | High (distributed)    | Moderate      | TensorFlow, PyTorch      | Strong and active | High               | High               | Good (pre-optimized)       | Integrates with TensorBoard and other tools |
+# | PyTorch Lightning Bolts  | DQN, DDPG, PPO, A2C, etc.            | Moderate              | High          | PyTorch                  | Growing           | High               | Moderate           | Moderate (community-driven)| Limited                                     |
+# +--------------------------+--------------------------------------+-----------------------+---------------+--------------------------+-------------------+--------------------+--------------------+----------------------------+---------------------------------------------+
+
+# =================================================================================================
+# +------------------------------+---------------------------------------------------+---------------------------------------------------+---------------------------------------------+
+# | Feature/Aspect               | AlphaZero                                         | MuZero                                            | Standard MCTS                               |
+# +------------------------------+---------------------------------------------------+---------------------------------------------------+---------------------------------------------+
+# | Algorithm Type               | Reinforcement Learning + MCTS                     | Reinforcement Learning + Planning + MCTS          | Search/Planning                             |
+# | Game Representation          | State representation via game-specific rules      | Neural network models dynamics and rewards        | Uses leaf nodes for state representation    |
+# | Model                        | Policy and value networks                         | Model-free; learns a representation of the        | No learned model; relies on random sampling |
+# |                              |                                                   | environment                                       |                                             |
+# | Training Data                | Self-play, generating training data from games    | Self-play and training on learned models          | Simulations from random actions             |
+# | Value Prediction             | Direct value estimation from game states          | Predicts value from latent representations        | Estimation from rollouts                    |
+# | Policy Prediction            | Outputs action probabilities                      | Outputs action probabilities via learned model    | No direct policy output                     |
+# | Execution                    | Combines search with neural predictions           | Decision making and planning through learned      | Purely based on exploration of actions      |
+# |                              |                                                   | dynamics                                          |                                             |
+# | Exploration Strategy         | UCT (Upper Confidence Bound)                      | Similar exploration strategies as AlphaZero       | UCT (Upper Confidence Bound)                |
+# | Handling Unobserved States   | Requires complete game state                      | Can handle partial observability (learns the model)| Requires full observation                  |
+# | Learning Mechanism           | Q-learning via self-play                          | End-to-end learning through experience            | N/A (no learning mechanism)                 |
+# | Complexity of Implementation | Moderate to high, requires a powerful neural net  | High due to the need for learned dynamics         | Relatively straightforward                  |
+# | Sample Efficiency            | High; efficient self-play strategies              | Very high; uses learned models to improve         | Generally lower; relies heavily on simulations|
+# | Computation Time             | High; uses significant computation for MCTS       | Considerable; balances planning and learning      | Moderate; dependent on the depth of search  |
+# | Suitability                  | Perfect for deterministic games (e.g., chess)     | Works well for partially observable environments  | Effective for a range of games, especially  |
+# |                              |                                                   |                                                   | stochastic                                  |
+# | Notable Applications         | Chess, Go, Shogi                                  | Various games, including Atari and board games    | General game playing, online gaming         |
+# +------------------------------+---------------------------------------------------+---------------------------------------------------+---------------------------------------------+
+# 
+# Features of Risk-Miner comparing to AlphaZero/MuZero
+# MDP Framework: The paper constructs a reward-dense Markov Decision Process (MDP) for alpha mining, similar to how MuZero formulates its task environment. MuZero is known for its ability to plan in environments where a model of the underlying dynamics is not explicitly available, focusing instead on learning state representations and rewards.
+# Monte Carlo Tree Search (MCTS) : The use of MCTS is a key component in both AlphaZero and MuZero. However, MuZero enhances MCTS with learned representations and policies rather than relying solely on a static game model. The paper's focus on mining alphas through a customized MCTS that employs a risk-seeking policy suggests an advanced approach that mirrors MuZero’s sophistication.
+# Policy Optimization: The paper employs a novel risk-seeking policy optimization approach, which aligns more with MuZero's focus on optimizing performance in complex environments rather than AlphaZero's straightforward experience replay and evaluation strategies for winning moves in a game.
+# Composite Alpha Generation: The paper discusses generating a composite alpha based on the integration of multiple alphas, assessing their performance, and refining them, which reflects MuZero's goal of learning effective representations and strategies dynamically.
+# 
+# Networks in MuZero:
+# Representation Network: This network takes the raw input (observations from the environment) and transforms it into a hidden state representation. It effectively encodes the current state of the environment, which is crucial for the subsequent prediction of dynamics and rewards.
+# Dynamics Network: The dynamics network models the environment's transition dynamics. Given the current state representation and an action, it predicts the next state representation and the reward. This network allows MuZero to simulate future trajectories without needing a model of the environment itself.
+# Prediction Network: The prediction network takes the hidden state representation and predicts two things: the policy (the probability distribution over possible actions) and the value (an estimate of the value of the state)
+
