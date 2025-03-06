@@ -96,7 +96,7 @@ class AgentConfig:
         # Self-Play
         self.selfplay_on_gpu = False
         self.num_workers = 1 # Number of simultaneous threads/workers self-playing to feed the replay buffer
-        self.ratio_train_play = 0 # make sure model is sufficiently trained before continue playing (set to None to disable in synchronous mode)
+        self.ratio_train_play = 1 # make sure model is sufficiently trained before continue playing (set to None to disable in synchronous mode)
         self.render = True
 
         # MCTS
@@ -155,6 +155,7 @@ class AgentConfig:
         self.observation_shape = (1, 1, 4)
         self.action_space = list(range(2))
         self.players = list(range(1))  # List of players
+        self.ratio_train_play = 0
         self.future_steps = 50
         self.num_rollout_sims = 10
         

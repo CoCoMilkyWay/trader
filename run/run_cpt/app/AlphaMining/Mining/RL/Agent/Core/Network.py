@@ -233,6 +233,7 @@ class MLPNetwork(AbstractNetwork):
             encoded_state)  # Gets policy and value predictions
 
         # Initialize reward distribution centered around zero
+        # [..., -inf, -inf, 0., -inf, -inf, ...]
         reward_logits: Tensor = torch.log(
             (torch.zeros(1, self.full_support_size)
              .scatter(1, torch.tensor([[self.full_support_size // 2]]).long(), 1.0)

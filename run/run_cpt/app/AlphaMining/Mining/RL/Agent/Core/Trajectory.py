@@ -34,6 +34,7 @@ class Trajectory:
 
         # For Prioritized Experience Replay (PER) setup.
         # target v-value after MCTS selection
+        self.updated: bool = False
         self.target_values: List[float] = []
         self.priorities: NDArray[np.float32] = np.array(0.0)  # node priorities
         self.traj_priority: np.float32 = np.float32(0.0)  # worst-case(max)
@@ -152,8 +153,8 @@ class Trajectory:
 
         return value
 
-    def update_priorities(self):
-        if self.priorities is not None:
+    def update_values_and_priorities(self):
+        if self.updated:
             # Avoid read-only issues when loading from disk
             self.priorities = np.copy(self.priorities)
         else:

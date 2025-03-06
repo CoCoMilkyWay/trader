@@ -121,7 +121,6 @@ class PlayLoop:
         # Initialize trajectory with s₀; dummy action and reward for alignment.
         trajectory.players.append(self.environment.player_id())
         trajectory.observations.append(observation)
-        # Dummy action.
         trajectory.policies.append(
             [0.0 for _ in range(len(self.config.action_space))])
         trajectory.values.append(0.0)  # Dummy action.
@@ -166,7 +165,8 @@ class PlayLoop:
                 trajectory.rewards.append(reward)
 
                 if render:
-                    formatted_string = np.array2string(trajectory.observations[-1], precision=2, suppress_small=True)
+                    formatted_string = np.array2string(
+                        trajectory.observations[-1], precision=2, suppress_small=True)
                     print(
                         f"player:{trajectory.players[-1]},"
                         f"state:{formatted_string},"

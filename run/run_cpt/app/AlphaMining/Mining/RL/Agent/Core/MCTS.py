@@ -251,8 +251,7 @@ class MCTS:
         action_to_leaf_tensor = torch.tensor([[action_to_leaf]]).to(
             parent_node_to_leaf.latent_rep.device)
         dynamic_logits, policy_logits, value_logits, reward_logits = model.recurrent_inference(
-            parent_node_to_leaf.latent_rep, action_to_leaf_tensor
-        )
+            parent_node_to_leaf.latent_rep, action_to_leaf_tensor)
         leaf_v_pred = support_to_scalar(
             value_logits, self.config.support_size).item()
         leaf_r_pred = support_to_scalar(

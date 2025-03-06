@@ -196,16 +196,16 @@ class TrainLoop:
             value_target,         # [batch_size, unroll_steps+1]
             action_feature,       # [batch_size, unroll_steps+1]
             reward_target,        # [batch_size, unroll_steps+1]
-            weight,               # [batch_size] (if using PER)
-            gradient_scale,       # [batch_size, unroll_steps+1]
+            weight_batch,         # [batch_size] (if using PER)
+            gradient_scale_batch,  # [batch_size, unroll_steps+1]
         ) = batch
 
         # Move to device
         device = next(self.model.parameters()).device
 
         # Convert to Tensors
-        observation_feature = torch.tensor(
-            observation_feature, dtype=torch.float32).to(device)
+        observation_feature = torch.tensor(  # converting List[NDArray] to Tensor is extremely slow
+            np.array(observation_feature), dtype=torch.float32).to(device)
         policy_target = torch.tensor(
             policy_target, dtype=torch.float32).to(device)
         value_target = torch.tensor(
@@ -214,10 +214,11 @@ class TrainLoop:
             action_feature, dtype=torch.int).to(device).unsqueeze(-1)
         reward_target = torch.tensor(
             reward_target, dtype=torch.float32).to(device)
-        if self.config.PER:
-            weight_batch = torch.tensor(weight, dtype=torch.float32).to(device)
-        gradient_scale = torch.tensor(
-            gradient_scale, dtype=torch.float32).to(device)
+        # if self.config.PER:
+        weight_batch = torch.tensor(
+            weight_batch, dtype=torch.float32).to(device)
+        gradient_scale_batch = torch.tensor(
+            gradient_scale_batch, dtype=torch.float32).to(device)
 
         # Convert scalar targets to support representation
         value_target = scalar_to_support(
@@ -225,13 +226,15 @@ class TrainLoop:
         reward_target = scalar_to_support(
             reward_target, self.config.support_size)
 
-        # observation_feature, shape: [batch_size, array[channels, height, width]]
-        # policy_target,       shape: [batch_size, num_unroll_steps + 1, num_actions]
-        # value_target,        shape: [batch_size, num_unroll_steps + 1, 2 * support_size + 1]
-        # action_feature,      shape: [batch_size, num_unroll_steps + 1, 1] (unsqueeze)
-        # reward_target,       shape: [batch_size, num_unroll_steps + 1, 2 * support_size + 1]
-        # weight,              shape: [batch_size] (if using PER)
-        # gradient_scale,      shape: [batch_size, num_unroll_steps + 1]
+        # print(observation_feature.shape,policy_target.shape,value_target.shape,action_feature.shape,reward_target.shape,weight_batch.shape,gradient_scale_batch.shape)
+
+        # observation_feature,  shape: [batch_size, array[channels, height, width]]
+        # policy_target,        shape: [batch_size, num_unroll_steps + 1, num_actions]
+        # value_target,         shape: [batch_size, num_unroll_steps + 1, 2 * support_size + 1]
+        # action_feature,       shape: [batch_size, num_unroll_steps + 1, 1] (unsqueeze)
+        # reward_target,        shape: [batch_size, num_unroll_steps + 1, 2 * support_size + 1]
+        # weight_batch,         shape: [batch_size] (if using PER)
+        # gradient_scale_batch, shape: [batch_size, num_unroll_steps + 1]
 
         # Generate predictions by unrolling the model
         repr_logits, policy_logits, value_logits, reward_logits = \
@@ -247,15 +250,15 @@ class TrainLoop:
 
         # Compute losses over the unrolled steps
         policy_loss, value_loss, reward_loss = self.compute_losses(
-            predictions, policy_target, value_target, reward_target, gradient_scale)
+            predictions, policy_target, value_target, reward_target, gradient_scale_batch)
 
         # Scale the overall loss (recommended scaling factor)
         loss = (policy_loss +
-                value_loss * self.config.value_loss_weight +
-                reward_loss).mean()
-
+                value_loss * float(self.config.value_loss_weight) +
+                reward_loss)
         if self.config.PER:
             loss *= weight_batch
+        loss = loss.mean()
 
         # --- Backpropagation and optimization ---
         self.optimizer.zero_grad()
@@ -278,10 +281,6 @@ class TrainLoop:
         Returns:
             Tuple containing total value loss, total reward loss, and total policy loss.
         """
-
-        policy_loss, value_loss, reward_loss, = \
-            torch.tensor(0.0), torch.tensor(0.0), torch.tensor(0.0)
-
         # Compute loss and priorities for remaining unroll steps
         for i in range(0, len(predictions)):
             policy_logits, value_logits, reward_logits = predictions[i]
@@ -301,9 +300,14 @@ class TrainLoop:
                 current_policy_loss.register_hook(
                     lambda grad: grad * gradient_scale_batch[:, i])
 
-            policy_loss += current_policy_loss
-            value_loss += current_value_loss
-            reward_loss += current_reward_loss
+            if i == 0:
+                policy_loss = current_policy_loss
+                value_loss = current_value_loss
+                reward_loss = current_reward_loss
+            else:
+                policy_loss += current_policy_loss
+                value_loss += current_value_loss
+                reward_loss += current_reward_loss
 
         return policy_loss, value_loss, reward_loss
 

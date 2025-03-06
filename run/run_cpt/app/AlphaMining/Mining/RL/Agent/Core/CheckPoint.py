@@ -1,3 +1,4 @@
+import os
 import ray
 import copy
 import torch
@@ -50,6 +51,7 @@ class CheckPoint:
     def save_checkpoint(self, path=None):
         if not path:
             path = f"{self.config.results_path}/checkpoint"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save(self.current_checkpoint, path)
 
     def get_info(self, keys):
