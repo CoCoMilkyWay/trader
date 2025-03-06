@@ -1,2 +1,0 @@
-class InvalidExpressionException(ValueError):
-    pass
