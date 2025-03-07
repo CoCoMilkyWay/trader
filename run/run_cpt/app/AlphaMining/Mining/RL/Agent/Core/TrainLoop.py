@@ -122,7 +122,8 @@ class TrainLoop:
 
             // Optionally validate the model
             if epoch % validation_interval == 0:
-                val_loss, val_accuracy = validate(neural_network, validation_data)
+                val_loss, val_accuracy = validate(
+                    neural_network, validation_data)
                 Print "Epoch:", epoch, "Validation Loss:", val_loss, "Validation Accuracy:", val_accuracy
         """
         # Wait until at least one game has been played.
@@ -145,6 +146,11 @@ class TrainLoop:
             total_loss, policy_loss, value_loss, reward_loss = \
                 self.train_step(batch)
 
+            print(f"                                                    "
+                  f"{policy_loss:.2f}, "
+                  f"{value_loss:.2f}, "
+                  f"{reward_loss:.2f}, ")
+
             # Save training statistics to the checkpoint.
             checkpoint.set_info.remote({
                 "num_trained_steps": self.trained_steps,
@@ -165,18 +171,19 @@ class TrainLoop:
                     checkpoint.save_checkpoint.remote()
 
             # Manage the self-play / training ratio.
-            if self.config.ratio_train_play:
-                while True:
-                    num_played_steps = int(
-                        ray.get(checkpoint.get_info.remote("num_played_steps")))
-                    terminate = ray.get(
-                        checkpoint.get_info.remote("terminate"))
+            # normally you should always be training
+            # but training the same data from replay buffer too many times could be a problem
+            while True:
+                num_played_steps = int(
+                    ray.get(checkpoint.get_info.remote("num_played_steps")))
+                terminate = ray.get(
+                    checkpoint.get_info.remote("terminate"))
 
-                    if self.trained_steps/max(1, num_played_steps) < self.config.ratio_train_play or \
-                            self.trained_steps > self.config.max_training_steps or terminate:
-                        break
+                if self.trained_steps < num_played_steps * self.config.ratio_train_play or \
+                        self.trained_steps > self.config.max_training_steps or terminate:
+                    break
 
-                    time.sleep(0.5)
+                time.sleep(0.5)
 
     def train_step(self, batch: Tuple[List[NDArray], List[List[List[float]]], List[List[float]], List[List[int]], List[List[float]], List[float], List[List[float]]]) -> Tuple[float, float, float, float]:
         """
@@ -188,6 +195,10 @@ class TrainLoop:
           - Unrolling the model for K steps (initial inference plus recurrent unrolls).
           - Computing losses (value, reward, policy losses).
           - Backpropagating and updating model weights.
+
+        NOTE: why we redo inference here?
+            1. it is not a full MCTS, it is fast
+            2. just in case the model params changed, which would make gradient calculation inaccurate
         """
         # Unpack the batch
         (
@@ -240,7 +251,6 @@ class TrainLoop:
         repr_logits, policy_logits, value_logits, reward_logits = \
             self.model.initial_inference(observation_feature)
         predictions = [(policy_logits, value_logits, reward_logits)]
-
         for i in range(1, action_feature.shape[1]):
             repr_logits, policy_logits, value_logits, reward_logits = self.model.recurrent_inference(
                 repr_logits, action_feature[:, i])
@@ -260,10 +270,19 @@ class TrainLoop:
             loss *= weight_batch
         loss = loss.mean()
 
+        # NOTE: even we are only calculating gradient from 3 target network outputs,
+        #       we have actually already established computation graphs to all 5 models and are training them all at once
+        #
+        #   representation:   θ_R ← θ_R - α * ∇_θ_R L_total
+        #   dynamic:          θ_D ← θ_D - α * ∇_θ_D L_total
+        #   policy:           θ_π ← θ_π - α * ∇_θ_π L_policy
+        #   value:            θ_V ← θ_V - α * ∇_θ_V L_value
+        #   reward:           θ_O ← θ_O - α * ∇_θ_O L_reward
+
         # --- Backpropagation and optimization ---
         self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        loss.backward()  # dy/dx (y is scalar) sent to tensor x in model (using its memorized computation graph)
+        self.optimizer.step()  # optimize x using loaded new gradient
         self.trained_steps += 1
 
         return loss.item(), policy_loss.mean().item(), value_loss.mean().item(), reward_loss.mean().item()

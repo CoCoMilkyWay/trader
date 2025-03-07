@@ -96,7 +96,7 @@ class AgentConfig:
         # Self-Play
         self.selfplay_on_gpu = False
         self.num_workers = 1 # Number of simultaneous threads/workers self-playing to feed the replay buffer
-        self.ratio_train_play = 1 # make sure model is sufficiently trained before continue playing (set to None to disable in synchronous mode)
+        self.ratio_train_play = 0.8 # make sure model is sufficiently trained before continue playing (set to None to disable in synchronous mode)
         self.render = True
 
         # MCTS
@@ -108,7 +108,7 @@ class AgentConfig:
         self.pb_c_base = 19652
         self.pb_c_init = 1.25
         #   UCB formula (value score) (MCTS-Selection)
-        self.future_discount = 1 # [0,1] future_reward_weight (trade-offs between immediate rewards and expected cumulative future rewards)
+        self.future_discount = 0.98 # [0,1] future_reward_weight (trade-offs between immediate rewards and expected cumulative future rewards)
         #   Temperature (action) (post-MCTS)
         #   Ensure the temperature does not drop too low (avoid complete determinism too early).
         self.max_temperature = 1.0  # Max temperature at the start (full exploration)
@@ -134,7 +134,7 @@ class AgentConfig:
         # unroll steps need to be equal to future_steps, otherwise have to recalculate priorities and others
         # batch data has trajectory[rand_idx, rand_idx + unroll_steps + 1] as training data
         #   Learning Rate
-        self.lr_init = 0.002  # Initial learning rate
+        self.lr_init = 0.02  # Initial learning rate
         self.lr_decay_rate = 0.9  # Set it to 1 to use a constant learning rate
         self.lr_decay_steps = 10000
         #   Loss()
@@ -155,9 +155,9 @@ class AgentConfig:
         self.observation_shape = (1, 1, 4)
         self.action_space = list(range(2))
         self.players = list(range(1))  # List of players
-        self.ratio_train_play = 0
-        self.future_steps = 50
+        self.future_steps = 10
         self.num_rollout_sims = 10
+        self.support_size = 2
         
     def to_dict(self):
         return self.__dict__

@@ -51,7 +51,7 @@ class ReplayBuffer:
         """
         # If prioritized experience replay is enabled, compute or copy priorities
         if self.config.PER:
-            traj.update_values_and_priorities()
+            traj.update_value_targets_and_priorities()
 
         # Add the new game trajectory to the buffer
         self.buffer[self.num_played_games] = traj
@@ -229,6 +229,7 @@ class ReplayBuffer:
         # representation logits (thus its target) is only used once
         observations = traj.get_stacked_observations(
             pos_idx, self.config.stacked_observations, len(self.config.action_space))
+        
         # Loop over unroll steps (including the initial state)
         for current_index in range(pos_idx, pos_idx + self.config.future_steps + 1):
             if current_index < len(traj.values):
@@ -236,21 +237,19 @@ class ReplayBuffer:
                 values.append(traj.target_values[current_index])
                 actions.append(traj.actions[current_index])
                 rewards.append(traj.rewards[current_index])
-            elif current_index == len(traj.values):  # End of game
-                # Use a uniform policy distribution
-                policies.append(
-                    [1 / len(traj.policies[0])
-                     for _ in range(len(traj.policies[0]))]
-                )
-                values.append(0.0)
-                actions.append(traj.actions[current_index-1])
-                rewards.append(traj.rewards[current_index-1])
+            # elif current_index == len(traj.values):  # End of game
+            #     # Use a uniform policy distribution
+            #     policies.append(
+            #         [1 / len(traj.policies[0])
+            #          for _ in range(len(traj.policies[0]))]
+            #     )
+            #     values.append(0.0)
+            #     actions.append(traj.actions[current_index-1])
+            #     rewards.append(traj.rewards[current_index-1])
             else:
                 # For positions past the end of the game, treat as absorbing state
-                policies.append(
-                    [1 / len(traj.policies[0])
-                     for _ in range(len(traj.policies[0]))]
-                )
+                sup_size = len(traj.policies[0])
+                policies.append([1 / sup_size for _ in range(sup_size)])
                 values.append(0.0)
                 # Sample a random action from the action space
                 actions.append(

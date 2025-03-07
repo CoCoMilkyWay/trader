@@ -256,6 +256,7 @@ class MCTS:
             value_logits, self.config.support_size).item()
         leaf_r_pred = support_to_scalar(
             reward_logits, self.config.support_size).item()
+        print(f"reward_logits:{reward_logits},leaf_r_pred:{leaf_r_pred}")
         leaf_node.expand(
             actions=self.config.action_space,  # this is simulation, we allow all actions here
             player=leaf_player,

@@ -382,7 +382,6 @@ def scalar_to_support(x: torch.Tensor, support_size: int):
 
     # Scatter the remaining probability mass to the upper category
     logits.scatter_(2, indexes.long().unsqueeze(-1), prob.unsqueeze(-1))
-
     # e.g. scalar 0.0 has its entire probability mass in the middle category.
     # e.g. scalar -3.0 almost fully populates the last category at 3 (given that -3 is clamped to the lowest category).
     return logits  # shape (batch_size, support_size * 2 + 1)

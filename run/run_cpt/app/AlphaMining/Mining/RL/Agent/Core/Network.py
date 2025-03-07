@@ -86,6 +86,10 @@ class MLPNetwork(AbstractNetwork):
         # e.g., full support for reward distribution
         self.full_support_size: int = 2 * self.config.support_size + 1
 
+        # NOTE: when using torch.nn(e.g. mlp) to create model(Tensor), it is automatically created with requires_grad=True
+        #       which means that a computation graph is established and latter gradient results from loss
+        #       can be directly sent to model using backward()
+
         # Representation network input size explained below
         self.representation_network = torch.nn.DataParallel(
             mlp(
@@ -145,8 +149,8 @@ class MLPNetwork(AbstractNetwork):
             - Value estimate (shape: (batch_size, full_support_size))
         """
         policy_logits: Tensor = self.prediction_policy_network(encoded_state)
-        value: Tensor = self.prediction_value_network(encoded_state)
-        return policy_logits, value
+        value_logits: Tensor = self.prediction_value_network(encoded_state)
+        return policy_logits, value_logits
 
     def representation(self, observation: Tensor) -> Tensor:
         """ 
@@ -361,8 +365,8 @@ class ResNetwork(AbstractNetwork):
             - Predicted policy logits (shape: (batch_size, action_space_size))
             - Predicted value (shape: (batch_size, full_support_size))
         """
-        policy, value = self.prediction_network(encoded_state)
-        return policy, value
+        policy_logits, value_logits = self.prediction_network(encoded_state)
+        return policy_logits, value_logits
 
     def representation(self, observation: Tensor) -> Tensor:
         """

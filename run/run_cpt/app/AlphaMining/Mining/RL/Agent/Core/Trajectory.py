@@ -72,7 +72,8 @@ class Trajectory:
             if past_idx >= 0:
                 # Retrieve the action taken immediately after the past observation.
                 # Divide by the action space size to normalize the action value.
-                action_value = self.actions[past_idx + 1] / action_space_size
+                action_value = self.actions[past_idx+1] / action_space_size
+                # self.observations[past_idx] = current state, self.actions[past_idx] = action made to get to current state
 
                 # Create an "action channel" array that has the same shape as one channel of the observation.
                 action_channel = np.ones_like(stacked_obs[0]) * action_value
@@ -112,8 +113,8 @@ class Trajectory:
             # Compute normalized visit counts (policy distribution) for each action in the action space.
             policy = [
                 # If the action exists in the root's children, normalize its visit count.
-                root.children[a].visit_count /
-                total_visits if a in root.children else 0.0
+                root.children[a].visit_count / total_visits
+                if a in root.children else 0.0
                 for a in action_space
             ]
             # Store the computed policy distribution.
@@ -153,7 +154,7 @@ class Trajectory:
 
         return value
 
-    def update_values_and_priorities(self):
+    def update_value_targets_and_priorities(self):
         if self.updated:
             # Avoid read-only issues when loading from disk
             self.priorities = np.copy(self.priorities)

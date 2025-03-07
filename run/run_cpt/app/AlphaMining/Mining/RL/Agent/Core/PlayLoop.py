@@ -121,11 +121,11 @@ class PlayLoop:
         # Initialize trajectory with s₀; dummy action and reward for alignment.
         trajectory.players.append(self.environment.player_id())
         trajectory.observations.append(observation)
-        trajectory.policies.append(
+        trajectory.policies.append( # Dummy policy
             [0.0 for _ in range(len(self.config.action_space))])
-        trajectory.values.append(0.0)  # Dummy action.
-        trajectory.actions.append(0)  # Dummy action.
-        trajectory.rewards.append(0.0)  # Dummy reward.
+        trajectory.values.append(0.0)  # Dummy value
+        trajectory.actions.append(0)  # Dummy action
+        trajectory.rewards.append(0.0)  # Dummy reward
 
         done = False
 
@@ -139,9 +139,9 @@ class PlayLoop:
                 assert observation.shape == self.config.observation_shape, f"Expected state shape {self.config.observation_shape} but got {observation.shape}"
 
                 # Retrieve stacked observations from trajectory history.
-                # This stacks previous frames if needed (useful for partial observability).
+                # This stacks previous frames if needed (useful for partial observability and video games).
                 stacked_obvs = trajectory.get_stacked_observations(
-                    index=-1, num_stacked=0, action_space_size=len(self.config.action_space)
+                    index=-1, num_stacked=self.config.stacked_observations, action_space_size=len(self.config.action_space)
                 )
 
                 # Decide which agent selects the action.
@@ -165,21 +165,28 @@ class PlayLoop:
                 trajectory.rewards.append(reward)
 
                 if render:
-                    formatted_string = np.array2string(
-                        trajectory.observations[-1], precision=2, suppress_small=True)
-                    print(
-                        f"player:{trajectory.players[-1]},"
-                        f"state:{formatted_string},"
-                        f"policy:{trajectory.policies[-1]},"
-                        f"value:{trajectory.values[-1]:.2f},"
-                        f"action:{trajectory.actions[-1]},"
-                        f"rewards:{trajectory.rewards[-1]},"
-                        f"tree_depth:{self.mcts_info['max_tree_depth']},"
-                    )
                     action_str = self.environment.action_to_string(action)
                     self.environment.render()
 
+        self.print_traj_node_results(trajectory, 1)
+        self.print_traj_node_results(trajectory, 2)
+        self.print_traj_node_results(trajectory, -2)
+        self.print_traj_node_results(trajectory, -1)
+
         return trajectory
+
+    def print_traj_node_results(self, traj: Trajectory, node: int):
+        formatted_string = np.array2string(
+            traj.observations[node], precision=2, suppress_small=True)
+        print(
+            f"player:{traj.players[node]},"
+            f"state:{formatted_string},"
+            f"policy:{traj.policies[node]},"
+            f"value:{traj.values[node]:.2f},"
+            f"action:{traj.actions[node]},"
+            f"rewards:{traj.rewards[node]},"
+            f"tree_depth:{self.mcts_info['max_tree_depth']},"
+        )
 
     def _select_player_action(self, stacked_obvs: NDArray, temperature: float, render: bool):
         """
@@ -293,8 +300,9 @@ class PlayLoop:
             if not printed:
                 printed = True
                 print(f"trained:{num_trained_steps}/played:{num_played_steps}")
-            if num_trained_steps / num_played_steps >= self.config.ratio_train_play:
-                break
+            # if num_trained_steps >= num_played_steps * self.config.ratio_train_play:
+            #     break
+            break
             time.sleep(0.5)
 
     def _close_environment(self):
