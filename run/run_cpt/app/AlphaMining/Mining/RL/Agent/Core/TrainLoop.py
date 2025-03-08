@@ -183,7 +183,7 @@ class TrainLoop:
                         self.trained_steps > self.config.max_training_steps or terminate:
                     break
 
-                time.sleep(0.5)
+                time.sleep(5)
 
     def train_step(self, batch: Tuple[List[NDArray], List[List[List[float]]], List[List[float]], List[List[int]], List[List[float]], List[float], List[List[float]]]) -> Tuple[float, float, float, float]:
         """
@@ -201,8 +201,9 @@ class TrainLoop:
             2. just in case the model params changed, which would make gradient calculation inaccurate
         """
         # Unpack the batch
-        (   # observation is not latent states here
-            observation_feature,  # [batch_size, arr[chans, height, width]]
+        (   # observation is not latent states here, also, it is not unrolled, only 1st obv(with older stacks) are here
+            # [batch_size, (stacked_observations*2+1)*channels, height, width]
+            observation_feature,
             policy_target,        # [batch_size, unroll_steps+1, num_actions]
             value_target,         # [batch_size, unroll_steps+1]
             action_feature,       # [batch_size, unroll_steps+1]
@@ -248,8 +249,9 @@ class TrainLoop:
         repr_logits, policy_logits, value_logits, reward_logits = \
             self.model.initial_inference(observation_feature)
         predictions = [(policy_logits, value_logits, reward_logits)]
-        for i in range(1, action_feature.shape[1]):
+        for i in range(0, action_feature.shape[1]-1):
             repr_logits, policy_logits, value_logits, reward_logits = self.model.recurrent_inference(
+                # repre @t0 and action @t0 -> repre @t1, policy @t1, value @t1, reward @t1
                 repr_logits, action_feature[:, i])
             # Scale the gradient at the start of the dynamics function (See paper appendix Training)
             repr_logits.register_hook(lambda grad: grad * 0.5)
@@ -258,13 +260,14 @@ class TrainLoop:
         # Compute losses over the unrolled steps
         policy_loss, value_loss, reward_loss = self.compute_losses(
             predictions, policy_target, value_target, reward_target, gradient_scale_batch)
-
         # Scale the overall loss (recommended scaling factor)
         loss = (policy_loss +
                 value_loss * float(self.config.value_loss_weight) +
                 reward_loss)
         if self.config.PER:
             loss *= weight_batch
+        print(loss.shape, loss.mean())
+
         loss = loss.mean()
 
         # NOTE: even we are only calculating gradient from 3 target network outputs,
@@ -300,6 +303,13 @@ class TrainLoop:
         # Compute loss and priorities for remaining unroll steps
         for i in range(0, len(predictions)):
             policy_logits, value_logits, reward_logits = predictions[i]
+
+            # print("=======================================================================")
+            # n = 1
+            # print(policy_logits[n, :],  target_policy[n, i])
+            # print(value_logits[n, :],   target_value[n, i])
+            # print(reward_logits[n, :],  target_reward[n, i])
+
             current_policy_loss = self.compute_loss(
                 policy_logits, target_policy[:, i])
             current_value_loss = self.compute_loss(
@@ -309,11 +319,11 @@ class TrainLoop:
 
             if i != 0:
                 # Scale losses by the gradient scale for this step
+                current_policy_loss.register_hook(
+                    lambda grad: grad * gradient_scale_batch[:, i])
                 current_value_loss.register_hook(
                     lambda grad: grad * gradient_scale_batch[:, i])
                 current_reward_loss.register_hook(
-                    lambda grad: grad * gradient_scale_batch[:, i])
-                current_policy_loss.register_hook(
                     lambda grad: grad * gradient_scale_batch[:, i])
 
             if i == 0:
@@ -324,7 +334,6 @@ class TrainLoop:
                 policy_loss += current_policy_loss
                 value_loss += current_value_loss
                 reward_loss += current_reward_loss
-
         return policy_loss, value_loss, reward_loss
 
     @staticmethod

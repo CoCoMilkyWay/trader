@@ -172,8 +172,8 @@ class MLPNetwork(AbstractNetwork):
         min_encoded_state: Tensor = encoded_state.min(1, keepdim=True)[0]
         max_encoded_state: Tensor = encoded_state.max(1, keepdim=True)[0]
         scale_encoded_state: Tensor = max_encoded_state - min_encoded_state
-        scale_encoded_state[scale_encoded_state <
-                            1e-5] += 1e-5  # Avoid division by zero
+        scale_encoded_state[scale_encoded_state <1e-5] += \
+            1e-5  # Avoid division by zero
         encoded_state_normalized: Tensor = (
             encoded_state - min_encoded_state) / scale_encoded_state
         return encoded_state_normalized
@@ -243,9 +243,8 @@ class MLPNetwork(AbstractNetwork):
             (torch.zeros(1, self.full_support_size)
              .scatter(1, torch.tensor([[self.full_support_size // 2]]).long(), 1.0)
              .repeat(len(observation), 1)
-             .to(observation.device))
+             .to(observation.device)) + 1e-5
         )
-
         return encoded_state, policy_logits, value_logits, reward_logits
 
     def recurrent_inference(self, encoded_state: Tensor, action: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:

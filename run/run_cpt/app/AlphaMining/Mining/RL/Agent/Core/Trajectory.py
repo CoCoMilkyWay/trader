@@ -125,7 +125,7 @@ class Trajectory:
             self.values.append(root.value_mean())
         else:
             # If no root is provided, store None for the root value.
-            self.policies.append([0.0 for _ in range(len(action_space))])
+            self.policies.append([1/len(action_space) for _ in range(len(action_space))])
             self.values.append(0.0)
 
     def get_target_node_value(self, index: int):
@@ -151,7 +151,7 @@ class Trajectory:
 
         # use value estimate at the end index (to cover rewards from end index to infinity)
         if bootstrap_index < len(self.values):
-            value += reward * self.future_discount ** self.future_steps * \
+            value += self.values[bootstrap_index] * self.future_discount ** self.future_steps * \
                 (1 if bootstrap_player == current_player else -1)
 
         return value

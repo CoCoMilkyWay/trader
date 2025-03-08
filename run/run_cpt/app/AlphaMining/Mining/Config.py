@@ -108,7 +108,7 @@ class AgentConfig:
         self.pb_c_base = 19652
         self.pb_c_init = 1.25
         #   UCB formula (value score) (MCTS-Selection)
-        self.future_discount = 0.98 # [0,1] future_reward_weight (trade-offs between immediate rewards and expected cumulative future rewards)
+        self.future_discount = 0.99 # [0,1] future_reward_weight (trade-offs between immediate rewards and expected cumulative future rewards)
         #   Temperature (action) (post-MCTS)
         #   Ensure the temperature does not drop too low (avoid complete determinism too early).
         self.max_temperature = 1.0  # Max temperature at the start (full exploration)
@@ -121,7 +121,7 @@ class AgentConfig:
         self.PER_alpha = 0.5  # prioritization = diff(MCTS calculated value, target value) ** PER_alpha
 
         # Replay Buffer
-        self.replay_buffer_size = 10000  # Number of self-play games to keep in the replay buffer
+        self.replay_buffer_size = 200  # Number of self-play games to keep in the replay buffer. dont keep too many past games, discard some early bad games
 
         # Training
         self.train_on_gpu = torch.cuda.is_available()
@@ -130,7 +130,7 @@ class AgentConfig:
         self.results_path = f"{os.path.dirname(__file__)}/RL/CheckPoints/{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}" # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
         #   Batching
-        self.batch_size = 128  # Number of games to train each time(per batch)
+        self.batch_size = 512  # Number of games to train each time(per batch)
         # unroll steps need to be equal to future_steps, otherwise have to recalculate priorities and others
         # batch data has trajectory[rand_idx, rand_idx + unroll_steps + 1] as training data
         #   Learning Rate
@@ -155,10 +155,10 @@ class AgentConfig:
         self.observation_shape = (1, 1, 4)
         self.action_space = list(range(2))
         self.players = list(range(1))  # List of players
-        self.future_steps = 100
-        self.num_rollout_sims = 200
-        self.support_size = 2
-        self.stacked_observations = 1
+        self.future_steps = 50
+        self.num_rollout_sims = 50
+        self.support_size = 4
+        self.stacked_observations = 0
         
     def to_dict(self):
         return self.__dict__

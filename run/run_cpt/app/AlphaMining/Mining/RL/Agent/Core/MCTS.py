@@ -290,7 +290,7 @@ class MCTS:
             node.update_stats(current_v_value)
 
             # NOTE: tricky here:
-            # check UCB definition to see why it works lke this
+            # check UCB definition to see why it works like this
             immediate_reward = node.reward
             expected_cumulative_future_rewards = \
                 -node.value_mean() if self.is_zero_sum_game else node.value_mean()
