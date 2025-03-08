@@ -201,7 +201,7 @@ class TrainLoop:
             2. just in case the model params changed, which would make gradient calculation inaccurate
         """
         # Unpack the batch
-        (
+        (   # observation is not latent states here
             observation_feature,  # [batch_size, arr[chans, height, width]]
             policy_target,        # [batch_size, unroll_steps+1, num_actions]
             value_target,         # [batch_size, unroll_steps+1]
@@ -225,7 +225,6 @@ class TrainLoop:
             action_feature, dtype=torch.int).to(device).unsqueeze(-1)
         reward_target = torch.tensor(
             reward_target, dtype=torch.float32).to(device)
-        # if self.config.PER:
         weight_batch = torch.tensor(
             weight_batch, dtype=torch.float32).to(device)
         gradient_scale_batch = torch.tensor(
@@ -237,9 +236,7 @@ class TrainLoop:
         reward_target = scalar_to_support(
             reward_target, self.config.support_size)
 
-        # print(observation_feature.shape,policy_target.shape,value_target.shape,action_feature.shape,reward_target.shape,weight_batch.shape,gradient_scale_batch.shape)
-
-        # observation_feature,  shape: [batch_size, array[channels, height, width]]
+        # observation_feature,  shape: [batch_size, (stacked_observations*2+1)*channels, height, width]
         # policy_target,        shape: [batch_size, num_unroll_steps + 1, num_actions]
         # value_target,         shape: [batch_size, num_unroll_steps + 1, 2 * support_size + 1]
         # action_feature,       shape: [batch_size, num_unroll_steps + 1, 1] (unsqueeze)

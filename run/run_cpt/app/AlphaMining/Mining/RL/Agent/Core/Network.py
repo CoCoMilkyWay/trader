@@ -19,7 +19,7 @@ class AbstractNetwork(ABC, torch.nn.Module):
         Performs initial inference on the observation.
 
         Args:
-        - observation (Tensor): Input observation, shape: (batch_size, channels, height, width)
+        - observation (Tensor): Input observation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
         - Tuple[Tensor, Tensor, Tensor, Tensor]: 
@@ -95,11 +95,12 @@ class MLPNetwork(AbstractNetwork):
             mlp(
                 self.config.observation_shape[0] *
                 self.config.observation_shape[1] *
-                self.config.observation_shape[2]
-                * (self.config.stacked_observations + 1) + self.config.stacked_observations *
+                self.config.observation_shape[2] *
+                (self.config.stacked_observations + 1) +
                 # Input features size
                 self.config.observation_shape[1] *
-                self.config.observation_shape[2],
+                self.config.observation_shape[2] *
+                self.config.stacked_observations,
                 self.config.mlp_representation_layers,  # Definition of hidden layers in MLP
                 self.config.encoding_size,  # Output encoding size
             )
@@ -157,7 +158,7 @@ class MLPNetwork(AbstractNetwork):
         Encodes the observation into a latent state representation.
 
         Args:
-        - observation (Tensor): Input observation, shape: (batch_size, channels, height, width)
+        - observation (Tensor): Input observation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
         - Tensor: Normalized encoded representation of the state, shape: (batch_size, encoding_size)
@@ -222,7 +223,7 @@ class MLPNetwork(AbstractNetwork):
         Performs initial inference on the observation.
 
         Args:
-        - observation (Tensor): Input observation, shape: (batch_size, channels, height, width)
+        - observation (Tensor): Input observation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
         - Tuple[Tensor, Tensor, Tensor, Tensor]: 
@@ -358,7 +359,7 @@ class ResNetwork(AbstractNetwork):
         Generates policy and value predictions from the encoded state.
 
         Args:
-        - encoded_state (Tensor): Input state representation, shape: (batch_size, channels, height, width)
+        - encoded_state (Tensor): Input state representation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
         - Tuple[Tensor, Tensor]: 
@@ -373,10 +374,10 @@ class ResNetwork(AbstractNetwork):
         Encodes the observation into a latent state.
 
         Args:
-        - observation (Tensor): Input observation, shape: (batch_size, channels, height, width)
+        - observation (Tensor): Input observation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
-        - Tensor: Normalized encoded state representation, shape: (batch_size, channels, height, width)
+        - Tensor: Normalized encoded state representation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
         """
         encoded_state: Tensor = self.representation_network(
             observation)  # Pass observation through representation network
@@ -402,12 +403,12 @@ class ResNetwork(AbstractNetwork):
         Models the dynamics of the environment, predicting the next state and reward.
 
         Args:
-        - encoded_state (Tensor): Current encoded state, shape: (batch_size, channels, height, width)
+        - encoded_state (Tensor): Current encoded state, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
         - action (Tensor): Action taken, shape: (batch_size,)
 
         Returns:
         - Tuple[Tensor, Tensor]: 
-            - Next encoded state (normalized) (shape: (batch_size, channels, height, width))
+            - Next encoded state (normalized) (shape: (batch_size, (stacked_observations*2+1)*channels, height, width))
             - Predicted reward (shapes depend on the architecture)
         """
         # Stack encoded_state with a one-hot encoded representation of the action
@@ -450,11 +451,11 @@ class ResNetwork(AbstractNetwork):
         Performs initial inference from the observation.
 
         Args:
-        - observation (Tensor): Input observation, shape: (batch_size, channels, height, width)
+        - observation (Tensor): Input observation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
         - Tuple[Tensor, Tensor, Tensor, Tensor]:
-            - Encoded state (shape: (batch_size, channels, height, width))
+            - Encoded state (shape: (batch_size, (stacked_observations*2+1)*channels, height, width))
             - Policy logits (shape: (batch_size, action_space_size))
             - value logits (shape: (batch_size, full_support_size))
             - reward logits (shape: (batch_size, full_support_size))
@@ -477,12 +478,12 @@ class ResNetwork(AbstractNetwork):
         Performs recurrent inference given the encoded state and action.
 
         Args:
-        - encoded_state (Tensor): Current encoded state, shape: (batch_size, channels, height, width)
+        - encoded_state (Tensor): Current encoded state, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
         - action (Tensor): Action taken, shape: (batch_size,)
 
         Returns:
         - Tuple[Tensor, Tensor, Tensor, Tensor]: 
-            - Dynamic(Next encoded) state (shape: (batch_size, channels, height, width))
+            - Dynamic(Next encoded) state (shape: (batch_size, (stacked_observations*2+1)*channels, height, width))
             - Policy logits (shape: (batch_size, action_space_size))
             - value logits (shape: (batch_size, full_support_size))
             - reward logits (shape: (batch_size, full_support_size))
@@ -509,7 +510,7 @@ class ResRepresentationNetwork(torch.nn.Module):
         This network encodes observations into a latent representation.
 
         Args:
-        - observation_shape (Tuple[int, int, int]): Shape of the input observations (channel, height, width).
+        - observation_shape (Tuple[int, int, int]): Shape of the input observations ((stacked_observations*2+1)*channels, height, width).
         - stacked_observations (int): Number of stacked observations.
         - num_blocks (int): Number of residual blocks in the network.
         - num_channels (int): Number of channels for convolutional layers.
@@ -557,10 +558,10 @@ class ResRepresentationNetwork(torch.nn.Module):
         Forward pass through the representation network.
 
         Args:
-        - x (Tensor): Input observations to encode, shape: (batch_size, channels, height, width)
+        - x (Tensor): Input observations to encode, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
-        - Tensor: The encoded representation, shape: (batch_size, num_channels, height, width)
+        - Tensor: The encoded representation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
         """
         if self.downsample:
             x = self.downsample_net(x)  # Apply downsampling
@@ -625,11 +626,11 @@ class ResDynamicsNetwork(torch.nn.Module):
         Forward pass through the dynamics network.
 
         Args:
-        - x (Tensor): Input current state and action, shape: (batch_size, channels, height, width + action_space_size)
+        - x (Tensor): Input current state and action, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
         - Tuple[Tensor, Tensor]: 
-            - Updated (next) state (shape: (batch_size, channels, height, width))
+            - Updated (next) state (shape: (batch_size, (stacked_observations*2+1)*channels, height, width))
             - Predicted reward (shape: (batch_size, full_support_size))
         """
         x = self.conv(x)  # Apply convolution
@@ -708,7 +709,7 @@ class ResPredictionNetwork(torch.nn.Module):
         Forward pass through the prediction network.
 
         Args:
-        - x (Tensor): Input state representation, shape: (batch_size, channels, height, width)
+        - x (Tensor): Input state representation, shape: (batch_size, (stacked_observations*2+1)*channels, height, width)
 
         Returns:
         - Tuple[Tensor, Tensor]: 

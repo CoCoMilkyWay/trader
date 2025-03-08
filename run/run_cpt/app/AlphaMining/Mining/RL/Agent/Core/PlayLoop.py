@@ -118,14 +118,11 @@ class PlayLoop:
         # because observed states maybe incomplete, we use observation rather than state here
         observation = self.environment.reset()
 
-        # Initialize trajectory with s₀; dummy action and reward for alignment.
-        trajectory.players.append(self.environment.player_id())
-        trajectory.observations.append(observation)
-        trajectory.policies.append( # Dummy policy
-            [0.0 for _ in range(len(self.config.action_space))])
-        trajectory.values.append(0.0)  # Dummy value
-        trajectory.actions.append(0)  # Dummy action
-        trajectory.rewards.append(0.0)  # Dummy reward
+        #   player  obv     policy  value   action  rewards
+        #   t0      t0      t0      t0      t0      t0
+        #   ...     ...     ...     ...     ...     ...
+
+        #   e.g. (obv_t2, act_t1, obv_t1, act_t0, obv_t0) are used to generate representation
 
         done = False
 
@@ -137,6 +134,9 @@ class PlayLoop:
                 # Validate the observation dimensions.
                 assert observation.ndim == 3, f"Expected 3-dimensional state but got {observation.ndim} dimensions, shape: {observation.shape}"
                 assert observation.shape == self.config.observation_shape, f"Expected state shape {self.config.observation_shape} but got {observation.shape}"
+
+                trajectory.players.append(self.environment.player_id())
+                trajectory.observations.append(observation)
 
                 # Retrieve stacked observations from trajectory history.
                 # This stacks previous frames if needed (useful for partial observability and video games).
@@ -153,15 +153,14 @@ class PlayLoop:
                     action, root = self._select_opponent_action(
                         player_type, stacked_obvs)
 
+                trajectory.update_policy_and_value(
+                    root, self.config.action_space)
+                trajectory.actions.append(action)
+
                 # Execute the chosen action in the environment M.
                 observation, reward, done = self.environment.step(action)
 
                 # Record MCTS statistics and update trajectory.
-                trajectory.players.append(self.environment.player_id())
-                trajectory.observations.append(observation)
-                trajectory.update_policy_and_value(
-                    root, self.config.action_space)
-                trajectory.actions.append(action)
                 trajectory.rewards.append(reward)
 
                 if render:

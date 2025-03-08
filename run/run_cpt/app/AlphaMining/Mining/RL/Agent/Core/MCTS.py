@@ -105,7 +105,7 @@ class MCTS:
         self.config = config
         self.is_zero_sum_game = len(config.players) != 1
 
-    def run(self, model: AbstractNetwork, state: NDArray, legal_actions: List[int], root_player: int, add_exploration_noise: bool) -> Tuple[Node, Dict[str, Any]]:
+    def run(self, model: AbstractNetwork, stacked_obvs: NDArray, legal_actions: List[int], root_player: int, add_exploration_noise: bool) -> Tuple[Node, Dict[str, Any]]:
         """
         Run MCTS simulations to build the search tree and return the root node with extra info.
         Explicitly follows the four steps: Selection, Expansion, Rollout, and Backpropagation.
@@ -123,14 +123,15 @@ class MCTS:
 
         # Root calculation ==============================================================
         root_node = Node(prior=0)
-        state_tensor = torch.tensor(state).float().unsqueeze(0).\
+        # shape: [1, (stacked_observations*2+1)*channels, height, width,]
+        stacked_obvs_tensor = torch.tensor(stacked_obvs).float().unsqueeze(0).\
             to(next(model.parameters()).device)
 
         # the model outputs logits even for scalar values then perform transformation
         # this is because the transformation behaves like a custom(more advanced) last layer
         # may have benefits in both algo performance and descent speed
         repr_logits, policy_logits, value_logits, reward_logits = \
-            model.initial_inference(state_tensor)
+            model.initial_inference(stacked_obvs_tensor)
         root_v_pred = support_to_scalar(  # shape: (batch_size, 1)
             value_logits, self.config.support_size).item()
         root_r_pred = support_to_scalar(  # shape: (batch_size, 1)
@@ -256,7 +257,6 @@ class MCTS:
             value_logits, self.config.support_size).item()
         leaf_r_pred = support_to_scalar(
             reward_logits, self.config.support_size).item()
-        print(f"reward_logits:{reward_logits},leaf_r_pred:{leaf_r_pred}")
         leaf_node.expand(
             actions=self.config.action_space,  # this is simulation, we allow all actions here
             player=leaf_player,

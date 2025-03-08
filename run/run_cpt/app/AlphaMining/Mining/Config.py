@@ -155,9 +155,10 @@ class AgentConfig:
         self.observation_shape = (1, 1, 4)
         self.action_space = list(range(2))
         self.players = list(range(1))  # List of players
-        self.future_steps = 10
-        self.num_rollout_sims = 10
+        self.future_steps = 100
+        self.num_rollout_sims = 200
         self.support_size = 2
+        self.stacked_observations = 1
         
     def to_dict(self):
         return self.__dict__

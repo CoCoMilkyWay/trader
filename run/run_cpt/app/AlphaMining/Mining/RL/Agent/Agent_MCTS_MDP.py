@@ -66,11 +66,11 @@ class Agent_MCTS_MDP:
       - Policy model π: θ_policy.                                      (Actor, Target-Policy(influenced by Behavior(MCTS))
         - Input: Latent state rep.
         - Output: Predicted policy p_pred (action probabilities).
-    
+
     NOTE: Q value means expected cumulative reward from time t onwards given state and action at time t
           V value here may not directly equal to Q value
           e.g. if Q value = V value + reward, then V value means expected cumulative future reward after t
-    
+
     Initialize replay buffer B: Stores trajectories for training.
 
     Main training loop
@@ -239,7 +239,7 @@ class Agent_MCTS_MDP:
 
     def run(self):
         app_path = os.path.join(os.path.dirname(Mining.__file__), "..")
-        exc_path = ["/Example/"] # dont send data
+        exc_path = ["/Example/"]  # dont send data
         ray.init(
             runtime_env={"working_dir": app_path, "excludes": exc_path}
         )
@@ -250,7 +250,7 @@ class Agent_MCTS_MDP:
             print("Resources:", node["Resources"])
 
         config = self.config.to_dict()
-        
+
         self.checkpoint = CheckPoint.options(num_cpus=1, num_gpus=0).\
             remote(config)
 
@@ -276,7 +276,7 @@ class Agent_MCTS_MDP:
 
         # self.reanalyse_worker.reanalyse.remote(  # type: ignore
         #     self.checkpoint, self.replay_buffer_worker)
-        
+
         while True:
             time.sleep(1)
 

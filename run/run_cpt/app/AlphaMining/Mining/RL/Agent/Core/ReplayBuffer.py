@@ -124,7 +124,7 @@ class ReplayBuffer:
             weight_batch = [w/max(weight_batch) for w in weight_batch]
 
         # Return the batch data, formatted as described in the pseudocode comments.
-        # observation_batch: batch, channels, height, width
+        # observation_batch: batch, (stacked_observations*2+1)*channels, height, width
         # policy_batch: batch, num_unroll_steps+1, len(action_space)
         # value_batch: batch, num_unroll_steps+1
         # action_batch: batch, num_unroll_steps+1

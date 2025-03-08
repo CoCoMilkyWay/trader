@@ -72,7 +72,7 @@ class Trajectory:
             if past_idx >= 0:
                 # Retrieve the action taken immediately after the past observation.
                 # Divide by the action space size to normalize the action value.
-                action_value = self.actions[past_idx+1] / action_space_size
+                action_value = self.actions[past_idx] / action_space_size
                 # self.observations[past_idx] = current state, self.actions[past_idx] = action made to get to current state
 
                 # Create an "action channel" array that has the same shape as one channel of the observation.
@@ -92,7 +92,9 @@ class Trajectory:
             # Append the constructed past observation-action pair to the current stacked observation.
             stacked_obs = np.concatenate((stacked_obs, previous_obs))
 
-        # -> (obv_t2, act_t2, obv_t1, act_t1, obv_t0) starts and ends with obv
+        # obs: (channels, height, width,)
+        # -> stacked_obs: ((stacked_observations*2+1)*channels, height, width,)
+        # (obv_t2, act_t1, obv_t1, act_t0, obv_t0) starts and ends with obv
         return stacked_obs
 
     def update_policy_and_value(self, root: Optional[Node], action_space: List[int]):
