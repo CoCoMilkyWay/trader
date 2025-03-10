@@ -1,22 +1,2 @@
-build
-dist
-binance.egg-info/
-__pycache__
+**__pycache__
 *.pyc
-.tox
-.python-version
-.DS_Store
-
-# Environments
-.env
-.venv
-venv/
-
-# IDE
-.idea/
-.vscode/
-
-# document build
-docs/build/
-
-binance/*.ini

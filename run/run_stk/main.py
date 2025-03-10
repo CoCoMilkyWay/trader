@@ -8,14 +8,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), TOP))
 sys.path.append(os.path.join(os.path.dirname(__file__), TOP + "app"))
 sys.path.append(os.path.join(os.path.dirname(__file__), TOP + "app/Exchange_API/"))
 
-from Util.UtilCpt import enable_logging
+from Util.UtilStk import enable_logging
 from wtpy.apps import WtBtAnalyst
 from wtpy.monitor import WtBtSnooper
 from wtpy import WtBtEngine, EngineType, WtDtServo
 
-from Util.UtilCpt import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
-from config.cfg_cpt import cfg_cpt
-from strategies.Strategy_Alpha.Main_Alpha import Main_Alpha
+from Util.UtilStk import generate_asset_list, generate_database_files, generate_merged_database_files, testBtSnooper
+from config.cfg_stk import cfg_stk
+from strategies.Strategy_Alpha_Alpha.Main_Alpha import Main_Alpha
 
 
 run = True

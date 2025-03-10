@@ -1,0 +1,40 @@
+basefiles:
+    utf-8: true     # 配置文件是否使用utf-8编码
+    contract: ../cfg/assets_cfg/okex_tickers.json
+    session: ../cfg/sessions/btc_sessions.json
+broadcaster:
+    active: false
+    bport: 3997         # UDP转发端口
+    broadcast:
+    -   host: 255.255.255.255
+        port: 9001
+        type: 2
+    multicast_:
+    -   host: 224.169.169.169
+        port: 9002
+        sendport: 8997
+        type: 0
+    -   host: 224.169.169.169
+        port: 9003
+        sendport: 8998
+        type: 1
+    -   host: 224.169.169.169
+        port: 9004
+        sendport: 8999
+        type: 2
+
+allday: true        # 注释或删除, 否则不执行状态机
+# statemonitor: statemonitor.yaml
+
+# API 接口登录信息
+# parsers: mdparsers.yaml
+
+shmcaster:                      # 共享内存转发，适合本机转发
+    active: true
+    path: ./exchange.membin     # memmap文件路径
+writer:
+    async: false
+    module: WtDataStorageAD
+    groupsize: 20
+    path: ./AD_Data
+    savelog: false

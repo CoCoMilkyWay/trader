@@ -291,7 +291,7 @@ def generate_asset_list(num=None):
             
     if not asset_list_updated:
         import logging
-        from binance.um_futures import UMFutures
+        from Exchange_API.binance.um_futures import UMFutures
         print('HTTP Querying Binance UM ExchangeInfo...')
         um_futures_client = UMFutures()
         info = um_futures_client.exchange_info()

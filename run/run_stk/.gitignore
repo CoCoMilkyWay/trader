@@ -1,7 +1,6 @@
-run_bt.prof
-model_tree.png
-./data.db
 outputs_bt/
-*.json
 **/*.log
-**/__pycache__
+**__pycache__
+*.html
+*.json
+*.prof
