@@ -124,7 +124,6 @@ class TrainLoop:
             if epoch % validation_interval == 0:
                 val_loss, val_accuracy = validate(
                     neural_network, validation_data)
-                Print "Epoch:", epoch, "Validation Loss:", val_loss, "Validation Accuracy:", val_accuracy
         """
         # Wait until at least one game has been played.
         while True:
@@ -138,7 +137,6 @@ class TrainLoop:
         next_batch = replay_buffer.get_batch.remote()
         # Continue training until reaching the maximum training steps or termination signal.
         while self.trained_steps < self.config.max_training_steps and not ray.get(checkpoint.get_info.remote("terminate")):
-            print('train new batch')
             index_batch, batch = ray.get(next_batch)
             self.update_learning_rate(self.trained_steps)
 
@@ -146,19 +144,14 @@ class TrainLoop:
             total_loss, policy_loss, value_loss, reward_loss = \
                 self.train_step(batch)
 
-            print(f"                                                    "
-                  f"{policy_loss:.2f}, "
-                  f"{value_loss:.2f}, "
-                  f"{reward_loss:.2f}, ")
-
             # Save training statistics to the checkpoint.
             checkpoint.set_info.remote({
                 "num_trained_steps": self.trained_steps,
                 "learning_rate": self.optimizer.param_groups[0]["lr"],
                 "total_loss": total_loss,
+                "policy_loss": policy_loss,
                 "value_loss": value_loss,
                 "reward_loss": reward_loss,
-                "policy_loss": policy_loss,
             })
 
             # Save updated model weights and optimizer state periodically.
@@ -266,7 +259,6 @@ class TrainLoop:
                 reward_loss)
         if self.config.PER:
             loss *= weight_batch
-        print(loss.shape, loss.mean())
 
         loss = loss.mean()
 
@@ -304,18 +296,15 @@ class TrainLoop:
         for i in range(0, len(predictions)):
             policy_logits, value_logits, reward_logits = predictions[i]
 
-            # print("=======================================================================")
-            # n = 1
-            # print(policy_logits[n, :],  target_policy[n, i])
-            # print(value_logits[n, :],   target_value[n, i])
-            # print(reward_logits[n, :],  target_reward[n, i])
-
-            current_policy_loss = self.compute_loss(
+            current_policy_loss = self.mean_square_loss(
                 policy_logits, target_policy[:, i])
-            current_value_loss = self.compute_loss(
+            current_value_loss = self.cross_entropy_loss(
                 value_logits, target_value[:, i])
-            current_reward_loss = self.compute_loss(
+            current_reward_loss = self.cross_entropy_loss(
                 reward_logits, target_reward[:, i])
+
+            # if i == 0:
+            # print("target: ", [f"{l:.2f}" for l in policy_logits[i].tolist()], [f"{l:.2f}" for l in target_policy[0, i].tolist()])
 
             if i != 0:
                 # Scale losses by the gradient scale for this step
@@ -337,18 +326,33 @@ class TrainLoop:
         return policy_loss, value_loss, reward_loss
 
     @staticmethod
-    def compute_loss(prediction: Tensor, target: Tensor):
+    def cross_entropy_loss(prediction: Tensor, target: Tensor) -> Tensor:
         """
         Compute the loss for a training step.
 
         For each unroll step, losses are computed as cross-entropy between the predictions
         and their corresponding targets.
 
+        # NOTE: better used with scalar/support transformation
+
         Returns:
             loss (each as tensors over the batch).
         """
-        # Cross-entropy loss is used (better convergence than MSE in many cases).
+        # Cross-entropy loss is used (better convergence than MSE when output is a soft-maxed(single peaked) distribution).
         loss = (-target * torch.nn.LogSoftmax(dim=1)(prediction)).sum(1)
+        return loss
+
+    @staticmethod
+    def mean_square_loss(prediction: Tensor, target: Tensor) -> Tensor:
+        """
+        Compute the loss for a training step.
+        For each unroll step, losses are computed as MSE between the predictions
+        and their corresponding targets.
+        Returns:
+            loss (each as tensors over the batch).
+        """
+        loss = torch.nn.MSELoss(reduction='none')(
+            prediction, target).mean(dim=1)
         return loss
 
     def update_learning_rate(self, trained_steps: int):

@@ -57,7 +57,7 @@ SIZE_ACTION = SIZE_OP + SIZE_FEATURE + \
     SIZE_SEP
 SIZE_NULL = 1
 
-MAX_EXPR_LENGTH = 100
+MAX_EXPR_LENGTH = 15
 MAX_EPISODE_LENGTH = 256
 REWARD_PER_STEP = 0.
 
@@ -87,7 +87,7 @@ class AgentConfig:
 
         # Fully Connected Network
         self.encoding_size = 8
-        self.mlp_representation_layers = [] # Define the hidden layers in the representation network
+        self.mlp_representation_layers = [16] # Define the hidden layers in the representation network
         self.mlp_dynamics_layers = [16]  # Define the hidden layers in the dynamics network
         self.mlp_reward_layers = [16]  # Define the hidden layers in the reward network
         self.mlp_value_layers = [16]  # Define the hidden layers in the value network
@@ -97,10 +97,10 @@ class AgentConfig:
         self.selfplay_on_gpu = False
         self.num_workers = 1 # Number of simultaneous threads/workers self-playing to feed the replay buffer
         self.ratio_train_play = 0.8 # make sure model is sufficiently trained before continue playing (set to None to disable in synchronous mode)
-        self.render = True
+        self.render = False
 
         # MCTS
-        self.num_rollout_sims = 200 # Number of games moves for MCTS to simulate in rollout stage to estimate next best action
+        self.num_rollout_sims = 500 # Number of games moves for MCTS to simulate in rollout stage to estimate next best action
         #   UCB formula (prior score) (MCTS-Selection) (Root exploration noise)
         self.root_exploration_fraction = 0.25 # Fraction of the exploration noise added to the root prior
         self.root_dirichlet_alpha = 0.3 # Dirichlet noise applied to exploration part of the root prior
@@ -108,7 +108,7 @@ class AgentConfig:
         self.pb_c_base = 19652
         self.pb_c_init = 1.25
         #   UCB formula (value score) (MCTS-Selection)
-        self.future_discount = 0.99 # [0,1] future_reward_weight (trade-offs between immediate rewards and expected cumulative future rewards)
+        self.future_discount = 0.995 # [0,1] future_reward_weight (trade-offs between immediate rewards and expected cumulative future rewards)
         #   Temperature (action) (post-MCTS)
         #   Ensure the temperature does not drop too low (avoid complete determinism too early).
         self.max_temperature = 1.0  # Max temperature at the start (full exploration)
@@ -126,7 +126,7 @@ class AgentConfig:
         # Training
         self.train_on_gpu = torch.cuda.is_available()
         self.max_training_steps = 10000 # Total number of training steps (ie weights update according to a batch)
-        self.update_interval = 1  # Number of batches before self-play, between updates, between checkpoint saves
+        self.update_interval = 10  # Number of batches before self-play, between updates, between checkpoint saves
         self.results_path = f"{os.path.dirname(__file__)}/RL/CheckPoints/{datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")}" # Path to store the model weights and TensorBoard logs
         self.save_model = True  # Save the checkpoint in results_path as model.checkpoint
         #   Batching
@@ -152,14 +152,16 @@ class AgentConfig:
         self.seed = 0  # Seed for numpy, torch and the game
 
         # Overwrite TODO
-        self.observation_shape = (1, 1, 4)
-        self.action_space = list(range(2))
-        self.players = list(range(1))  # List of players
-        self.future_steps = 50
-        self.num_rollout_sims = 50
-        self.support_size = 4
+        # self.render = True
+        # self.observation_shape = (1,1,1)
+        # self.action_space = list(range(10))
+        # self.players = list(range(1))  # List of players
+        self.root_exploration_fraction = 0.9
+        self.root_dirichlet_alpha = 0.9
+        self.future_steps = 5
+        self.num_rollout_sims = 10
+        self.support_size = 2
         self.stacked_observations = 0
-        
+
     def to_dict(self):
         return self.__dict__
-      

@@ -1,5 +1,6 @@
 import ray
 import time
+import copy
 import torch
 import numpy as np
 from numpy.typing import NDArray
@@ -34,7 +35,7 @@ class PlayLoop:
         self.config = DotMap(config)
 
         # Save the environment (M) for interactions.
-        self.environment = environment
+        self.environment = copy.deepcopy(environment)
 
         # Fix random seeds for reproducibility.
         np.random.seed(self.config.seed)
@@ -51,6 +52,9 @@ class PlayLoop:
 
         self.mcts_info: Dict[str, Any] = {}
 
+        self.num_trained_steps: int = 0
+        self.num_played_steps: int = 0
+
         print(f"PlayLoop inited on {device}")
 
     def play_loop(self, checkpoint, replay_buffer):
@@ -64,12 +68,13 @@ class PlayLoop:
         The loop terminates when the number of trained steps exceeds max_training_steps
         or if a termination flag is set in the checkpoint.
         """
+        self.checkpoint = checkpoint
+
         while True:
-            num_trained_steps = int(
-                ray.get(checkpoint.get_info.remote("num_trained_steps")))
+            self._update_steps()
             terminate = ray.get(checkpoint.get_info.remote("terminate"))
 
-            if num_trained_steps > self.config.max_training_steps or terminate:
+            if self.num_trained_steps > self.config.max_training_steps or terminate:
                 break
 
             # Update model weights from the checkpoint.
@@ -78,14 +83,13 @@ class PlayLoop:
 
             # Compute smooth decay of dynamic temperature based on training progress.
             temperature = max(self.config.min_temperature, self.config.max_temperature *
-                              (self.config.decay_factor ** (num_trained_steps / (0.1 * self.config.max_training_steps))))
+                              (self.config.decay_factor ** (self.num_trained_steps / (0.1 * self.config.max_training_steps))))
 
             # Play one full episode to generate a trajectory.
-            print('play new game')
             trajectory = self.play_step(
                 temperature=temperature,
                 render=self.config.render,
-                player_type="self"
+                player_type="self",
             )
 
             # Save the generated trajectory to the replay buffer.
@@ -147,7 +151,7 @@ class PlayLoop:
                 # Decide which agent selects the action.
                 if player_type == "self":
                     action, root = self._select_player_action(
-                        stacked_obvs, temperature, render)
+                        stacked_obvs, temperature)
                 else:
                     # For non-self opponents, choose an action based on opponent type.
                     action, root = self._select_opponent_action(
@@ -166,28 +170,35 @@ class PlayLoop:
                 if render:
                     action_str = self.environment.action_to_string(action)
                     self.environment.render()
-
-        self.print_traj_node_results(trajectory, 1)
-        self.print_traj_node_results(trajectory, 2)
-        self.print_traj_node_results(trajectory, -2)
-        self.print_traj_node_results(trajectory, -1)
+                    self.print_traj_node_results(trajectory, -1)
 
         return trajectory
 
     def print_traj_node_results(self, traj: Trajectory, node: int):
-        formatted_string = np.array2string(
-            traj.observations[node], precision=2, suppress_small=True)
+        lr = ray.get(self.checkpoint.get_info.remote("learning_rate"))
+        policy_loss = ray.get(self.checkpoint.get_info.remote("policy_loss"))
+        value_loss = ray.get(self.checkpoint.get_info.remote("value_loss"))
+        reward_loss = ray.get(self.checkpoint.get_info.remote("reward_loss"))
+
+        # state = [f"{l:+.2f}" for l in traj.observations[node].squeeze().tolist()]
+        policy = [f"{l:+.2f}" for l in traj.policies[node]]
         print(
-            f"player:{traj.players[node]},"
-            f"state:{formatted_string},"
-            f"policy:{traj.policies[node]},"
-            f"value:{traj.values[node]:.2f},"
-            f"action:{traj.actions[node]},"
-            f"rewards:{traj.rewards[node]},"
-            f"tree_depth:{self.mcts_info['max_tree_depth']},"
+            f"init_value:{traj.values[0]:+2.2f}, "
+            f"player:{traj.players[node]:1}, "
+            # f"state:{state}, "
+            f"policy:{policy}, "
+            f"value:{traj.values[node]:2.2f}, "
+            f"action:{traj.actions[node]:2}, "
+            f"rewards:{traj.rewards[node]:1.1f}, "
+            f"tree_depth:{self.mcts_info['max_tree_depth']:2}, "
+            f"policy_loss:{policy_loss:2.2f}, "
+            f"value_loss:{value_loss:2.2f}, "
+            f"reward_loss:{reward_loss:2.2f}, "
+            f"learn_rate:{lr:0.2f}, "
+            f"trained/played:{self.num_trained_steps:5}/{self.num_played_steps:5}, "
         )
 
-    def _select_player_action(self, stacked_obvs: NDArray, temperature: float, render: bool):
+    def _select_player_action(self, stacked_obvs: NDArray, temperature: float):
         """
         Select an action for a non-self opponent.
         Depending on the opponent type, this method:
@@ -235,12 +246,7 @@ class PlayLoop:
                 self.environment.player_id(),
                 add_exploration_noise=True,
             )
-            # print(f"Tree depth: {self.mcts_info['max_tree_depth']}")
-            # print(
-            #     f"Root v-value for player {self.environment.player_id()}: {root.value_mean():.2f}")
             suggestion = self.select_action_from_node(root, temperature=0)
-            # print(
-            #     f"Player {self.environment.player_id()} turn. MuZero suggests {self.environment.action_to_string(suggestion)}")
             return self.environment.human_to_action(), root
         elif opponent == "expert":
             return self.environment.expert_agent(), None
@@ -292,17 +298,19 @@ class PlayLoop:
         """
         printed = False
         while True:
-            num_trained_steps = int(
-                ray.get(checkpoint.get_info.remote("num_trained_steps")))
-            num_played_steps = max(
-                1, int(ray.get(checkpoint.get_info.remote("num_played_steps"))))
+            self._update_steps()
             if not printed:
                 printed = True
-                print(f"trained:{num_trained_steps}/played:{num_played_steps}")
             # if num_trained_steps >= num_played_steps * self.config.ratio_train_play:
             #     break
             break
             time.sleep(0.5)
+
+    def _update_steps(self):
+        self.num_trained_steps = \
+            int(ray.get(self.checkpoint.get_info.remote("num_trained_steps")))
+        self.num_played_steps = \
+            max(1, int(ray.get(self.checkpoint.get_info.remote("num_played_steps"))))
 
     def _close_environment(self):
         """Close the environment M."""

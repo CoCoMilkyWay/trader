@@ -19,9 +19,9 @@ class CheckPoint:
 
         self.learning_rate = 0.0  # Logs
         self.total_loss = 0.0  # Logs
+        self.policy_loss = 0.0  # Logs
         self.value_loss = 0.0  # Logs
         self.reward_loss = 0.0  # Logs
-        self.policy_loss = 0.0  # Logs
 
         # ReplayBuffer -> ...
         self.num_played_games = 0

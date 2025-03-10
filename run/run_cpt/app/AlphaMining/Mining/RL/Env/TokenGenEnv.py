@@ -1,4 +1,5 @@
 import math
+import json
 import numpy as np
 import gymnasium as gym
 from typing import List, Dict, Tuple, Optional
@@ -12,6 +13,7 @@ from Mining.Expression.Builder import ExpressionBuilder
 from Mining.Expression.Parser import ExpressionParser
 from Mining.Metrics.Calculator import ExpressionCalculator
 from Mining.AlphaPool.AlphaPoolBase import AlphaPoolBase
+from Mining.AlphaPool.Linear.LinearAlphaPool import MseAlphaPool
 
 
 class TokenGenEnv(gym.Env):
@@ -19,15 +21,26 @@ class TokenGenEnv(gym.Env):
 
     def __init__(
         self,
-        expression_builder: ExpressionBuilder,
-        expression_parser: ExpressionParser,
-        alpha_pool: AlphaPoolBase,
     ):
         super().__init__()
-        self.builder = expression_builder
-        self.parser = expression_parser
-        self.pool = alpha_pool
 
+        self.builder = ExpressionBuilder()
+        self.parser = ExpressionParser()
+        self.calculator = ExpressionCalculator(DATA, 'label_1')
+        self.pool = MseAlphaPool(CAPACITY, self.calculator)
+
+        def test_basic(self):
+            with open(os.path.join(os.path.dirname(__file__), "../../Data/report.json")) as f:
+                report = json.load(f)
+            alpha_exprs: List[str] = [expr for expr, _ in report[-1]["alphas"]]
+            alpha_built: List[Operand] = [a for expr in alpha_exprs if
+                                          (a := self.parser.parse(expr)) is not None]
+            print(f"Built formulas: {len(alpha_built)}")
+            self.pool.load_formulas(alpha_built[:100])
+            # print(f'load_formulas time elapsed: {(time.time() - self.start_time):2f}s\n\n')
+
+        test_basic(self)
+        
         self.action_size = SIZE_ACTION
         self.action_space = gym.spaces.Discrete(self.action_size)
         self.observation_space = gym.spaces.Box(
@@ -57,7 +70,8 @@ class TokenGenEnv(gym.Env):
         self._tokens = [BEG_TOKEN]  # Reset tokens to the beginning
         self.builder.reset()  # Reset the ExpressionBuilder
         observation = self.state
-        info = self.info = self.builder.get_init_action_masks()  # misc info (e.g. action masks)
+        # misc info (e.g. action masks)
+        info = self.info = self.builder.get_init_action_masks()
         return observation, info  # Return observation with init mask
 
     def step(self, action_index: int):
