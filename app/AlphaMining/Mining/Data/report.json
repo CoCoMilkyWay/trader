@@ -1,0 +1,35 @@
+[{
+    "alphas": [
+        ["TS_Skew(Mul(TS_Cov(Div(Pow($donchian_20_upper_band_1,1.0),$ema_26_ema_1),$fisher_9_fisher_1,40d),$donchian_5_lower_band_1),240d)",1],
+        ["Pow(Mul(TS_Corr(TS_Cov(TS_WMA($stddev_20_stddev_1,20d),$adx_14_adx_1,5d),-0.1,20d),80.0),$aobv_13_histogram_1)",1],
+        ["TS_Std($macd_9_histogram_1,1d)",1],
+        ["TS_Kurt(Add(Div(Max(Max($william_r_7_wpr_1,$aroon_25_aroon_up_1),-30.0),$tsi_trend_20_tsi_1),-30.0),40d)",1],
+        ["TS_EMA(TS_Corr(TS_Max($stddev_5_stddev_1,40d),$aobv_13_histogram_1,50d),1d)", 1],
+        ["Pow($cci_20_cci_1,-3.0)", 1],
+        ["TS_Cov(Div(Mul(TS_Corr($adx_14_adx_1,5.0,5d),$roc_14_roc_1),$aobv_13_histogram_1),$aroon_25_aroon_up_1,1d)", 1],
+        ["Pow(Pow($cmo_9_cmo_1,$aobv_13_histogram_1),-10.0)", 1],
+        ["TS_Skew(Mul(TS_Corr(Div($roc_14_roc_1,$tsi_trend_20_tsi_1),-20.0,10d),$roc_10_roc_1),50d)", 1],
+        ["TS_Kurt(TS_Corr($candlestrength_10_strength_1,-60.0,240d),5d)",1],
+
+        ["Sub(TS_EMA($ema_5_ema_1,20d),TS_EMA($ema_5_ema_1,50d))", -0.015287576109810203],
+        ["Max(TS_Delta($donchian_20_middle_band_1,10d),TS_Delta($donchian_20_middle_band_1,30d))", -0.03610591847090697],
+        ["Div(TS_Max($ema_5_ema_1,20d),TS_Min($ema_5_ema_1,20d))", 0.035015690003175975],
+        ["Sub(TS_Delta($ema_5_ema_1,5d),TS_Delta($ema_5_ema_1,20d))", -0.00890889276138164],
+        ["Max(TS_EMA($ema_5_ema_1,10d),TS_EMA($ema_5_ema_1,30d))", 0.21338035711674033],
+        ["Sub(TS_Ref($ema_5_ema_1,1d),$ema_5_ema_1)", 0.024938661240208257],
+        ["Mul(Div(TS_EMA($ema_26_ema_1,20d),TS_EMA($donchian_20_middle_band_1,20d)),$ema_5_ema_1)", -0.23607067191730652],
+        ["Div(TS_EMA($vema_10_ema_1,20d),TS_EMA($vema_10_ema_1,50d))", 0.023835846374445344],
+        ["TS_Cov(TS_EMA($donchian_20_middle_band_1,20d),$ema_5_ema_1,30d)", 0.018949387850385493],
+        ["Sub(TS_Ref($ema_12_ema_1,1d),$ema_12_ema_1)", 0.020497391380293373],
+        ["Sub(TS_Max($ema_26_ema_1,10d),TS_Min($donchian_20_middle_band_1,10d))", 0.07658269026844951],
+        ["Mul(Div(TS_Ref($ema_5_ema_1,5d),$ema_5_ema_1),$vema_10_ema_1)", 0.1467226878454179],
+        ["Max(TS_Mean($vema_10_ema_1,5d),TS_Mean($vema_10_ema_1,15d))", -0.12168162745698041],
+        ["Div(TS_EMA($ema_5_ema_1,10d),TS_EMA($ema_5_ema_1,50d))", -0.08405487681107944],
+        ["Max(TS_Max($ema_26_ema_1,30d),TS_Min($donchian_20_middle_band_1,30d))", -0.06598538822776981],
+        ["Div(TS_EMA($ema_26_ema_1,10d),TS_EMA($donchian_20_middle_band_1,20d))", -0.06568499894188438],
+        ["Mul(TS_EMA($ema_26_ema_1,10d),TS_EMA($donchian_20_middle_band_1,50d))", 0.0210411200962911],
+        ["Sub(TS_Ref($donchian_20_middle_band_1,1d),$donchian_20_middle_band_1)", 0.004484002269237874],
+        ["TS_Cov(TS_EMA($ema_26_ema_1,50d),$donchian_20_middle_band_1,30d)", 0.019576081994501074],
+        ["Div(TS_Mean($ema_26_ema_1,20d),TS_Mean($donchian_20_middle_band_1,20d))", 0.031151629181337657]
+        ], "train_ic": 0.203954815864563, "train_ric": 0.091729536652565, "test_ics": [], "test_rics": []
+    }]

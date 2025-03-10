@@ -5,8 +5,8 @@
         "*.ipp": "cpp"
     },
     "python.analysis.extraPaths": [
+        "./app",
         "./run/run_cpt",
-        "./run/run_cpt/app",
-        "./run/run_cpt/app/Api",
+        "./run/run_stk",
     ]
 }
