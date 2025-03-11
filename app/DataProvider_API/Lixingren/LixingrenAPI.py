@@ -1,6 +1,6 @@
 import json
 import requests
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Any, Optional
 
 from ..License import LIXINGREN_LICENSE
 
@@ -23,9 +23,42 @@ class LixingrenAPI:
             }
         }
 
-    def query(self, name: str, inputs: List[str] = []):
+        CN_C['profile'] = {
+            "link": "https://open.lixinger.com/api/cn/company/profile",
+            "description": "获取公司概况数据",
+            "payload": {
+                "token": f"{self.LICENSE}",
+	            "stockCodes": None
+            }
+        }
+        
+        CN_C['industries'] = {
+            "link": "https://open.lixinger.com/api/cn/company/industries",
+            "description": "获取股票所属行业信息",
+            "payload": {
+                "token": f"{self.LICENSE}",
+                "stockCode": None
+            }
+        }
+
+    def fill_payload(self, payload, *args):
+        """
+        Fill the payload dictionary with positional values in order.
+        The order is based on the keys as defined in the payload.
+        """
+        new_payload = {}
+        fill_index = 0
+        for key, value in payload.items():
+            if value is not None:
+                new_payload[key] = value
+            else:
+                new_payload[key] = args[fill_index]
+                fill_index += 1
+        return new_payload
+
+    def query(self, name: str, args: List[Any] = []):
         url = self.API[name]["link"]
-        payload = self.API[name]["payload"]
+        payload = self.fill_payload(self.API[name]["payload"], args)
         headers = {
             'Content-Type': 'application/json'  # Set content type for JSON request
         }

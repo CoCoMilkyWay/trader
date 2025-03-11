@@ -13,7 +13,7 @@ from wtpy.apps import WtBtAnalyst
 from wtpy.monitor import WtBtSnooper
 from wtpy import WtBtEngine, EngineType, WtDtServo
 
-from Util.UtilStk import generate_asset_list # generate_database_files, generate_merged_database_files, testBtSnooper
+from Util.UtilStk import prepare_all_files # generate_database_files, generate_merged_database_files, testBtSnooper
 from config.cfg_stk import cfg_stk
 from strategies.Strategy_Alpha.Main_Alpha import Main_Alpha
 
@@ -27,7 +27,7 @@ def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
     enable_logging()
     
-    wt_assets, symbols = generate_asset_list(num=cfg_stk.num)
+    wt_assets, symbols = prepare_all_files(num=cfg_stk.num)
     # generate_database_files(symbols, force_sync=False)
     # generate_merged_database_files(symbols, resample_n=cfg_stk.n)
     # 

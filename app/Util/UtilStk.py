@@ -2,11 +2,15 @@ from config.cfg_stk import cfg_stk
 import os
 import sys
 import json
+import time
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Tuple
+
+from DataProvider_API.Lixingren.LixingrenAPI import LixingrenAPI
+
 
 RED = '\033[91m'
 GREEN = '\033[92m'
@@ -17,7 +21,6 @@ CYAN = '\033[96m'
 DEFAULT = '\033[0m'
 
 SEC_IN_HALF_YEAR = int(3600*24*365*0.5)
-
 
 def load_json(file_path):
     import json
@@ -271,42 +274,49 @@ def mkdir(path_str):
 # generate asset list
 # ================================================
 
+API = LixingrenAPI()
 
-def generate_asset_list(num=None):
-    from DataProvider_API.Mairui.MairuiAPI import MairuiAPI
-    from DataProvider_API.Lixingren.LixingrenAPI import LixingrenAPI
-    API = LixingrenAPI()
-    # r = API.query("basic_all")
-    file_path = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), 'combined_data.json')
-    # dump_json(file_path,r)
+def prepare_all_files(num=None):
+    """
+    wt: wondertrader/wtpy
+    lxr: lixingren
+    """
+    config_dir = cfg_stk.script_dir
 
-    import time
-    timestamp_current_s = int(time.time())
+    wt_asset_file= config_dir + '/stk_assets.json'
+    lxr_profile_file= config_dir + '/info/lxr_profile.json'
+    lxr_industry_file= config_dir + '/info/lxr_industry.json'
 
-    asset_list_updated = os.path.exists(cfg_stk.ASSET_FILE)
+    wt_asset = _generate_wt_asset_file(wt_asset_file)
+    lxr_profile, wt_asset = _generate_lxr_profile_file(lxr_profile_file, wt_asset)
+    lxr_industry, wt_asset = _generate_lxr_industry_file(lxr_industry_file, wt_asset)
 
-    if asset_list_updated:
-        try:
-            with open(cfg_stk.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
-                timestamp_last_update_ms = os.path.getmtime(cfg_stk.ASSET_FILE)
-                timestamp_last_update_s = timestamp_last_update_ms / 1000
-                dt = datetime.fromtimestamp(timestamp_last_update_s)
+    dump_json(wt_asset_file, wt_asset)
+    dump_json(lxr_profile_file, lxr_profile)
+    dump_json(lxr_industry_file, lxr_industry)
+    
+    wt_assets = []
+    symbols = []
+    # all_underlying_SubTypes = []
+    # cnt = 0
+    # exchange = 'Binance'
+    # product = 'UM'
+    # for symbol_key, symbol_value in asstes_info[exchange].items():
+    #     wt_assets.append(f'{exchange}.{product}.{symbol_key}')
+    #     symbols.append(symbol_key)
+    #     for subtype in symbol_value['extras']['underlyingSubType']:
+    #         if subtype not in all_underlying_SubTypes:
+    #             all_underlying_SubTypes.append(subtype)
+    #     cnt += 1
+    #     if num and cnt >= num:
+    #         break
+    #
+    # print('All underlying SubTypes:', all_underlying_SubTypes)
+    # print('Number of assets:', len(wt_assets))
+    #
+    return wt_assets, symbols
 
-                updated_within_1_day = abs(
-                    # 24hrs
-                    timestamp_current_s - timestamp_last_update_s) <= (3600*24)
-
-                if updated_within_1_day:
-                    print(
-                        f'A-stock ExchangeInfo Already Updated: {dt.year}-{dt.month}-{dt.day}')
-                else:
-                    asset_list_updated = False
-                    print(
-                        f'Old A-stock ExchangeInfo: {dt.year}-{dt.month}-{dt.day}')
-        except:
-            asset_list_updated = False
-            print(f'Error reading A-stock ExchangeInfo')
+def _generate_wt_asset_file(path:str) -> Dict:
 
     Status = {
         "normally_listed": {
@@ -395,13 +405,15 @@ def generate_asset_list(num=None):
         # 'normally_transferred',
         # 'investor_suitability_management_implemented'
     }
+    
+    state = _check_state(path,"A-stock ExchangeInfo",1)
 
-    if not asset_list_updated:
-        from DataProvider_API.Lixingren.LixingrenAPI import LixingrenAPI
+    if state == 2:
+        return load_json(path)
+    else:
         print('HTTP Querying A-stock ExchangeInfo...')
-        API = LixingrenAPI()
         # info = API.query("basic_all")
-        info = load_json(file_path)
+        info = load_json(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'combined_data.json'))
 
         output = {
             "SSE": {},
@@ -422,7 +434,6 @@ def generate_asset_list(num=None):
             ipoDate = symbol.get('ipoDate')
             listingStatus = symbol.get('listingStatus')
             mutualMarkets = symbol.get('mutualMarkets')
-
             if not (name and market and exchange and areaCode and stockCode and fsTableType and ipoDate and listingStatus):
                 print('Skipping for incomplete info: ', name)
                 continue
@@ -446,118 +457,149 @@ def generate_asset_list(num=None):
             # if fsTableType not in ['non_financial']:
             #     print('Skipping for fsTableType:', name, fsTableType)
             #     continue
-            
+
             ipo_date_s = datetime.fromisoformat(ipoDate).timestamp()
-            if abs(timestamp_current_s - ipo_date_s) <= SEC_IN_HALF_YEAR:
+            if abs(int(time.time()) - ipo_date_s) <= SEC_IN_HALF_YEAR:
                 print('Skipping for recency(half year):', name)
                 continue
-                        # 
-            # "Binance": {
-            #     "BTCUSDT": {
-            #         "code": "BTCUSDT",
-            #         "name": "BTCUSDT_UM_PERP",
-            #         "exchg": "Binance",
-            #         "extras": {
-            #             "instType": "PERPETUAL",
-            #             "baseCcy": "BTC",
-            #             "quoteCcy": "USDT",
-            #             "category": 22,
-            #             "serverTime": 1741593610171,
-            #             "onboardDate": 1569398400000,
-            #             "deliveryDate": 4133404800000,
-            #             "underlyingSubType": [
-            #                 "PoW"
-            #             ],
-            #             "liquidationFee": "0.012500",
-            #             "triggerProtect": "0.0500",
-            #             "marketTakeBound": "0.05"
-            #         },
-            #         "rules": {
-            #             "session": "ALLDAY",
-            #             "holiday": "NO_HOLIDAYS",
-            #             "covermode": 3,
-            #             "pricemode": 0,
-            #             "trademode": 0,
-            #             "precision": 2,
-            #             "pricetick": 0.1,
-            #             "lotstick": 0.001,
-            #             "minlots": 0.001,
-            #             "volscale": 100
-            #         }
-            #     },
-            # 
-            output[exg[exchange]][name] = {
-                "code": name,
-                "name": f"{name}_UM_PERP",
-                "exchg": "Binance",
+            
+            output[exg[exchange]][str(stockCode)] = {
+                "code": stockCode,
+                "name": name,
+                "exchg": exg[exchange],
+                "product": "STK",
                 "extras": {
-                    "instType": "PERPETUAL",
-                    "baseCcy": symbol['baseAsset'],
-                    "quoteCcy": symbol['quoteAsset'],
-                    "category": 22,     # 分类，参考CTP
-                                        # 0=股票 1=期货 2=期货期权 3=组合 4=即期
-                                        # 5=期转现 6=现货期权(股指期权) 7=个股期权(ETF期权)
-                                        # 20=数币现货 21=数币永续 22=数币期货 23=数币杠杆 24=数币期权
-                    # "ctVal": "",
-                    # "ctValCcy": "",
-                    # "lever": "10",
-                    # "ctType": ""
+                    "ipoDate": ipoDate,
+                    "industry_names": None,
+                    "industry_codes": None,
+                    "profile_time": None,
+                    "companyName": None,
+                    "city": None,
+                    "province": None,
+                    "businessScope": None,
 
-                    "serverTime": info['serverTime'],
-                    "onboardDate": symbol['onboardDate'],
-                    "deliveryDate": symbol['deliveryDate'],
-                    "underlyingSubType": symbol['underlyingSubType'],
-                    "liquidationFee": symbol['liquidationFee'],
-                    "triggerProtect": symbol['triggerProtect'],
-                    # threshold for algo order with "priceProtect"
-                    "marketTakeBound": symbol['marketTakeBound'],
-                    # the max price difference rate( from mark price) a market order can make
+                    # 'ha': 港股通
+                    "mutualMarkets": mutualMarkets if mutualMarkets else [],
                 },
-                "rules": {
-                    "session": "ALLDAY",
-                    "holiday": "NO_HOLIDAYS",
-                    "covermode": 3,     # 0=开平，1=开平昨平今，2=平未了结的，3=不区分开平
-                    "pricemode": 0,     # 价格模式 0=市价限价 1=仅限价 2=仅市价
-                    "trademode": 0,     # 交易模式，0=多空都支持 1=只支持做多 2=只支持做多且T+1
-                    "precision": int(symbol['pricePrecision']),
-                    # 价格小数点位数
-                    "pricetick": float(symbol['filters'][0]['tickSize']),
-                    # 最小价格变动单位
-                    "lotstick": float(symbol['filters'][2]['stepSize']),
-                    # 最小交易手数
-                    "minlots": float(symbol['filters'][2]['minQty']),
-                    # 最小交易手数
-                    "volscale": 100,    # 合约倍数
-                }
-
             }
-    #     # Write to JSON file
-    #     with open(cfg_stk.ASSET_FILE, 'w') as f:
-    #         json.dump(output, f, indent=4)
-    #
-    # with open(cfg_stk.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
-    #     asstes_info = json.load(file)
 
-    wt_assets = []
-    symbols = []
-    # all_underlying_SubTypes = []
-    # cnt = 0
-    # exchange = 'Binance'
-    # product = 'UM'
-    # for symbol_key, symbol_value in asstes_info[exchange].items():
-    #     wt_assets.append(f'{exchange}.{product}.{symbol_key}')
-    #     symbols.append(symbol_key)
-    #     for subtype in symbol_value['extras']['underlyingSubType']:
-    #         if subtype not in all_underlying_SubTypes:
-    #             all_underlying_SubTypes.append(subtype)
-    #     cnt += 1
-    #     if num and cnt >= num:
-    #         break
-    #
-    # print('All underlying SubTypes:', all_underlying_SubTypes)
-    # print('Number of assets:', len(wt_assets))
-    #
-    return wt_assets, symbols
+        return output
+
+def _generate_lxr_profile_file(path:str, wt_asset:Dict):
+    state = _check_state(path,"LXR-Profile",1)
+    exgs = ['SSE','SZSE','BJSE']
+    API_LIMITS = 100
+    
+    
+    if state != 0: # exist
+        old_lxr_profile = load_json(path)
+    else:
+        old_lxr_profile = {}
+        for exg in exgs: old_lxr_profile[exg] = {}
+    
+    time = datetime.now(timezone(timedelta(hours=8))).isoformat() # East Asia
+    
+    lxr_profile = {}
+    for exg in exgs:
+        lxr_profile[exg] = {}
+        pending_assets = []
+        for key in wt_asset[exg]:
+            if key in old_lxr_profile[exg]:
+                lxr_profile[exg][key] = old_lxr_profile[exg][key]
+            else:
+                lxr_profile[exg][key] = None
+                pending_assets.append(key)
+        
+        print(f"Updating {len(pending_assets)} profiles for: {exg}")
+        
+        pending_assets_lists = _split_list(pending_assets, API_LIMITS)
+        
+        if len(pending_assets)!=0:
+            for pending_assets_list in tqdm(pending_assets_lists):
+                assets_profile = API.query("profile", pending_assets_list)
+                assert len(assets_profile) == len(pending_assets_list)
+                for asset_profile in assets_profile:
+                    code = asset_profile['stockCode']
+                    assert code in pending_assets_list
+                    lxr_profile[exg][code] = asset_profile
+                    lxr_profile[exg][code]['name'] = wt_asset[exg][code]['name']
+                    lxr_profile[exg][code]['profile_time'] = time
+
+        for key in wt_asset[exg]:
+            wt_asset[exg][key]['extras']['profile_time'] = lxr_profile[exg][key]['profile_time']
+            wt_asset[exg][key]['extras']['companyName'] = lxr_profile[exg][key]['companyName']
+            wt_asset[exg][key]['extras']['city'] = lxr_profile[exg][key]['city']
+            wt_asset[exg][key]['extras']['province'] = lxr_profile[exg][key]['province']
+            wt_asset[exg][key]['extras']['businessScope'] = lxr_profile[exg][key]['businessScope']
+            
+    return lxr_profile, wt_asset
+
+def _generate_lxr_industry_file(path:str, wt_asset:Dict):
+    state = _check_state(path,"LXR-Industry",1)
+    exgs = ['SSE','SZSE','BJSE']    
+    
+    if state != 0: # exist
+        old_lxr_industry = load_json(path)
+    else:
+        old_lxr_industry = {}
+        for exg in exgs: old_lxr_industry[exg] = {}
+    
+    time = datetime.now(timezone(timedelta(hours=8))).isoformat() # East Asia
+    
+    lxr_industry = {}
+    for exg in exgs:
+        lxr_industry[exg] = {}
+        pending_assets = []
+        for key in wt_asset[exg]:
+            # if len(lxr_industry[exg].keys()) > 10: break
+            if key in old_lxr_industry[exg]:
+                lxr_industry[exg][key] = old_lxr_industry[exg][key]
+            else:
+                lxr_industry[exg][key] = None
+                pending_assets.append(key)
+        
+        print(f"Updating {len(pending_assets)} industry for: {exg}")
+        
+        if len(pending_assets)!=0:
+            for pending_asset in tqdm(pending_assets):
+                assets_industry = API.query("industries", pending_asset)
+                lxr_industry[exg][pending_asset] = assets_industry
+
+        # for key in wt_asset[exg]:
+        #     wt_asset[exg][key]['extras']['profile_time'] = lxr_industry[exg][key]['profile_time']
+        #     wt_asset[exg][key]['extras']['companyName'] = lxr_industry[exg][key]['companyName']
+        #     wt_asset[exg][key]['extras']['city'] = lxr_industry[exg][key]['city']
+        #     wt_asset[exg][key]['extras']['province'] = lxr_industry[exg][key]['province']
+        #     wt_asset[exg][key]['extras']['businessScope'] = lxr_industry[exg][key]['businessScope']
+            
+    return lxr_industry, wt_asset
+
+def _split_list(lst, n):
+    return [lst[i:i + n] for i in range(0, len(lst), n)]    
+
+def _check_state(file_path:str, file_name: str, days:int = 1) -> int:
+    """
+    not exist: 0,
+    old: 1,
+    new: 2,
+    """
+    
+    if not os.path.exists(file_path):
+        print(f'{file_name} not exist')
+        return 0
+
+    timestamp_last_update_s = os.path.getmtime(file_path)
+    dt = datetime.fromtimestamp(timestamp_last_update_s)
+    updated_within_x_day = \
+        abs(time.time() - timestamp_last_update_s) <= (3600*24*days)
+    if updated_within_x_day:
+        print(
+            f'{file_name} Already Updated: {dt.year}-{dt.month}-{dt.day}')
+        return 2
+    else:
+        print(
+            f'Old {file_name}: {dt.year}-{dt.month}-{dt.day}')
+        return 1
 
 # ================================================
 # Others
