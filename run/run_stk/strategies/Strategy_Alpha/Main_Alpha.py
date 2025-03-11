@@ -8,7 +8,7 @@ from wtpy import BaseSelStrategy
 from .Parallel_Process_Core import Parallel_Process_Core
 from .Parallel_Process_Worker import Parallel_Process_Worker
 
-from config.cfg_cpt import cfg_cpt
+from config.cfg_stk import cfg_stk
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch")
 
@@ -38,7 +38,7 @@ class Main_Alpha(BaseSelStrategy):
             }
             
         # 2. init worker process
-        self.P = Parallel_Process_Core(self.code_info, Parallel_Process_Worker, cfg_cpt.parallel)
+        self.P = Parallel_Process_Core(self.code_info, Parallel_Process_Worker, cfg_stk.parallel)
         
         # 3. prepare backtest data
         print('Preparing Bars in DDR...')

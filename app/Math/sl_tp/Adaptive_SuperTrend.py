@@ -81,7 +81,7 @@ Lookback Period:
 
 from typing import Tuple, List
 from collections import deque
-from config.cfg_cpt import cfg_cpt
+from config.cfg_stk import cfg_stk
 
 class AdaptiveSuperTrend:
     """
@@ -132,7 +132,7 @@ class AdaptiveSuperTrend:
         self.is_initialized = False
         
         # Keep lists for debug to maintain original behavior
-        if cfg_cpt.dump_ind:
+        if cfg_stk.dump_ind:
             self.his_ts_upper = [[]]
             self.his_ts_lower = [[]]
             self.his_val_upper = [[]]
@@ -234,7 +234,7 @@ class AdaptiveSuperTrend:
             self.prev_upper = upper
             self.prev_lower = lower
             self.is_initialized = True
-            if cfg_cpt.dump_ind:
+            if cfg_stk.dump_ind:
                 self.trade_start_price = close
                 self.trade_start_time = ts
             return False, False
@@ -258,7 +258,7 @@ class AdaptiveSuperTrend:
             long_switch = (direction == 1)
             short_switch = (direction == -1)
             
-            if cfg_cpt.dump_ind:
+            if cfg_stk.dump_ind:
                 # Calculate trade result
                 if self.trade_start_price != 0:
                     trade_result = (close - self.trade_start_price) * self.prev_direction / self.trade_start_price
@@ -293,7 +293,7 @@ class AdaptiveSuperTrend:
                     self.his_ts_upper.append([])
                     self.his_val_upper.append([])
                     
-        elif cfg_cpt.dump_ind:
+        elif cfg_stk.dump_ind:
             # Update history for current direction
             if direction == 1:
                 self.his_ts_lower[-1].append(ts)

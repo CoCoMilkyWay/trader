@@ -56,7 +56,6 @@ from enum import Enum, auto
 from dataclasses import dataclass
 
 from app.PA.PA_types import vertex, barrier_zone
-from config.cfg_cpt import cfg_cpt
 
 
 class PA_Liquidity:
@@ -304,17 +303,17 @@ class PA_Liquidity:
         self.barrier_snapshot = []
         self.premium_snapshot = []
 
-        #zones = []
-        #for zone in self.barrier_zones[1]:
+        # zones = []
+        # for zone in self.barrier_zones[1]:
         #    if zone.strength_rating < 2:
         #        # newly formed zones are naturally weak
         #        # include them to function properly
         #        if zone.leaving_bi_VP:
         #            continue
         #    zones.append(zone)
-        #sorted(zones, key=lambda x: x.top)
-        #i = 0
-        #while i < len(zones):
+        # sorted(zones, key=lambda x: x.top)
+        # i = 0
+        # while i < len(zones):
         #    current_zone = zones[i]
         #    if i + 1 < len(zones) and current_zone.bottom >= zones[i + 1].top:
         #        # If overlapping, merge with next zone
@@ -376,9 +375,9 @@ class PA_Liquidity:
         if not self.snapshot_ready:  # not enough levels
             return False, [], [], ''
 
-        if price > self.barrier_snapshot[-1]: # newest high, short
+        if price > self.barrier_snapshot[-1]:  # newest high, short
             return True, self.barrier_snapshot, [], '^'
-        if price < self.barrier_snapshot[0]: # newest low, long
+        if price < self.barrier_snapshot[0]:  # newest low, long
             return True, [], self.barrier_snapshot, 'v'
 
         # Binary search to find the matching region
@@ -406,7 +405,7 @@ class PA_Liquidity:
                 left = mid + 1
 
         return False, [], [], ''
-    
+
         # # update anchor to get long_short
         # if self.history_barrier == []:
         #     # barrier_level, entry_dir

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Callable, Optional
-from config.cfg_cpt import cfg_cpt
+from config.cfg_stk import cfg_stk
 
 # ts_momentum_label        : TimeSeries trend/breakout label
 # ts_mean_reversion_label  : TimeSeries mean-reversion label
@@ -64,7 +64,7 @@ class ts_label:
         self.column_idx = tensor_pointer['y']()
         self.code_idx = tensor_pointer['z']()
         
-        self.FEE = cfg_cpt.FEE
+        self.FEE = cfg_stk.FEE
         self.RET_thd = 10*self.FEE # punish low absolute returns
         self.A_L = (1-self.FEE/2) # fee adjusted long ratio
         self.A_S = (1+self.FEE/2) # fee adjusted short ratio

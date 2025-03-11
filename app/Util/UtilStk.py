@@ -55,12 +55,12 @@ def mkdir(path_str):
 # 
 # def testBtSnooper():
 #     pass
-# 
-# # ================================================
-# # CSV to DATABASE file (DSB indexed my month/day)
-# # ================================================
-# from config.cfg_cpt import cfg_cpt
-# 
+
+# ================================================
+# CSV to DATABASE file (DSB indexed my month/day)
+# ================================================
+from config.cfg_stk import cfg_stk
+
 # dtHelper = WtDataHelper()
 # 
 # def generate_database_files(wt_assets:list, force_sync:bool=False):
@@ -259,154 +259,159 @@ def mkdir(path_str):
 #         tuple(map(lambda x: setattr(buffer[x[0]], procession.name, x[1]), enumerate(procession)))
 #     df.apply(assign, buffer=buffer)
 #     dtHelper.store_bars(barFile=store_path, firstBar=buffer, count=len(df), period="m1")
-# 
-# # ================================================
-# # generate asset list
-# # ================================================
-# def generate_asset_list(num=None):
-#     
-#     import time
-#     timestamp_current_s = int(time.time())
-#     
-#     asset_list_updated = os.path.exists(cfg_cpt.ASSET_FILE)
-#     
-#     if asset_list_updated:
-#         try:
-#             with open(cfg_cpt.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
-#                 asstes_info = json.load(file)
-#                 timestamp_last_update_ms = asstes_info['Binance']['BTCUSDT']['extras']['serverTime']
-#                 timestamp_last_update_s = timestamp_last_update_ms / 1000
-#                 dt = datetime.fromtimestamp(timestamp_last_update_s)
-#                 
-#                 updated_within_1_day = abs(timestamp_current_s - timestamp_last_update_s) <= 86400 # 24hrs
-#                 
-#                 if updated_within_1_day:
-#                     print(f'Binance UM ExchangeInfo Already Updated: {dt.year}-{dt.month}-{dt.day}')
-#                 else:
-#                     asset_list_updated = False
-#                     print(f'Old Binance UM ExchangeInfo: {dt.year}-{dt.month}-{dt.day}')
-#         except:
-#             asset_list_updated = False
-#             print(f'Error reading Binance UM ExchangeInfo')
-#             
-#     if not asset_list_updated:
-#         import logging
-#         from Exchange_API.binance.um_futures import UMFutures
-#         print('HTTP Querying Binance UM ExchangeInfo...')
-#         um_futures_client = UMFutures()
-#         info = um_futures_client.exchange_info()
-#         
-#         # from pprint import pprint
-#         # pprint(info)
-#         
-#         output = {
-#             # "serverTime": info['serverTime'],
-#             # "all_underlying_SubTypes": [],
-#             "Binance": {
-#             }
-#         }
-#         # Populate the data for each symbol
-#         for symbol in info['symbols']:
-#             name = symbol['symbol']
-#             
-#             if not name.endswith('USDT'):
-#                 print('Skipping for name:', name)
-#                 continue
-#             if symbol['marginAsset'] != 'USDT':
-#                 print('Skipping for marginAsset:', name, symbol['marginAsset'])
-#                 continue
-#             if symbol['quoteAsset'] != 'USDT':
-#                 print('Skipping for quoteAsset:', name, symbol['quoteAsset'])
-#                 continue
-#             if symbol['underlyingType'] != 'COIN':
-#                 print('Skipping for underlyingType:', name, symbol['underlyingType'])
-#                 continue
-#             if symbol['status'] != 'TRADING':
-#                 print('Skipping for status:', name, symbol['status'])
-#                 continue
-#             if symbol['contractType'] != 'PERPETUAL':
-#                 print('Skipping for contractType:', name, symbol['contractType'])
-#                 continue
-#             if symbol['pair'] != name:
-#                 print('Skipping for pair:', name, symbol['pair'])
-#                 continue
-#             onboardDate_ms = symbol['onboardDate']
-#             if abs(timestamp_current_s - onboardDate_ms/1000) <= SEC_IN_HALF_YEAR:
-#                 print('Skipping for recency(half year):', name)
-#                 continue
-#             
-#             output["Binance"][name] = {
-#                 "code": name,
-#                 "name": f"{name}_UM_PERP",
-#                 "exchg": "Binance",
-#                 "extras": {
-#                     "instType": "PERPETUAL",
-#                     "baseCcy": symbol['baseAsset'],
-#                     "quoteCcy": symbol['quoteAsset'],
-#                     "category": 22,     # 分类，参考CTP
-#                                         # 0=股票 1=期货 2=期货期权 3=组合 4=即期
-#                                         # 5=期转现 6=现货期权(股指期权) 7=个股期权(ETF期权)
-#                                         # 20=数币现货 21=数币永续 22=数币期货 23=数币杠杆 24=数币期权
-#                     # "ctVal": "",
-#                     # "ctValCcy": "",
-#                     # "lever": "10",
-#                     # "ctType": ""
-# 
-#                     "serverTime": info['serverTime'],
-#                     "onboardDate": symbol['onboardDate'],
-#                     "deliveryDate": symbol['deliveryDate'],
-#                     "underlyingSubType": symbol['underlyingSubType'],
-#                     "liquidationFee": symbol['liquidationFee'],
-#                     "triggerProtect": symbol['triggerProtect'],
-#                                         # threshold for algo order with "priceProtect"
-#                     "marketTakeBound": symbol['marketTakeBound'],
-#                                         # the max price difference rate( from mark price) a market order can make
-#                 },
-#                 "rules": {
-#                     "session": "ALLDAY",
-#                     "holiday": "NO_HOLIDAYS",
-#                     "covermode": 3,     # 0=开平，1=开平昨平今，2=平未了结的，3=不区分开平
-#                     "pricemode": 0,     # 价格模式 0=市价限价 1=仅限价 2=仅市价
-#                     "trademode": 0,     # 交易模式，0=多空都支持 1=只支持做多 2=只支持做多且T+1
-#                     "precision": int(symbol['pricePrecision']),
-#                                         # 价格小数点位数
-#                     "pricetick": float(symbol['filters'][0]['tickSize']),
-#                                         # 最小价格变动单位
-#                     "lotstick": float(symbol['filters'][2]['stepSize']),
-#                                         # 最小交易手数
-#                     "minlots": float(symbol['filters'][2]['minQty']),
-#                                         # 最小交易手数
-#                     "volscale": 100,    # 合约倍数
-#                 }
-#                 
-#             }
-#         # Write to JSON file
-#         with open(cfg_cpt.ASSET_FILE, 'w') as f:
-#             json.dump(output, f, indent=4)
-# 
-#     with open(cfg_cpt.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
-#         asstes_info = json.load(file)
-#         
-#     wt_assets = []
-#     symbols = []
-#     all_underlying_SubTypes = []
-#     cnt = 0
-#     exchange = 'Binance'
-#     product = 'UM'
-#     for symbol_key, symbol_value in asstes_info[exchange].items():
-#         wt_assets.append(f'{exchange}.{product}.{symbol_key}')
-#         symbols.append(symbol_key)
-#         for subtype in symbol_value['extras']['underlyingSubType']:
-#             if subtype not in all_underlying_SubTypes:
-#                 all_underlying_SubTypes.append(subtype)
-#         cnt += 1
-#         if num and cnt >= num:
-#             break
-#     
-#     print('All underlying SubTypes:', all_underlying_SubTypes)
-#     print('Number of assets:', len(wt_assets))
-#     
-#     return wt_assets, symbols
+
+# ================================================
+# generate asset list
+# ================================================
+
+def generate_asset_list(num=None):
+    from DataProvider_API.Mairui.MairuiAPI import MairuiAPI
+    API = MairuiAPI()
+    r = API.query("hscp_jnfh", ["688099"])
+    print(r)
+    
+    # import time
+    # timestamp_current_s = int(time.time())
+    # 
+    # asset_list_updated = os.path.exists(cfg_stk.ASSET_FILE)
+    # 
+    # if asset_list_updated:
+    #     try:
+    #         with open(cfg_stk.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
+    #             asstes_info = json.load(file)
+    #             timestamp_last_update_ms = asstes_info['Binance']['BTCUSDT']['extras']['serverTime']
+    #             timestamp_last_update_s = timestamp_last_update_ms / 1000
+    #             dt = datetime.fromtimestamp(timestamp_last_update_s)
+    #             
+    #             updated_within_1_day = abs(timestamp_current_s - timestamp_last_update_s) <= 86400 # 24hrs
+    #             
+    #             if updated_within_1_day:
+    #                 print(f'Binance UM ExchangeInfo Already Updated: {dt.year}-{dt.month}-{dt.day}')
+    #             else:
+    #                 asset_list_updated = False
+    #                 print(f'Old Binance UM ExchangeInfo: {dt.year}-{dt.month}-{dt.day}')
+    #     except:
+    #         asset_list_updated = False
+    #         print(f'Error reading Binance UM ExchangeInfo')
+    #         
+    # if not asset_list_updated:
+    #     import logging
+    #     from Exchange_API.binance.um_futures import UMFutures
+    #     print('HTTP Querying Binance UM ExchangeInfo...')
+    #     um_futures_client = UMFutures()
+    #     info = um_futures_client.exchange_info()
+    #     
+    #     # from pprint import pprint
+    #     # pprint(info)
+    #     
+    #     output = {
+    #         # "serverTime": info['serverTime'],
+    #         # "all_underlying_SubTypes": [],
+    #         "Binance": {
+    #         }
+    #     }
+    #     # Populate the data for each symbol
+    #     for symbol in info['symbols']:
+    #         name = symbol['symbol']
+    #         
+    #         if not name.endswith('USDT'):
+    #             print('Skipping for name:', name)
+    #             continue
+    #         if symbol['marginAsset'] != 'USDT':
+    #             print('Skipping for marginAsset:', name, symbol['marginAsset'])
+    #             continue
+    #         if symbol['quoteAsset'] != 'USDT':
+    #             print('Skipping for quoteAsset:', name, symbol['quoteAsset'])
+    #             continue
+    #         if symbol['underlyingType'] != 'COIN':
+    #             print('Skipping for underlyingType:', name, symbol['underlyingType'])
+    #             continue
+    #         if symbol['status'] != 'TRADING':
+    #             print('Skipping for status:', name, symbol['status'])
+    #             continue
+    #         if symbol['contractType'] != 'PERPETUAL':
+    #             print('Skipping for contractType:', name, symbol['contractType'])
+    #             continue
+    #         if symbol['pair'] != name:
+    #             print('Skipping for pair:', name, symbol['pair'])
+    #             continue
+    #         onboardDate_ms = symbol['onboardDate']
+    #         if abs(timestamp_current_s - onboardDate_ms/1000) <= SEC_IN_HALF_YEAR:
+    #             print('Skipping for recency(half year):', name)
+    #             continue
+    #         
+    #         output["Binance"][name] = {
+    #             "code": name,
+    #             "name": f"{name}_UM_PERP",
+    #             "exchg": "Binance",
+    #             "extras": {
+    #                 "instType": "PERPETUAL",
+    #                 "baseCcy": symbol['baseAsset'],
+    #                 "quoteCcy": symbol['quoteAsset'],
+    #                 "category": 22,     # 分类，参考CTP
+    #                                     # 0=股票 1=期货 2=期货期权 3=组合 4=即期
+    #                                     # 5=期转现 6=现货期权(股指期权) 7=个股期权(ETF期权)
+    #                                     # 20=数币现货 21=数币永续 22=数币期货 23=数币杠杆 24=数币期权
+    #                 # "ctVal": "",
+    #                 # "ctValCcy": "",
+    #                 # "lever": "10",
+    #                 # "ctType": ""
+    # 
+    #                 "serverTime": info['serverTime'],
+    #                 "onboardDate": symbol['onboardDate'],
+    #                 "deliveryDate": symbol['deliveryDate'],
+    #                 "underlyingSubType": symbol['underlyingSubType'],
+    #                 "liquidationFee": symbol['liquidationFee'],
+    #                 "triggerProtect": symbol['triggerProtect'],
+    #                                     # threshold for algo order with "priceProtect"
+    #                 "marketTakeBound": symbol['marketTakeBound'],
+    #                                     # the max price difference rate( from mark price) a market order can make
+    #             },
+    #             "rules": {
+    #                 "session": "ALLDAY",
+    #                 "holiday": "NO_HOLIDAYS",
+    #                 "covermode": 3,     # 0=开平，1=开平昨平今，2=平未了结的，3=不区分开平
+    #                 "pricemode": 0,     # 价格模式 0=市价限价 1=仅限价 2=仅市价
+    #                 "trademode": 0,     # 交易模式，0=多空都支持 1=只支持做多 2=只支持做多且T+1
+    #                 "precision": int(symbol['pricePrecision']),
+    #                                     # 价格小数点位数
+    #                 "pricetick": float(symbol['filters'][0]['tickSize']),
+    #                                     # 最小价格变动单位
+    #                 "lotstick": float(symbol['filters'][2]['stepSize']),
+    #                                     # 最小交易手数
+    #                 "minlots": float(symbol['filters'][2]['minQty']),
+    #                                     # 最小交易手数
+    #                 "volscale": 100,    # 合约倍数
+    #             }
+    #             
+    #         }
+    #     # Write to JSON file
+    #     with open(cfg_cpt.ASSET_FILE, 'w') as f:
+    #         json.dump(output, f, indent=4)
+    # 
+    # with open(cfg_cpt.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
+    #     asstes_info = json.load(file)
+    #     
+    wt_assets = []
+    symbols = []
+    # all_underlying_SubTypes = []
+    # cnt = 0
+    # exchange = 'Binance'
+    # product = 'UM'
+    # for symbol_key, symbol_value in asstes_info[exchange].items():
+    #     wt_assets.append(f'{exchange}.{product}.{symbol_key}')
+    #     symbols.append(symbol_key)
+    #     for subtype in symbol_value['extras']['underlyingSubType']:
+    #         if subtype not in all_underlying_SubTypes:
+    #             all_underlying_SubTypes.append(subtype)
+    #     cnt += 1
+    #     if num and cnt >= num:
+    #         break
+    # 
+    # print('All underlying SubTypes:', all_underlying_SubTypes)
+    # print('Number of assets:', len(wt_assets))
+    # 
+    return wt_assets, symbols
 
 # ================================================
 # Others
@@ -428,6 +433,29 @@ def enable_logging():
         level=logging.NOTSET,   # Capture all levels
         format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'    # Only output the message without timestamps etc
     )
+
+# def get_bao_stocks(pool: str = 'hs300') -> Tuple[List[str], bool]:
+#     import baostock as bs
+#     import pandas as pd
+#     lg = bs.login()
+#     print('login respond error_code:'+lg.error_code)
+#     print('login respond  error_msg:'+lg.error_msg)
+#     bao_valid:bool = False
+#     if pool == 'hs300':
+#         rs = bs.query_hs300_stocks()
+#         bao_valid = True
+#     elif pool == 'zz500':
+#         rs = bs.query_zz500_stocks()
+#         bao_valid = True
+#     print('query error_code:'+rs.error_code)
+#     print('query  error_msg:'+rs.error_msg)
+#     bao_stocks = []
+#     while (rs.error_code == '0') & rs.next():
+#         bao_stocks.append(rs.get_row_data())
+#     bs.logout()
+#     bao_df = pd.DataFrame(bao_stocks, columns=rs.fields)
+#     bao_ls = list(bao_df['code'])
+#     return bao_ls, bao_valid
 
 # def time_diff_in_min(start: int, end: int) -> int:
 #     from datetime import datetime

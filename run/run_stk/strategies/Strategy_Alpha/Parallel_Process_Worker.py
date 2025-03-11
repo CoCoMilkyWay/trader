@@ -1,7 +1,7 @@
 import torch
 from typing import List, Dict
 
-from config.cfg_cpt import cfg_cpt
+from config.cfg_stk import cfg_stk
 
 from .TechnicalAnalysis_Core import TechnicalAnalysis_Core
 
@@ -46,7 +46,7 @@ class Parallel_Process_Worker():
         # self.ST_Train(context, code)
         
     def on_backtest_end(self):
-        if cfg_cpt.stat:
+        if cfg_stk.stat:
             from Util.CheckDist import CheckDist
             from Util.UtilCpt import mkdir
             import pandas as pd

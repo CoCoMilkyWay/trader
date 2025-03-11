@@ -2,7 +2,7 @@ import os
 import sys
 import glob
 import subprocess
-from config.cfg_cpt import cfg_cpt
+from config.cfg_stk import cfg_stk
 
 def kill_python_processes_windows(current_pid):
     """Kill all running Python processes in Windows, except this script."""
@@ -56,12 +56,12 @@ def main():
     # Start main.py with viztracer
     print("Starting main.py...")
     try:
-        if cfg_cpt.profile:
+        if cfg_stk.profile:
             subprocess.run(["viztracer", "--tracer_entries", "1000000", "main.py"], check=True)
         else:
             subprocess.run(["python", "main.py"], check=True)
         print("main.py finished")
-        if cfg_cpt.profile:
+        if cfg_stk.profile:
             subprocess.run(["vizviewer", "result.json"], check=True)
     except subprocess.CalledProcessError:
         print("Error: Failed to start main.py")
