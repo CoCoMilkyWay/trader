@@ -1,4 +1,6 @@
-import os, sys
+from config.cfg_stk import cfg_stk
+import os
+import sys
 import json
 import numpy as np
 import pandas as pd
@@ -6,25 +8,30 @@ from tqdm import tqdm
 from datetime import datetime
 from typing import List, Dict, Tuple
 
-RED     = '\033[91m'
-GREEN   = '\033[92m'
-YELLOW  = '\033[93m'
-BLUE    = '\033[94m'
-PURPLE  = '\033[95m'
-CYAN    = '\033[96m'
+RED = '\033[91m'
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+BLUE = '\033[94m'
+PURPLE = '\033[95m'
+CYAN = '\033[96m'
 DEFAULT = '\033[0m'
-# 
-# SEC_IN_HALF_YEAR = int(3600*24*365*0.5)
-# 
-# def load_json(file_path):
-#     import json
-#     with open(file_path, 'r', encoding='gbk', errors='ignore') as file:  # Note the 'utf-8-sig' which handles BOM if present
-#         return json.load(file)
-# 
-# def dump_json(file_path, df):
-#     import json
-#     with open(file_path, 'w', encoding='gbk', errors='ignore') as file:
-#         df.to_json(file, orient='records', force_ascii=False, indent=4)
+
+SEC_IN_HALF_YEAR = int(3600*24*365*0.5)
+
+
+def load_json(file_path):
+    import json
+    # Note the 'utf-8-sig' which handles BOM if present
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+        return json.load(file)
+
+
+def dump_json(file_path, df):
+    import json
+    with open(file_path, 'w', encoding='utf-8', errors='ignore') as file:
+        # df.to_json(file, orient='records', force_ascii=False, indent=4)
+        json.dump(df, file, indent=4, ensure_ascii=False)
+
 
 def mkdir(path_str):
     path = os.path.dirname(path_str)
@@ -45,24 +52,24 @@ def mkdir(path_str):
 #     if stdout:
 #         print(str)
 #     return str
-#     
+#
 # from wtpy import WtBtEngine, EngineType, WtDtServo
 # from wtpy.monitor import WtBtSnooper
 # from wtpy.wrapper import WtDataHelper
 # from wtpy.apps import WtBtAnalyst
 # from wtpy.WtCoreDefs import WTSBarStruct
 # from wtpy.SessionMgr import SessionMgr
-# 
+#
 # def testBtSnooper():
 #     pass
+
 
 # ================================================
 # CSV to DATABASE file (DSB indexed my month/day)
 # ================================================
-from config.cfg_stk import cfg_stk
 
 # dtHelper = WtDataHelper()
-# 
+#
 # def generate_database_files(wt_assets:list, force_sync:bool=False):
 #     '''
 #     force-sync: would check DATABASE file for each csv \n
@@ -71,13 +78,13 @@ from config.cfg_stk import cfg_stk
 #     print('Analyzing/Generating L1(CSV)/L2(DSB) datebase files...')
 #     print(f"SRC_CSV:          {GREEN}{cfg_cpt.CRYPTO_CSV_DIR} /<symbol>/1m/{DEFAULT}")
 #     print(f"DB_DSB:           {GREEN}{cfg_cpt.CRYPTO_DB_DIR} /<symbol>/1m/{DEFAULT}")
-#     
+#
 #     assets = wt_assets
 #     unprocessed_asset_list = []
 #     processed_asset_list = os.listdir(mkdir(f"{cfg_cpt.CRYPTO_DB_DIR}/"))
-#     
+#
 #     # print(f'Num of processed L2(DSB) assets: {len(processed_asset_list)}')
-#     
+#
 #     for asset in assets:
 #         if asset not in processed_asset_list or force_sync:
 #             unprocessed_asset_list.append(asset)
@@ -86,18 +93,18 @@ from config.cfg_stk import cfg_stk
 #             # print(f'asset {asset} already processed')
 #     num_assets = len(unprocessed_asset_list)
 #     # print(f'DB(1m): num of assets to be processed: {num_assets}')
-#     
+#
 #     # Replace your for loop with:
 #     if len(unprocessed_asset_list)!=0:
 #         process_all_assets(unprocessed_asset_list)
-#     
+#
 # from multiprocessing import Pool
 # import multiprocessing as mp
-# 
+#
 # def process_all_assets(unprocessed_asset_list):
 #     # Use number of CPU cores minus 1 to avoid overloading
 #     num_processes = max(1, mp.cpu_count() - 1)
-#     
+#
 #     with Pool(num_processes) as pool:
 #         # Use tqdm to show progress
 #         results = list(tqdm(
@@ -105,13 +112,13 @@ from config.cfg_stk import cfg_stk
 #             total=len(unprocessed_asset_list)
 #         ))
 #     return results
-# 
+#
 # def process_single_asset(asset):
 #     src_folder = f"{cfg_cpt.CRYPTO_CSV_DIR}/{asset}/1m/"
 #     src_csvs = os.listdir(src_folder)
 #     db_folder = mkdir(f"{cfg_cpt.CRYPTO_DB_DIR}/{asset}/1m/")
 #     db_dsbs = os.listdir(db_folder)
-#     
+#
 #     for src_csv in src_csvs:
 #         if not str(src_csv).endswith('csv'):
 #             continue
@@ -123,7 +130,7 @@ from config.cfg_stk import cfg_stk
 #             db_dsb_path = os.path.join(db_folder, db_dsb)
 #             process_dataframe(src_csv_path, db_dsb_path)
 #     return asset
-# 
+#
 # def process_dataframe(csv_file_path, dsb_file_path):
 #     def process_Binance():
 #         # Binance csv starts from month xx: 8:01am
@@ -141,7 +148,7 @@ from config.cfg_stk import cfg_stk
 #         return df
 #     store_bars(process_Binance(), dsb_file_path)
 #     # print(dtHelper.read_dsb_bars(dsb_file_path).to_df())
-#     
+#
 # def store_bars(df, file_path): # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
 #     if os.path.exists(file_path):
 #         pass
@@ -150,10 +157,10 @@ from config.cfg_stk import cfg_stk
 #         datetime = pd.to_datetime(df['time'], unit='ms') # Unix Epoch time to datetime
 #         df['date'] = datetime.dt.strftime('%Y%m%d').astype('int64')
 #         df['time'] = datetime.dt.strftime('%H%M').astype('int')
-#         
+#
 #         # wt-specific times
 #         df['time'] = (df['date'] - 19900000)*10000 + df['time']
-#         
+#
 #         df = df[['date', 'time', 'open', 'high', 'low', 'close', 'vol']].reset_index(drop=True)
 #         BUFFER = WTSBarStruct*len(df)
 #         buffer = BUFFER()
@@ -162,18 +169,18 @@ from config.cfg_stk import cfg_stk
 #         df.apply(assign, buffer=buffer)
 #         store_path = mkdir(file_path)
 #         dtHelper.store_bars(barFile=store_path, firstBar=buffer, count=len(df), period="m1")
-# 
+#
 # # ================================================
 # # DATABASE file to MERGED DATABASE file
 # # ================================================
 # def generate_merged_database_files(symbols:list, resample_n:int=1, begin_date=datetime(1990,1,1), end_date=datetime(2050,1,1), total=True):
-#     ''' 
+#     '''
 #     generate temporary merged DB files for back-testing
 #     '''
 #     print('Analyzing/Generating L3(DSB)/L4(DSB) datebase files...')
 #     print(f"MERGED_DB_DSB:    {GREEN}{cfg_cpt.WT_STORAGE_DIR}/his/min1/{cfg_cpt.market}/ <symbol>.dsb{DEFAULT}")
 #     print(f"RESAMPLED_DB_DSB: {GREEN}{cfg_cpt.WT_STORAGE_DIR}/his/{'min'+str(resample_n)}/{cfg_cpt.market}/ <symbol>.dsb{DEFAULT}")
-#     
+#
 #     for asset in tqdm(symbols, desc=f'Merging and Resampling(x{resample_n})...'):
 #         database_db_folder  = f"{cfg_cpt.CRYPTO_DB_DIR}/{asset}/1m/"
 #         merged_db_path      = f'{cfg_cpt.WT_STORAGE_DIR}/his/min1/{cfg_cpt.market}/{asset}.dsb'
@@ -181,14 +188,14 @@ from config.cfg_stk import cfg_stk
 #         try:
 #             combine_dsb_1m(asset, database_db_folder, merged_db_path)
 #             # print(dtHelper.read_dsb_bars(merged_db_path).to_df())
-# 
+#
 #         except Exception as e:
 #             print(f'Err processing: {asset}')
 #             print(e)
 #             continue
 #         if resample_n != 1:
 #             resample(merged_db_path, resample_n, resampled_db_path)
-# 
+#
 # def combine_dsb_1m(asset, database_db_folder, merged_db_path, begin_date=datetime(1990,1,1), end_date=datetime(2050,1,1), total=True):
 #     df = []
 #     if not os.path.exists(merged_db_path):
@@ -202,7 +209,7 @@ from config.cfg_stk import cfg_stk
 #         df = pd.concat(df, ignore_index=False)
 #         print(df)
 #         wt_df_2_dsb(df, mkdir(merged_db_path))
-# 
+#
 # def sort_files_by_date(folder_path, start_date=datetime(1900,1,1), end_date=datetime(2050,1,1)):
 #     files = [f for f in os.listdir(folder_path) if f.endswith('.dsb')]
 #     files_with_dates = []
@@ -213,7 +220,7 @@ from config.cfg_stk import cfg_stk
 #     # Sort the files by their date
 #     sorted_files = sorted(files_with_dates, key=lambda x: x[1])
 #     return [file for file, _ in sorted_files]
-#     
+#
 # def get_file_date(filename):
 #     from datetime import datetime
 #     base_name = filename[:-4]  # Remove last 4 characters (".dsb")
@@ -226,7 +233,7 @@ from config.cfg_stk import cfg_stk
 #         return datetime(int(year), int(month), 1)  # Treat as the first day of the month
 #     else:
 #         return datetime(0000, 00 ,00)  # Invalid format
-# 
+#
 # def resample(src_path, times, store_path):
 #     if not os.path.exists(store_path):
 #         script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -245,7 +252,7 @@ from config.cfg_stk import cfg_stk
 #         wt_df_2_dsb(df, mkdir(store_path))
 #         # print(dtHelper.read_dsb_bars(src_path).to_df())
 #         # print(df)
-# 
+#
 # def wt_df_2_dsb(df, store_path):
 #     # index: open high low close settle turnover volume open_interest diff bartime
 #     # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
@@ -264,134 +271,273 @@ from config.cfg_stk import cfg_stk
 # generate asset list
 # ================================================
 
+
 def generate_asset_list(num=None):
     from DataProvider_API.Mairui.MairuiAPI import MairuiAPI
-    API = MairuiAPI()
-    r = API.query("hscp_jnfh", ["688099"])
-    print(r)
-    
-    # import time
-    # timestamp_current_s = int(time.time())
-    # 
-    # asset_list_updated = os.path.exists(cfg_stk.ASSET_FILE)
-    # 
-    # if asset_list_updated:
-    #     try:
-    #         with open(cfg_stk.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
-    #             asstes_info = json.load(file)
-    #             timestamp_last_update_ms = asstes_info['Binance']['BTCUSDT']['extras']['serverTime']
-    #             timestamp_last_update_s = timestamp_last_update_ms / 1000
-    #             dt = datetime.fromtimestamp(timestamp_last_update_s)
-    #             
-    #             updated_within_1_day = abs(timestamp_current_s - timestamp_last_update_s) <= 86400 # 24hrs
-    #             
-    #             if updated_within_1_day:
-    #                 print(f'Binance UM ExchangeInfo Already Updated: {dt.year}-{dt.month}-{dt.day}')
-    #             else:
-    #                 asset_list_updated = False
-    #                 print(f'Old Binance UM ExchangeInfo: {dt.year}-{dt.month}-{dt.day}')
-    #     except:
-    #         asset_list_updated = False
-    #         print(f'Error reading Binance UM ExchangeInfo')
-    #         
-    # if not asset_list_updated:
-    #     import logging
-    #     from Exchange_API.binance.um_futures import UMFutures
-    #     print('HTTP Querying Binance UM ExchangeInfo...')
-    #     um_futures_client = UMFutures()
-    #     info = um_futures_client.exchange_info()
-    #     
-    #     # from pprint import pprint
-    #     # pprint(info)
-    #     
-    #     output = {
-    #         # "serverTime": info['serverTime'],
-    #         # "all_underlying_SubTypes": [],
-    #         "Binance": {
-    #         }
-    #     }
-    #     # Populate the data for each symbol
-    #     for symbol in info['symbols']:
-    #         name = symbol['symbol']
-    #         
-    #         if not name.endswith('USDT'):
-    #             print('Skipping for name:', name)
-    #             continue
-    #         if symbol['marginAsset'] != 'USDT':
-    #             print('Skipping for marginAsset:', name, symbol['marginAsset'])
-    #             continue
-    #         if symbol['quoteAsset'] != 'USDT':
-    #             print('Skipping for quoteAsset:', name, symbol['quoteAsset'])
-    #             continue
-    #         if symbol['underlyingType'] != 'COIN':
-    #             print('Skipping for underlyingType:', name, symbol['underlyingType'])
-    #             continue
-    #         if symbol['status'] != 'TRADING':
-    #             print('Skipping for status:', name, symbol['status'])
-    #             continue
-    #         if symbol['contractType'] != 'PERPETUAL':
-    #             print('Skipping for contractType:', name, symbol['contractType'])
-    #             continue
-    #         if symbol['pair'] != name:
-    #             print('Skipping for pair:', name, symbol['pair'])
-    #             continue
-    #         onboardDate_ms = symbol['onboardDate']
-    #         if abs(timestamp_current_s - onboardDate_ms/1000) <= SEC_IN_HALF_YEAR:
-    #             print('Skipping for recency(half year):', name)
-    #             continue
-    #         
-    #         output["Binance"][name] = {
-    #             "code": name,
-    #             "name": f"{name}_UM_PERP",
-    #             "exchg": "Binance",
-    #             "extras": {
-    #                 "instType": "PERPETUAL",
-    #                 "baseCcy": symbol['baseAsset'],
-    #                 "quoteCcy": symbol['quoteAsset'],
-    #                 "category": 22,     # 分类，参考CTP
-    #                                     # 0=股票 1=期货 2=期货期权 3=组合 4=即期
-    #                                     # 5=期转现 6=现货期权(股指期权) 7=个股期权(ETF期权)
-    #                                     # 20=数币现货 21=数币永续 22=数币期货 23=数币杠杆 24=数币期权
-    #                 # "ctVal": "",
-    #                 # "ctValCcy": "",
-    #                 # "lever": "10",
-    #                 # "ctType": ""
-    # 
-    #                 "serverTime": info['serverTime'],
-    #                 "onboardDate": symbol['onboardDate'],
-    #                 "deliveryDate": symbol['deliveryDate'],
-    #                 "underlyingSubType": symbol['underlyingSubType'],
-    #                 "liquidationFee": symbol['liquidationFee'],
-    #                 "triggerProtect": symbol['triggerProtect'],
-    #                                     # threshold for algo order with "priceProtect"
-    #                 "marketTakeBound": symbol['marketTakeBound'],
-    #                                     # the max price difference rate( from mark price) a market order can make
-    #             },
-    #             "rules": {
-    #                 "session": "ALLDAY",
-    #                 "holiday": "NO_HOLIDAYS",
-    #                 "covermode": 3,     # 0=开平，1=开平昨平今，2=平未了结的，3=不区分开平
-    #                 "pricemode": 0,     # 价格模式 0=市价限价 1=仅限价 2=仅市价
-    #                 "trademode": 0,     # 交易模式，0=多空都支持 1=只支持做多 2=只支持做多且T+1
-    #                 "precision": int(symbol['pricePrecision']),
-    #                                     # 价格小数点位数
-    #                 "pricetick": float(symbol['filters'][0]['tickSize']),
-    #                                     # 最小价格变动单位
-    #                 "lotstick": float(symbol['filters'][2]['stepSize']),
-    #                                     # 最小交易手数
-    #                 "minlots": float(symbol['filters'][2]['minQty']),
-    #                                     # 最小交易手数
-    #                 "volscale": 100,    # 合约倍数
-    #             }
-    #             
-    #         }
+    from DataProvider_API.Lixingren.LixingrenAPI import LixingrenAPI
+    API = LixingrenAPI()
+    # r = API.query("basic_all")
+    file_path = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), 'combined_data.json')
+    # dump_json(file_path,r)
+
+    import time
+    timestamp_current_s = int(time.time())
+
+    asset_list_updated = os.path.exists(cfg_stk.ASSET_FILE)
+
+    if asset_list_updated:
+        try:
+            with open(cfg_stk.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
+                timestamp_last_update_ms = os.path.getmtime(cfg_stk.ASSET_FILE)
+                timestamp_last_update_s = timestamp_last_update_ms / 1000
+                dt = datetime.fromtimestamp(timestamp_last_update_s)
+
+                updated_within_1_day = abs(
+                    # 24hrs
+                    timestamp_current_s - timestamp_last_update_s) <= (3600*24)
+
+                if updated_within_1_day:
+                    print(
+                        f'A-stock ExchangeInfo Already Updated: {dt.year}-{dt.month}-{dt.day}')
+                else:
+                    asset_list_updated = False
+                    print(
+                        f'Old A-stock ExchangeInfo: {dt.year}-{dt.month}-{dt.day}')
+        except:
+            asset_list_updated = False
+            print(f'Error reading A-stock ExchangeInfo')
+
+    Status = {
+        "normally_listed": {
+            "name": "正常上市",
+            "description": "指公司目前在证券交易所上市，并正常交易，没有任何限制。"
+        },
+        "delisted": {
+            "name": "已退市",
+            "description": "指公司的股票已从交易所撤销，不能再进行交易。这可能由于多种原因，包括财务不稳定或未能满足上市要求。"
+        },
+        "listing_suspended": {
+            "name": "暂停上市",
+            "description": "意味着公司的股票交易已被暂时暂停，可能由于正在进行的调查、财务困难或其他需要解决的问题。"
+        },
+        "special_treatment": {
+            "name": "ST板块",
+            "description": "该类别的股票因财务困难或其他重大风险而受到特别处理，通常会受到更严格的监管和监控。"
+        },
+        "delisting_risk_warning": {
+            "name": "*ST",
+            "description": "该标识表示公司因财务状况或其他严重问题而面临退市风险，提醒投资者可能会被退市的风险。"
+        },
+        "issued_but_not_listed": {
+            "name": "已发行未上市",
+            "description": "指已发行但目前未在任何证券交易所上市的证券，因此无法进行公开交易。"
+        },
+        "pre_disclosure": {
+            "name": "预披露",
+            "description": "该状态表示公司计划上市，并已就其意图进行初步披露，通常是在首次公开募股（IPO）之前。"
+        },
+        "unauthorized": {
+            "name": "未过会",
+            "description": "表示公司尚未获得监管机构的必要批准以进行上市或公开发行其股票。"
+        },
+        "issue_failure": {
+            "name": "发行失败",
+            "description": "该术语指公司未能成功发行证券，通常意味着没有吸引到足够的投资者兴趣。"
+        },
+        "delisting_transitional_period": {
+            "name": "进入退市整理期",
+            "description": "该状态表示公司在正式退市之前的一个阶段，此期间可能还会继续交易，但会受到密切监控。"
+        },
+        "ipo_suspension": {
+            "name": "暂缓发行",
+            "description": "意味着公司的首次公开募股（IPO）计划已被暂时暂停，可能由于监管问题或市场状况。"
+        },
+        "ipo_listing_suspension": {
+            "name": "暂缓上市",
+            "description": "类似于上面，表示某项证券的上市已被推迟。"
+        },
+        "transfer_suspended": {
+            "name": "停止转让",
+            "description": "表示股票的所有权转让已被暂停，这可能是由于监管问题或其他复杂情况。"
+        },
+        "normally_transferred": {
+            "name": "正常转让",
+            "description": "指股票在没有任何限制或特殊情况的情况下正常进行转让。"
+        },
+        "investor_suitability_management_implemented": {
+            "name": "投资者适当性管理标识",
+            "description": "该标识表示公司正在实施投资者适当性管理措施，确保其投资产品适合目标投资者群体。"
+        },
+        "non_listed": {
+            "name": "非上市",
+            "description": "该术语描述的是未在任何证券交易所上市的证券，因此不进行公开交易。"
+        },
+        "transfer_as_specific_bond": {
+            "name": "特定债券转让",
+            "description": "指在特定条款和条件下转让某些债券，通常不在常规交易框架内进行。"
+        },
+        "transfer_under_agreement": {
+            "name": "协议转让",
+            "description": "表示所有权的转让是基于双方之间的协议进行的，而不是通过公共交易过程。"
+        },
+        "others": {
+            "name": "其它",
+            "description": "这是一个涵盖未在其他定义中列出的任何上市状态的通用类别。"
+        }
+    }
+
+    tradable = {
+        'normally_listed',
+        'special_treatment',
+        # 'delisting_risk_warning',
+        # 'delisting_transitional_period',
+        # 'normally_transferred',
+        # 'investor_suitability_management_implemented'
+    }
+
+    if not asset_list_updated:
+        from DataProvider_API.Lixingren.LixingrenAPI import LixingrenAPI
+        print('HTTP Querying A-stock ExchangeInfo...')
+        API = LixingrenAPI()
+        # info = API.query("basic_all")
+        info = load_json(file_path)
+
+        output = {
+            "SSE": {},
+            "SZSE": {},
+            "BJSE": {},
+        }
+
+        exg = {'bj': 'BJSE', 'sh': 'SSE', 'sz': 'SZSE'}
+
+        # Populate the data for each symbol
+        for symbol in info:
+            name = symbol.get('name')
+            market = symbol.get('market')
+            exchange = symbol.get('exchange')
+            areaCode = symbol.get('areaCode')
+            stockCode = symbol.get('stockCode')
+            fsTableType = symbol.get('fsTableType')
+            ipoDate = symbol.get('ipoDate')
+            listingStatus = symbol.get('listingStatus')
+            mutualMarkets = symbol.get('mutualMarkets')
+
+            if not (name and market and exchange and areaCode and stockCode and fsTableType and ipoDate and listingStatus):
+                print('Skipping for incomplete info: ', name)
+                continue
+            
+            if listingStatus not in tradable:
+                print('Skipping for listingStatus:', name, Status[listingStatus]['description'])
+                continue
+            
+            if areaCode not in ['cn']:
+                print('Skipping for areaCode:', name, areaCode)
+                continue
+            
+            if market not in ['a']:
+                print('Skipping for market:', name, market)
+                continue
+            
+            if exchange not in ['sh', 'sz', 'bj']:
+                print('Skipping for exchange:', name, exchange)
+                continue
+            
+            # if fsTableType not in ['non_financial']:
+            #     print('Skipping for fsTableType:', name, fsTableType)
+            #     continue
+            
+            ipo_date_s = datetime.fromisoformat(ipoDate).timestamp()
+            if abs(timestamp_current_s - ipo_date_s) <= SEC_IN_HALF_YEAR:
+                print('Skipping for recency(half year):', name)
+                continue
+                        # 
+            # "Binance": {
+            #     "BTCUSDT": {
+            #         "code": "BTCUSDT",
+            #         "name": "BTCUSDT_UM_PERP",
+            #         "exchg": "Binance",
+            #         "extras": {
+            #             "instType": "PERPETUAL",
+            #             "baseCcy": "BTC",
+            #             "quoteCcy": "USDT",
+            #             "category": 22,
+            #             "serverTime": 1741593610171,
+            #             "onboardDate": 1569398400000,
+            #             "deliveryDate": 4133404800000,
+            #             "underlyingSubType": [
+            #                 "PoW"
+            #             ],
+            #             "liquidationFee": "0.012500",
+            #             "triggerProtect": "0.0500",
+            #             "marketTakeBound": "0.05"
+            #         },
+            #         "rules": {
+            #             "session": "ALLDAY",
+            #             "holiday": "NO_HOLIDAYS",
+            #             "covermode": 3,
+            #             "pricemode": 0,
+            #             "trademode": 0,
+            #             "precision": 2,
+            #             "pricetick": 0.1,
+            #             "lotstick": 0.001,
+            #             "minlots": 0.001,
+            #             "volscale": 100
+            #         }
+            #     },
+            # 
+            output[exg[exchange]][name] = {
+                "code": name,
+                "name": f"{name}_UM_PERP",
+                "exchg": "Binance",
+                "extras": {
+                    "instType": "PERPETUAL",
+                    "baseCcy": symbol['baseAsset'],
+                    "quoteCcy": symbol['quoteAsset'],
+                    "category": 22,     # 分类，参考CTP
+                                        # 0=股票 1=期货 2=期货期权 3=组合 4=即期
+                                        # 5=期转现 6=现货期权(股指期权) 7=个股期权(ETF期权)
+                                        # 20=数币现货 21=数币永续 22=数币期货 23=数币杠杆 24=数币期权
+                    # "ctVal": "",
+                    # "ctValCcy": "",
+                    # "lever": "10",
+                    # "ctType": ""
+
+                    "serverTime": info['serverTime'],
+                    "onboardDate": symbol['onboardDate'],
+                    "deliveryDate": symbol['deliveryDate'],
+                    "underlyingSubType": symbol['underlyingSubType'],
+                    "liquidationFee": symbol['liquidationFee'],
+                    "triggerProtect": symbol['triggerProtect'],
+                    # threshold for algo order with "priceProtect"
+                    "marketTakeBound": symbol['marketTakeBound'],
+                    # the max price difference rate( from mark price) a market order can make
+                },
+                "rules": {
+                    "session": "ALLDAY",
+                    "holiday": "NO_HOLIDAYS",
+                    "covermode": 3,     # 0=开平，1=开平昨平今，2=平未了结的，3=不区分开平
+                    "pricemode": 0,     # 价格模式 0=市价限价 1=仅限价 2=仅市价
+                    "trademode": 0,     # 交易模式，0=多空都支持 1=只支持做多 2=只支持做多且T+1
+                    "precision": int(symbol['pricePrecision']),
+                    # 价格小数点位数
+                    "pricetick": float(symbol['filters'][0]['tickSize']),
+                    # 最小价格变动单位
+                    "lotstick": float(symbol['filters'][2]['stepSize']),
+                    # 最小交易手数
+                    "minlots": float(symbol['filters'][2]['minQty']),
+                    # 最小交易手数
+                    "volscale": 100,    # 合约倍数
+                }
+
+            }
     #     # Write to JSON file
-    #     with open(cfg_cpt.ASSET_FILE, 'w') as f:
+    #     with open(cfg_stk.ASSET_FILE, 'w') as f:
     #         json.dump(output, f, indent=4)
-    # 
-    # with open(cfg_cpt.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
+    #
+    # with open(cfg_stk.ASSET_FILE, 'r', encoding='gbk', errors='ignore') as file:
     #     asstes_info = json.load(file)
-    #     
+
     wt_assets = []
     symbols = []
     # all_underlying_SubTypes = []
@@ -407,15 +553,16 @@ def generate_asset_list(num=None):
     #     cnt += 1
     #     if num and cnt >= num:
     #         break
-    # 
+    #
     # print('All underlying SubTypes:', all_underlying_SubTypes)
     # print('Number of assets:', len(wt_assets))
-    # 
+    #
     return wt_assets, symbols
 
 # ================================================
 # Others
 # ================================================
+
 
 def enable_logging():
     import logging
@@ -423,7 +570,7 @@ def enable_logging():
     This needs to be set up before init(import) of packages(with logging)
     '''
     print(f'Logging saved to logs/wtcpp.log')
-    log_file=mkdir('logs/wtcpp.log')
+    log_file = mkdir('logs/wtcpp.log')
     with open(log_file, 'w', encoding='utf-8') as f:
         # f.write('@charset "gbk";\n')  # CSS-style encoding declaration
         f.write('/* @encoding=gbk */\n')  # Comment-style declaration
@@ -431,7 +578,8 @@ def enable_logging():
         filename=log_file,      # Specify the output file
         filemode='a',           # 'w' to overwrite, 'a' to append
         level=logging.NOTSET,   # Capture all levels
-        format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'    # Only output the message without timestamps etc
+        # Only output the message without timestamps etc
+        format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
     )
 
 # def get_bao_stocks(pool: str = 'hs300') -> Tuple[List[str], bool]:
