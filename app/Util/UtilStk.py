@@ -6,10 +6,12 @@ import time
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from pprint import pprint
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Tuple
 
 from DataProvider_API.Lixingren.LixingrenAPI import LixingrenAPI
+from DataProvider_API.Baostock.BaostockAPI import BaostockAPI
 
 
 RED = '\033[91m'
@@ -21,6 +23,7 @@ CYAN = '\033[96m'
 DEFAULT = '\033[0m'
 
 SEC_IN_HALF_YEAR = int(3600*24*365*0.5)
+
 
 def load_json(file_path):
     import json
@@ -274,26 +277,37 @@ def mkdir(path_str):
 # generate asset list
 # ================================================
 
-API = LixingrenAPI()
+LXR_API = LixingrenAPI()
+BS_API = BaostockAPI()
+
 
 def prepare_all_files(num=None):
     """
     wt: wondertrader/wtpy
     lxr: lixingren
     """
+
     config_dir = cfg_stk.script_dir
 
-    wt_asset_file= config_dir + '/stk_assets.json'
-    lxr_profile_file= config_dir + '/info/lxr_profile.json'
-    lxr_industry_file= config_dir + '/info/lxr_industry.json'
+    wt_asset_file = config_dir + '/stk_assets.json'
+    lxr_profile_file = config_dir + '/info/lxr_profile.json'
+    lxr_industry_file = config_dir + '/info/lxr_industry.json'
+    wt_adj_factor_file = config_dir + '/stk_adjfactors.json'
+    wt_tradedays_file = config_dir + '/stk_tradedays.json'
+    wt_holidays_file = config_dir + '/stk_holidays.json'
 
-    wt_asset = _generate_wt_asset_file(wt_asset_file)
-    lxr_profile, wt_asset = _generate_lxr_profile_file(lxr_profile_file, wt_asset)
-    lxr_industry, wt_asset = _generate_lxr_industry_file(lxr_industry_file, wt_asset)
+    wt_asset = _wt_asset_file(wt_asset_file)
+    lxr_profile, wt_asset = _lxr_profile_file(lxr_profile_file, wt_asset)
+    lxr_industry, wt_asset = _lxr_industry_file(lxr_industry_file, wt_asset)
+    wt_adj_factor, wt_asset = _wt_adj_factor_file(wt_adj_factor_file, wt_asset)
+    wt_tradedays, wt_holidays = _wt_tradedays_holidays_file(wt_tradedays_file, wt_holidays_file)
 
     dump_json(wt_asset_file, wt_asset)
     dump_json(lxr_profile_file, lxr_profile)
     dump_json(lxr_industry_file, lxr_industry)
+    dump_json(wt_adj_factor_file, wt_adj_factor)
+    dump_json(wt_tradedays_file, wt_tradedays)
+    dump_json(wt_holidays_file, wt_holidays)
     
     wt_assets = []
     symbols = []
@@ -316,7 +330,8 @@ def prepare_all_files(num=None):
     #
     return wt_assets, symbols
 
-def _generate_wt_asset_file(path:str) -> Dict:
+
+def _wt_asset_file(path: str) -> Dict:
 
     Status = {
         "normally_listed": {
@@ -405,185 +420,352 @@ def _generate_wt_asset_file(path:str) -> Dict:
         # 'normally_transferred',
         # 'investor_suitability_management_implemented'
     }
-    
-    state = _check_state(path,"A-stock ExchangeInfo",1)
 
-    if state == 2:
-        return load_json(path)
-    else:
-        print('HTTP Querying A-stock ExchangeInfo...')
-        # info = API.query("basic_all")
-        info = load_json(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'combined_data.json'))
+    state = _check_state(path, "WT-AssetInfo", 1)
 
-        output = {
-            "SSE": {},
-            "SZSE": {},
-            "BJSE": {},
+    if state != 0:  # old or new
+        old = load_json(path)
+    else:  # non-exist
+        old = {}
+
+    print('HTTP Querying A-stock ExchangeInfo...')
+    # info = API.query("basic_all")
+    new = load_json(os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), 'combined_data.json'))
+
+    output = {
+        "SSE": {},
+        "SZSE": {},
+        "BJSE": {},
+    }
+
+    map = {'bj': 'BJSE', 'sh': 'SSE', 'sz': 'SZSE'}
+
+    # Populate the data for each symbol
+    for symbol in new:
+        name = symbol.get('name')
+        market = symbol.get('market')
+        exchange = symbol.get('exchange')
+        areaCode = symbol.get('areaCode')
+        stockCode = symbol.get('stockCode')
+        fsTableType = symbol.get('fsTableType')
+        ipoDate = symbol.get('ipoDate')
+        listingStatus = symbol.get('listingStatus')
+        mutualMarkets = symbol.get('mutualMarkets')
+        if not (name and market and exchange and areaCode and stockCode and fsTableType and ipoDate and listingStatus):
+            print('Skipping for incomplete info: ', name)
+            continue
+
+        if listingStatus not in tradable:
+            print('Skipping for listingStatus:', name,
+                  Status[listingStatus]['description'])
+            continue
+
+        if areaCode not in ['cn']:
+            print('Skipping for areaCode:', name, areaCode)
+            continue
+
+        if market not in ['a']:
+            print('Skipping for market:', name, market)
+            continue
+
+        if exchange not in ['sh', 'sz', 'bj']:
+            print('Skipping for exchange:', name, exchange)
+            continue
+
+        # if fsTableType not in ['non_financial']:
+        #     print('Skipping for fsTableType:', name, fsTableType)
+        #     continue
+
+        ipo_date_s = datetime.fromisoformat(ipoDate).timestamp()
+        if abs(int(time.time()) - ipo_date_s) <= SEC_IN_HALF_YEAR:
+            print('Skipping for recency(half year):', name)
+            continue
+
+        exg = map[exchange]
+        output[exg][stockCode] = {
+            "code": stockCode,
+            "name": name,
+            "exchg": exg,
+            "product": "STK",
+            "extras": {
+                "ipoDate": ipoDate,
+                "industry_names": None,
+                "industry_codes": None,
+                "companyName": None,
+                "website": None,
+                "city": None,
+                "province": None,
+                "businessScope": None,
+                # 'ha': 港股通
+                "mutualMarkets": mutualMarkets if mutualMarkets else [],
+
+                "update_time_profile": None,
+                "update_time_adjfactor": _get_nested_value(old, [exg, stockCode, 'extras', 'update_time_adjfactor']),
+                "update_time_fundamental": _get_nested_value(old, [exg, stockCode, 'extras', 'update_time_fundamental']),
+            },
         }
 
-        exg = {'bj': 'BJSE', 'sh': 'SSE', 'sz': 'SZSE'}
+    return output
 
-        # Populate the data for each symbol
-        for symbol in info:
-            name = symbol.get('name')
-            market = symbol.get('market')
-            exchange = symbol.get('exchange')
-            areaCode = symbol.get('areaCode')
-            stockCode = symbol.get('stockCode')
-            fsTableType = symbol.get('fsTableType')
-            ipoDate = symbol.get('ipoDate')
-            listingStatus = symbol.get('listingStatus')
-            mutualMarkets = symbol.get('mutualMarkets')
-            if not (name and market and exchange and areaCode and stockCode and fsTableType and ipoDate and listingStatus):
-                print('Skipping for incomplete info: ', name)
-                continue
-            
-            if listingStatus not in tradable:
-                print('Skipping for listingStatus:', name, Status[listingStatus]['description'])
-                continue
-            
-            if areaCode not in ['cn']:
-                print('Skipping for areaCode:', name, areaCode)
-                continue
-            
-            if market not in ['a']:
-                print('Skipping for market:', name, market)
-                continue
-            
-            if exchange not in ['sh', 'sz', 'bj']:
-                print('Skipping for exchange:', name, exchange)
-                continue
-            
-            # if fsTableType not in ['non_financial']:
-            #     print('Skipping for fsTableType:', name, fsTableType)
-            #     continue
 
-            ipo_date_s = datetime.fromisoformat(ipoDate).timestamp()
-            if abs(int(time.time()) - ipo_date_s) <= SEC_IN_HALF_YEAR:
-                print('Skipping for recency(half year):', name)
-                continue
-            
-            output[exg[exchange]][str(stockCode)] = {
-                "code": stockCode,
-                "name": name,
-                "exchg": exg[exchange],
-                "product": "STK",
-                "extras": {
-                    "ipoDate": ipoDate,
-                    "industry_names": None,
-                    "industry_codes": None,
-                    "profile_time": None,
-                    "companyName": None,
-                    "city": None,
-                    "province": None,
-                    "businessScope": None,
-
-                    # 'ha': 港股通
-                    "mutualMarkets": mutualMarkets if mutualMarkets else [],
-                },
-            }
-
-        return output
-
-def _generate_lxr_profile_file(path:str, wt_asset:Dict):
-    state = _check_state(path,"LXR-Profile",1)
-    exgs = ['SSE','SZSE','BJSE']
+def _lxr_profile_file(path: str, wt_asset: Dict):
+    state = _check_state(path, "LXR-Profile", 1)
+    exgs = ['SSE', 'SZSE', 'BJSE']
     API_LIMITS = 100
-    
-    
-    if state != 0: # exist
-        old_lxr_profile = load_json(path)
+
+    if state != 0:  # exist
+        old_lxr = load_json(path)
     else:
-        old_lxr_profile = {}
-        for exg in exgs: old_lxr_profile[exg] = {}
-    
-    time = datetime.now(timezone(timedelta(hours=8))).isoformat() # East Asia
-    
-    lxr_profile = {}
+        old_lxr = {}
+        for exg in exgs:
+            old_lxr[exg] = {}
+
+    time = datetime.now(timezone(timedelta(hours=8))).isoformat()  # East Asia
+
+    lxr = {}
     for exg in exgs:
-        lxr_profile[exg] = {}
+        lxr[exg] = {}
         pending_assets = []
         for key in wt_asset[exg]:
-            if key in old_lxr_profile[exg]:
-                lxr_profile[exg][key] = old_lxr_profile[exg][key]
+            if key in old_lxr[exg]:
+                lxr[exg][key] = old_lxr[exg][key]
             else:
-                lxr_profile[exg][key] = None
+                lxr[exg][key] = None
                 pending_assets.append(key)
-        
-        print(f"Updating {len(pending_assets)} profiles for: {exg}")
-        
+
         pending_assets_lists = _split_list(pending_assets, API_LIMITS)
-        
-        if len(pending_assets)!=0:
+
+        if len(pending_assets) != 0:
+            print(f"Updating {len(pending_assets)} profiles for: {exg}")
             for pending_assets_list in tqdm(pending_assets_lists):
-                assets_profile = API.query("profile", pending_assets_list)
-                assert len(assets_profile) == len(pending_assets_list)
-                for asset_profile in assets_profile:
-                    code = asset_profile['stockCode']
+                assets = LXR_API.query("profile", pending_assets_list)
+                assert len(assets) == len(pending_assets_list)
+                for asset in assets:
+                    code = asset['stockCode']
                     assert code in pending_assets_list
-                    lxr_profile[exg][code] = asset_profile
-                    lxr_profile[exg][code]['name'] = wt_asset[exg][code]['name']
-                    lxr_profile[exg][code]['profile_time'] = time
+                    lxr[exg][code] = asset
+                    lxr[exg][code]['name'] = wt_asset[exg][code]['name']
+                    lxr[exg][code]['update_time_profile'] = time
 
         for key in wt_asset[exg]:
-            wt_asset[exg][key]['extras']['profile_time'] = lxr_profile[exg][key]['profile_time']
-            wt_asset[exg][key]['extras']['companyName'] = lxr_profile[exg][key]['companyName']
-            wt_asset[exg][key]['extras']['city'] = lxr_profile[exg][key]['city']
-            wt_asset[exg][key]['extras']['province'] = lxr_profile[exg][key]['province']
-            wt_asset[exg][key]['extras']['businessScope'] = lxr_profile[exg][key]['businessScope']
-            
-    return lxr_profile, wt_asset
+            wt_ = wt_asset[exg][key]['extras']
+            lxr_ = lxr[exg][key]
+            wt_['update_time_profile'] = lxr_.get('update_time_profile')
+            wt_['companyName'] = lxr_.get('companyName')
+            wt_['website'] = lxr_.get('website')
+            wt_['city'] = lxr_.get('city')
+            wt_['province'] = lxr_.get('province')
+            wt_['businessScope'] = lxr_.get('businessScope')
 
-def _generate_lxr_industry_file(path:str, wt_asset:Dict):
-    state = _check_state(path,"LXR-Industry",1)
-    exgs = ['SSE','SZSE','BJSE']    
-    
-    if state != 0: # exist
-        old_lxr_industry = load_json(path)
+    return lxr, wt_asset
+
+
+def _lxr_industry_file(path: str, wt_asset: Dict):
+    state = _check_state(path, "LXR-Industry", 1)
+    exgs = ['SSE', 'SZSE', 'BJSE']
+
+    if state != 0:  # exist
+        old_lxr = load_json(path)
     else:
-        old_lxr_industry = {}
-        for exg in exgs: old_lxr_industry[exg] = {}
-    
-    time = datetime.now(timezone(timedelta(hours=8))).isoformat() # East Asia
-    
-    lxr_industry = {}
+        old_lxr = {}
+        for exg in exgs:
+            old_lxr[exg] = {}
+
+    sw21 = _parse_industry()
+
+    lxr = {}
     for exg in exgs:
-        lxr_industry[exg] = {}
+        lxr[exg] = {}
         pending_assets = []
         for key in wt_asset[exg]:
-            # if len(lxr_industry[exg].keys()) > 10: break
-            if key in old_lxr_industry[exg]:
-                lxr_industry[exg][key] = old_lxr_industry[exg][key]
+            # if len(lxr[exg].keys()) > 10: break
+            if key in old_lxr[exg]:
+                lxr[exg][key] = old_lxr[exg][key]
             else:
-                lxr_industry[exg][key] = None
+                lxr[exg][key] = None
                 pending_assets.append(key)
-        
-        print(f"Updating {len(pending_assets)} industry for: {exg}")
-        
-        if len(pending_assets)!=0:
-            for pending_asset in tqdm(pending_assets):
-                assets_industry = API.query("industries", pending_asset)
-                lxr_industry[exg][pending_asset] = assets_industry
 
-        # for key in wt_asset[exg]:
-        #     wt_asset[exg][key]['extras']['profile_time'] = lxr_industry[exg][key]['profile_time']
-        #     wt_asset[exg][key]['extras']['companyName'] = lxr_industry[exg][key]['companyName']
-        #     wt_asset[exg][key]['extras']['city'] = lxr_industry[exg][key]['city']
-        #     wt_asset[exg][key]['extras']['province'] = lxr_industry[exg][key]['province']
-        #     wt_asset[exg][key]['extras']['businessScope'] = lxr_industry[exg][key]['businessScope']
-            
-    return lxr_industry, wt_asset
+        if len(pending_assets) != 0:
+            print(f"Updating {len(pending_assets)} industry for: {exg}")
+            for pending_asset in tqdm(pending_assets):
+                assets = LXR_API.query("industries", pending_asset)
+                lxr[exg][pending_asset] = assets
+
+    lvl = {'one': 0, 'two': 1, 'three': 2}
+
+    for exg in exgs:
+        for key in wt_asset[exg]:
+            codes = ["", "", ""]
+            names = ["", "", ""]
+            for item in lxr[exg][key]:
+                if item["source"] == "sw_2021":
+                    code = item["stockCode"]
+                    level, name = sw21[code]
+                    level = lvl[level]
+                    codes[level] = code
+                    names[level] = name
+            if "" in codes or "" in names:
+                print(
+                    f"Err updating industries for {key}:{wt_asset[exg][key]["name"]}")
+            wt_asset[exg][key]['extras']['industry_codes'] = codes
+            wt_asset[exg][key]['extras']['industry_names'] = names
+
+    return lxr, wt_asset
+
+
+def _lxr_dividend_file(path: str, wt_asset: Dict):
+    """ 分红
+    - board_director_plan (董事会预案): Proposed by the board of directors.                                    
+    - shareholders_meeting_plan (股东大会预案): Submitted for approval at the shareholders' meeting.           
+    - company_plan (公司预案): Internally proposed dividend plan by the company.                               
+    - delay_implementation (延迟实施): Dividend payout implementation is delayed.                              
+    - cancelled (取消分红): Dividend distribution has been cancelled.                                          
+    - implemented (已执行): Dividend plan has been fully executed.                                             
+    - terminated (终止): Dividend process has been terminated.                                                 
+    - plan (预案): General status indicating that a dividend plan is in place, though it may not be finalized. 
+
+    NOTE: shareholders_meeting(high importance) supervise over the board
+          board_director_plan(medium importance) has to be submitted to and reviewed by shareholders_meeting
+          company_plan(low importance) may or may not be submitted to shareholders_meeting
+          dividends are usually board_director_plan, has to be approved by shareholders_meeting
+          some major decisions are done by shareholders_meeting directly (major investment, profit allocations etc.)
+
+    NOTE:
+    - adj_factor = adj_dividend * adj_allotment
+    - adj_dividend = (1-Cash_Dividend_per_Share/Previous_Close_Price_per_Share)
+    - adj_allotment = (1/(1+Bonus_Shares_per_Share))
+    """
+    return None, None
+
+
+def _lxr_allotment_file(path: str, wt_asset: Dict):
+    """ 配股
+    - board_directors_approved (董事会通过): Dividend plan has been approved by the board of directors.
+    - shareholders_meeting_approved (股东大会通过): Dividend plan has been approved by the shareholders' meeting.
+    - approved (已批准): Dividend plan has received approval.
+    - implemented (已执行): Dividend plan has been fully executed.
+    - postphoned (已延期): Dividend plan implementation has been postponed.
+    - terminated (终止): Dividend process has been terminated.
+    - unapproval (未获准): Dividend plan has not been approved.
+
+    NOTE:
+    - adj_factor = adj_dividend * adj_allotment
+    - adj_dividend = (1-Cash_Dividend_per_Share/Previous_Close_Price_per_Share)
+    - adj_allotment = (1/(1+Bonus_Shares_per_Share))
+    """
+    return None, None
+
+
+def _wt_adj_factor_file(path: str, wt_asset: Dict):
+    state = _check_state(path, "WT-AdjFactor", 1)
+    exgs = ['SSE', 'SZSE', 'BJSE']
+    map = {'SSE': 'sh', 'SZSE': 'sz', 'BJSE': 'bj', }
+
+    if state != 0:  # exist
+        old_wt = load_json(path)
+    else:
+        old_wt = {}
+        for exg in exgs:
+            old_wt[exg] = {}
+
+    time = datetime.now(timezone(timedelta(hours=8))).isoformat()  # East Asia
+
+    wt = {}
+    for exg in exgs:
+        wt[exg] = {}
+        pending_assets = []
+        for key in wt_asset[exg]:
+            if key in old_wt[exg] and wt_asset[exg][key]['extras']['update_time_adjfactor'] is not None:
+                wt[exg][key] = old_wt[exg][key]
+            else:
+                wt[exg][key] = None
+                pending_assets.append(key)
+                wt_asset[exg][key]['extras']['update_time_adjfactor'] = time
+
+        if len(pending_assets) != 0:
+            print(f"Updating {len(pending_assets)} adj_factors for: {exg}")
+            codes = [f"{map[exg]}.{asset}" for asset in pending_assets]
+            adj_factors = BS_API.query_adjust_factor(
+                codes, '1990-01-01', '2100-01-01')
+            for pending_asset in pending_assets:
+                wt[exg][pending_asset] = adj_factors[pending_asset]
+    return wt, wt_asset
+
+
+def _wt_tradedays_holidays_file(tradedays_path: str, holidays_path: str):
+    state_h = _check_state(holidays_path, "WT-Holidays", 1)
+    state_t = _check_state(tradedays_path, "WT-Tradedays", 1)
+    if state_t == 2 and state_h == 2:
+        return load_json(tradedays_path), load_json(holidays_path)
+
+    import akshare as ak
+    tradedays_df = ak.tool_trade_date_hist_sina()
+    # Convert trade_date column to datetime
+    tradedays_df['trade_date'] = pd.to_datetime(tradedays_df['trade_date'])
+    # Generate the complete range of weekdays
+    start_date = tradedays_df['trade_date'].min()
+    end_date = tradedays_df['trade_date'].max()
+    all_weekdays = pd.date_range(start=start_date, end=end_date, freq='B')
+    # Convert the trade dates to a set for faster operations
+    trade_dates_set = set(tradedays_df['trade_date'])
+    # Filter out the trade dates to find holidays
+    tradedays = sorted([date for date in trade_dates_set])
+    holidays = sorted(
+        [date for date in all_weekdays if date not in trade_dates_set])
+    # Convert holidays list to a DataFrame
+    tradedays_df = pd.DataFrame(tradedays, columns=['CHINA'])
+    tradedays_df['CHINA'] = tradedays_df['CHINA'].dt.strftime('%Y%m%d')
+    holidays_df = pd.DataFrame(holidays, columns=['CHINA'])
+    holidays_df['CHINA'] = holidays_df['CHINA'].dt.strftime('%Y%m%d')
+    # Create a JSON object with "CHINA" as the key and the formatted dates as a list
+    tradedays_json = {"CHINA": tradedays_df['CHINA'].tolist()}
+    holidays_json = {"CHINA": holidays_df['CHINA'].tolist()}
+    return tradedays_json, holidays_json
+
+
+def _get_nested_value(d, keys, default=None):
+    for key in keys:
+        d = d.get(key, default)
+        if d == default:
+            return default
+    return d
+
+
+def _parse_industry() -> Dict:
+    sw21_file = cfg_stk.script_dir + '/info/shenwan2021.json'
+    sw21_list = load_json(sw21_file)
+
+    sw21 = {}
+    for item in sw21_list:
+        # if "delistedDate" not in item.keys():
+        code = item["stockCode"]
+        level = item["level"]
+        name = item["name"]
+        sw21[code] = (level, name)
+    return sw21
+
 
 def _split_list(lst, n):
-    return [lst[i:i + n] for i in range(0, len(lst), n)]    
+    return [lst[i:i + n] for i in range(0, len(lst), n)]
 
-def _check_state(file_path:str, file_name: str, days:int = 1) -> int:
+
+def _generate_dt_ranges(start_year, end_year):
+    ranges = []
+    for year in range(start_year, end_year, 10):
+        start_date = f"{year}-01-01"
+        end_date = f"{year + 9}-12-31"
+        ranges.append((start_date, end_date))
+    return ranges
+
+
+def _check_state(file_path: str, file_name: str, days: int = 1) -> int:
     """
     not exist: 0,
     old: 1,
     new: 2,
     """
-    
+
     if not os.path.exists(file_path):
         print(f'{file_name} not exist')
         return 0

@@ -7,7 +7,7 @@ from ..License import LIXINGREN_LICENSE
 
 class LixingrenAPI:
     """
-    A class to encapsulate Mairui APIs related to stock trading and data.
+    A class to encapsulate Lixingren APIs related to stock trading and data.
     """
 
     def __init__(self):
@@ -28,15 +28,37 @@ class LixingrenAPI:
             "description": "获取公司概况数据",
             "payload": {
                 "token": f"{self.LICENSE}",
-	            "stockCodes": None
+                "stockCodes": None
             }
         }
-        
+
         CN_C['industries'] = {
             "link": "https://open.lixinger.com/api/cn/company/industries",
             "description": "获取股票所属行业信息",
             "payload": {
                 "token": f"{self.LICENSE}",
+                "stockCode": None
+            }
+        }
+
+        CN_C['dividend'] = {
+            "link": "https://open.lixinger.com/api/cn/company/dividend",
+            "description": "获取分红信息",
+            "payload": {
+                "token": f"{self.LICENSE}",
+                "startDate": None,  # "xxxx-xx-xx" within 10 years
+                "endDate": None,
+                "stockCode": None
+            },
+        }
+
+        CN_C['allotment'] = {
+            "link": "https://open.lixinger.com/api/cn/company/allotment",
+            "description": "获取配股信息",
+            "payload": {
+                "token": f"{self.LICENSE}",
+                "startDate": None,  # "xxxx-xx-xx" within 10 years
+                "endDate": None,
                 "stockCode": None
             }
         }
@@ -52,13 +74,14 @@ class LixingrenAPI:
             if value is not None:
                 new_payload[key] = value
             else:
+                print(args[fill_index])
                 new_payload[key] = args[fill_index]
                 fill_index += 1
         return new_payload
 
-    def query(self, name: str, args: List[Any] = []):
+    def query(self, name: str, *args):
         url = self.API[name]["link"]
-        payload = self.fill_payload(self.API[name]["payload"], args)
+        payload = self.fill_payload(self.API[name]["payload"], *args)
         headers = {
             'Content-Type': 'application/json'  # Set content type for JSON request
         }
@@ -68,4 +91,5 @@ class LixingrenAPI:
             if decoded_json.get('message') == "success":
                 return decoded_json.get('data')  # This should be your data
 
-        assert False, f"Error: {response.status_code} - {response.text}"
+        raise requests.HTTPError(
+            f"Request failed with status {response.status_code}: {response.text}")
