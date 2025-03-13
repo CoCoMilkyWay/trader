@@ -22,16 +22,23 @@ class cfg_stk:  # Constants Configs
     snoop    = False
     panel    = False
     # 
-    mode = '/um'  # spot, um, cm
-    # market = 'Binance'
+    exchg = ['SSE', 'SZSE', 'BJSE']
+    product = 'STK'
     # 
-    STOCK_CSV_DIR = 'D:/data/stock_csv' + mode + '/csv'
-    STOCK_DB_DIR = 'D:/data/stock_db' + mode + '/bars'
-    # # CM_DIR      = CRYPTO_CSV_DIR    +   '/cm'
+    STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
+    STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'
+    STOCK_FUNDAMENTAL_DIR = 'D:/data/stock_fundamental'
     # 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     ASSET_FILE = script_dir + '/stk_assets.json'
     WT_STORAGE_DIR = script_dir + '/../../storage'
+    # config files
+    wt_asset_file = script_dir + '/stk_assets.json'
+    lxr_profile_file = script_dir + '/info/lxr_profile.json'
+    lxr_industry_file = script_dir + '/info/lxr_industry.json'
+    wt_adj_factor_file = script_dir + '/stk_adjfactors.json'
+    wt_tradedays_file = script_dir + '/stk_tradedays.json'
+    wt_holidays_file = script_dir + '/stk_holidays.json'
     # ML_MODEL_DIR = script_dir + '/../models'
     # 
     # # ML model =========================================
