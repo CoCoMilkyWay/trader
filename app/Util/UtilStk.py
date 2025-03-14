@@ -603,7 +603,7 @@ def _check_state(file_path: str, file_name: str, days: int = 1) -> int:
 
 def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
     print('Analyzing/Generating Fundamental database files...')
-    print(f"Metric_NpArray:   {GREEN}{path}/<symbol>/{DEFAULT}")
+    print(f"Metric_NpArray(zip):{GREEN}{path}/<symbol>/{DEFAULT}")
 
     API_LIMITS = 10
     exgs = cfg_stk.exchg
