@@ -24,8 +24,8 @@ class cfg_stk:  # Constants Configs
     # 
     exchg = ['SSE', 'SZSE', 'BJSE']
     product = 'STK'
-    # 
-    STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
+    STOCK_CSV_DIR = 'E:/raw_m1/stk'
+    # STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
     STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'
     STOCK_FUNDAMENTAL_DIR = 'D:/data/stock_fundamental'
     # 

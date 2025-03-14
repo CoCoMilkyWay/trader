@@ -28,8 +28,8 @@ def run_bt():
     enable_logging()
     
     wt_assets, symbols = prepare_all_files(num=cfg_stk.num)
-    # generate_database_files(symbols, force_sync=False)
-    # generate_merged_database_files(symbols, resample_n=cfg_stk.n)
+    # 
+    # 
     # 
     # print(f'Data ready({len(symbols)} symbols): ', symbols)
     # 
