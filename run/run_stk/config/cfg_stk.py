@@ -5,9 +5,9 @@ class cfg_stk:  # Constants Configs
     
     period, n = 'm', 1  # bar period
     wt_period = period + str(n)
-    num = 10  # number of assets (int/None)
-    start = 202101010000
-    end   = 202103010000
+    num = 1  # number of assets (int/None)
+    start = 201001010901
+    end   = 202110010901
     capital = 10000000
     
     # run_mode(1 in 3):

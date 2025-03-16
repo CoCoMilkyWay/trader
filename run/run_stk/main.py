@@ -16,6 +16,7 @@ from wtpy import WtBtEngine, EngineType, WtDtServo
 from Util.UtilStk import prepare_all_files # generate_database_files, generate_merged_database_files, testBtSnooper
 from config.cfg_stk import cfg_stk
 from strategies.Strategy_Alpha.Main_Alpha import Main_Alpha
+from strategies.Strategy_Fund.Main_Fund import Main_Fund
 
 
 run = True
@@ -28,6 +29,7 @@ def run_bt():
     enable_logging()
     
     wt_assets = prepare_all_files(num=cfg_stk.num)
+    wt_assets = wt_assets[:cfg_stk.num]
     # 
     # 
     # 
@@ -43,7 +45,7 @@ def run_bt():
     bt_folder = f'./outputs_bt'
     
     if run:
-        straInfo = Main_Alpha(name=str_name, codes=wt_assets,period=cfg_stk.wt_period)
+        straInfo = Main_Fund(name=str_name, codes=wt_assets,period=cfg_stk.wt_period)
         engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl=cfg_stk.date_policy, session=cfg_stk.session_policy, slippage=0, isRatioSlp=False)
         engine.run_backtest()
     
