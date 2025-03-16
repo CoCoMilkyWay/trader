@@ -36,7 +36,7 @@ def run_bt():
     # print(f'Data ready({len(symbols)} symbols): ', symbols)
     # 
     # backtesting =================================================================================
-    engine = WtBtEngine(EngineType.ET_SEL)
+    engine = WtBtEngine(EngineType.ET_SEL, logCfg='./config/logcfgbt.yaml')
     engine.init(folder='.', cfgfile='./config/configbt.yaml')
     engine.configBacktest(cfg_stk.start, cfg_stk.end)
     engine.commitBTConfig()
@@ -46,7 +46,7 @@ def run_bt():
     
     if run:
         straInfo = Main_Fund(name=str_name, codes=wt_assets,period=cfg_stk.wt_period)
-        engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl=cfg_stk.date_policy, session=cfg_stk.session_policy, slippage=0, isRatioSlp=False)
+        engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl=cfg_stk.days_policy, session=cfg_stk.session_policy, slippage=0, isRatioSlp=False)
         engine.run_backtest()
     
     if analyze:

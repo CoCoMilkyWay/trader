@@ -6,8 +6,8 @@ class cfg_stk:  # Constants Configs
     period, n = 'm', 1  # bar period
     wt_period = period + str(n)
     num = 1  # number of assets (int/None)
-    start = 201001010901
-    end   = 202110010901
+    start = 202101010930
+    end   = 202101050930
     capital = 10000000
     
     # run_mode(1 in 3):
@@ -24,7 +24,7 @@ class cfg_stk:  # Constants Configs
     # 
     exchg = ['SSE', 'SZSE', 'BJSE']
     product = 'STK'
-    date_policy = 'CHINA'
+    days_policy = 'CHINA'
     session_policy = 'SD0930'
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
