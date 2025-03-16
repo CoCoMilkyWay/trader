@@ -145,7 +145,7 @@ def prepare_all_files(num=None):
     dump_json(cfg_stk.wt_adj_factor_file, wt_adj_factor, "wt_adj_factor")
     dump_json(cfg_stk.wt_tradedays_file, wt_tradedays, "wt_tradedays")
     dump_json(cfg_stk.wt_holidays_file, wt_holidays, "wt_holidays")
-    return 0, 0
+
     generate_database_files(symbols, force_sync=False)
     generate_merged_database_files(symbols, resample_n=cfg_stk.n)
 
