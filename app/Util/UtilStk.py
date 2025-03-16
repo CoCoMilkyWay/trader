@@ -296,6 +296,7 @@ def _wt_asset_file(path: str) -> Dict:
         os.path.abspath(__file__)), 'combined_data.json'))
 
     output = {"SSE": {}, "SZSE": {}, "BJSE": {}, }
+    simple = copy.deepcopy(output)
     map = {'bj': 'BJSE', 'sh': 'SSE', 'sz': 'SZSE'}
 
     # Populate the data for each symbol
@@ -342,12 +343,12 @@ def _wt_asset_file(path: str) -> Dict:
         exg = map[exchange]
         output[exg][stockCode] = {
             "code": stockCode,
-            "name": name,
             "exchg": exg,
-            "subexchg": get_sub_exchange(stockCode),
+            "name": name,
             "product": "STK",
             "extras": {
                 "ipoDate": ipoDate,
+                "subexchg": get_sub_exchange(stockCode),
                 "industry_names": None,
                 "industry_codes": None,
                 "companyName": None,
@@ -365,6 +366,13 @@ def _wt_asset_file(path: str) -> Dict:
             },
         }
 
+        simple[exg][stockCode] = {
+            "code": stockCode,
+            "exchg": exg,
+            "name": name,
+            "product": "STK",
+            }
+    dump_json(f"{cfg_stk.script_dir+'/stk_assets_simple.json'}", simple, "wt_asset")
     return output
 
 

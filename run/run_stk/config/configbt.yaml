@@ -3,7 +3,7 @@ replayer:
     path: ../storage/       #历史数据存储跟目录
     basefiles:
         commodity: ./config/stk_comms.json  #品种列表
-        contract: ./config/stk_assets.json  #合约列表
+        contract: ./config/stk_assets_simple.json  #合约列表
         holiday: ./config/stk_holidays.json #节假日列表
         session: ./config/stk_sessions.json #交易时间模板
     fees: ./config/stk_fees.json            #佣金配置文件
