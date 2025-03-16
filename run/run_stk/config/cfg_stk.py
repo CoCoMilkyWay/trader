@@ -3,7 +3,7 @@
 class cfg_stk:  # Constants Configs
     import os
     
-    period, n = 'm', 1  # bar period
+    period, n = 'm', 60  # bar period
     wt_period = period + str(n)
     num = 10  # number of assets (int/None)
     start = 202101010000
@@ -31,7 +31,7 @@ class cfg_stk:  # Constants Configs
     # STOCK_CSV_DIR = 'E:/raw_m1/stk'
     # STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
     # STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'
-    STOCK_CSV_DIR = '~/work/data/stock_csv'
+    STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")
     STOCK_DB_BAR_DIR = WT_DATABASE_DIR + '/stock/bars'
     STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
     # 
