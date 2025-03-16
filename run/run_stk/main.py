@@ -36,7 +36,7 @@ def run_bt():
     # print(f'Data ready({len(symbols)} symbols): ', symbols)
     # 
     # backtesting =================================================================================
-    engine = WtBtEngine(EngineType.ET_SEL, logCfg='./config/logcfgbt.yaml')
+    engine = WtBtEngine(EngineType.ET_SEL, logCfg='./config/logcfg.yaml')
     engine.init(folder='.', cfgfile='./config/configbt.yaml')
     engine.configBacktest(cfg_stk.start, cfg_stk.end)
     engine.commitBTConfig()
