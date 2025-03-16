@@ -24,14 +24,17 @@ class cfg_stk:  # Constants Configs
     # 
     exchg = ['SSE', 'SZSE', 'BJSE']
     product = 'STK'
-    STOCK_CSV_DIR = 'E:/raw_m1/stk'
-    # STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
-    STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'
-    STOCK_FUNDAMENTAL_DIR = 'D:/data/stock_fundamental'
-    # 
+    
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    ASSET_FILE = script_dir + '/stk_assets.json'
-    WT_STORAGE_DIR = script_dir + '/../../storage'
+    WT_DATABASE_DIR = script_dir + '/../../../database' # raw data
+    WT_STORAGE_DIR = script_dir + '/../../storage' # processed data
+    # STOCK_CSV_DIR = 'E:/raw_m1/stk'
+    # STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
+    # STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'
+    STOCK_CSV_DIR = '~/work/data/stock_csv'
+    STOCK_DB_BAR_DIR = WT_DATABASE_DIR + '/stock/bars'
+    STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
+    # 
     # config files
     wt_asset_file = script_dir + '/stk_assets.json'
     lxr_profile_file = script_dir + '/info/lxr_profile.json'

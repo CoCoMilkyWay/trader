@@ -1,3 +1,6 @@
+from multiprocessing import Pool
+import multiprocessing as mp
+from wtpy.wrapper import WtDataHelper
 import torch
 from config.cfg_stk import cfg_stk
 import os
@@ -67,9 +70,11 @@ def store_sparse_df(df: pd.DataFrame, path: str):
 def load_sparse_df(path: str):
     return pd.read_parquet(path).sparse.to_dense()
 
+
 def store_compressed_array(arr, path):
     np.savez_compressed(mkdir(path), data=arr)
-    
+
+
 def load_compressed_array(path):
     with np.load(path) as data:
         return data['data']
@@ -80,6 +85,7 @@ def mkdir(path_str):
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
     return path_str
+
 
 # def log(path_str, str, stdout=1, type='a'):
 #     # 'w+': write and read
@@ -97,7 +103,6 @@ def mkdir(path_str):
 #
 # from wtpy import WtBtEngine, EngineType, WtDtServo
 # from wtpy.monitor import WtBtSnooper
-from wtpy.wrapper import WtDataHelper
 # from wtpy.apps import WtBtAnalyst
 # from wtpy.WtCoreDefs import WTSBarStruct
 # from wtpy.SessionMgr import SessionMgr
@@ -132,7 +137,7 @@ def prepare_all_files(num=None):
         cfg_stk.wt_tradedays_file,
         cfg_stk.wt_holidays_file)
     symbols = _lxr_fundamental_file(
-        cfg_stk.STOCK_FUNDAMENTAL_DIR, wt_asset, wt_tradedays)
+        cfg_stk.STOCK_DB_FUND_DIR, wt_asset, wt_tradedays)
 
     dump_json(cfg_stk.wt_asset_file, wt_asset, "wt_asset")
     dump_json(cfg_stk.lxr_profile_file, lxr_profile, "lxr_profile")
@@ -140,7 +145,7 @@ def prepare_all_files(num=None):
     dump_json(cfg_stk.wt_adj_factor_file, wt_adj_factor, "wt_adj_factor")
     dump_json(cfg_stk.wt_tradedays_file, wt_tradedays, "wt_tradedays")
     dump_json(cfg_stk.wt_holidays_file, wt_holidays, "wt_holidays")
-    return 0,0
+    return 0, 0
     generate_database_files(symbols, force_sync=False)
     generate_merged_database_files(symbols, resample_n=cfg_stk.n)
 
@@ -632,11 +637,11 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
         #     new_dates[year][month] = []
         #     cur_month = month
         new_dates[year].append(month+day)
-        
+
     new_metrics: List[str] = list(LXR_API.all_metrics)
-    # ['pe_ttm', 'd_pe_ttm', 'pb', 'pb_wo_gw', 'ps_ttm', 'pcf_ttm', 'dyr', 'sp', 'spc', 'spa', 'tv', 'ta', 'to_r', 'shn', 'mc', 'mc_om', 'cmc', 'ecmc', 'ecmc_psh', 'fpa', 'fra', 'fb', 'ssa', 'sra', 'sb', 'ha_sh', 'ha_shm', 'mm_nba', 'ev_ebit_r', 'ev_ebitda_r', 'ey', 'pev']    
+    # ['pe_ttm', 'd_pe_ttm', 'pb', 'pb_wo_gw', 'ps_ttm', 'pcf_ttm', 'dyr', 'sp', 'spc', 'spa', 'tv', 'ta', 'to_r', 'shn', 'mc', 'mc_om', 'cmc', 'ecmc', 'ecmc_psh', 'fpa', 'fra', 'fb', 'ssa', 'sra', 'sb', 'ha_sh', 'ha_shm', 'mm_nba', 'ev_ebit_r', 'ev_ebitda_r', 'ey', 'pev']
     # commonly missing: ['fpa', 'fra', 'fb', 'ssa', 'sra', 'sb', 'ha_sh', 'ha_shm', 'mm_nba', 'ev_ebit_r', 'ev_ebitda_r', 'pev']
-    
+
     # dates = pd.to_datetime(wt_tradedays["CHINA"], format='%Y%m%d').sort_values()
     # all_dates: List[datetime] = [
     #     date for date in dates if date < datetime.today()]
@@ -656,17 +661,18 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
         old_dates: Dict[str, List[str]] = old_meta['dates']
         old_years = len(old_dates.keys())
         for idx, (year, month_and_days) in enumerate(old_dates.items()):
-            if idx != old_years-1: # allow last year to have different dates (will be removed anyway)
+            # allow last year to have different dates (will be removed anyway)
+            if idx != old_years-1:
                 assert month_and_days == meta['dates'][year]
         old_metrics: List[str] = old_meta['metrics']
         assert old_metrics == meta['metrics']
-    
+
     # numpy is also row major
     template = np.full((365, len(new_metrics)), np.nan, dtype=np.float32)
 
     # now we are sure that all the meta are the same, fell free to update data
     processed_assets = os.listdir(mkdir(f"{path}/"))
-    
+
     # for asset in processed_assets:
     #     years = os.listdir(f"{path}/{asset}/")
     #     for year in years:
@@ -679,7 +685,7 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
     #         # num_inf = np.isinf(data).sum()
     #         # num_total = data.shape[0]*data.shape[1]
     #         print(asset, year, cols, )#f"NaN:{num_nan/num_total:.2f}, Inf:{num_inf/num_total:.2f}")
-    # return 
+    # return
     for exg in exgs:
         pending_assets = []
         for key in wt_asset[exg]:
@@ -707,11 +713,12 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
                         if year != cur_year:
                             # save yearly data as npy file
                             if data.size != 0:
-                                store_compressed_array(data, f"{path}/{pending_asset}/{year}.npy")
+                                store_compressed_array(
+                                    data, f"{path}/{pending_asset}/{year}.npy")
                             # build new year map
                             map = {s: i for i, s in enumerate(new_dates[year])}
                             n = len(new_dates[year])
-                            data = copy.deepcopy(template[:n,:])
+                            data = copy.deepcopy(template[:n, :])
                             cur_year = year
                         idx_d = map.get(month+day)
                         for idx_m, metric in enumerate(new_metrics):
@@ -719,16 +726,16 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
 
     # save new meta info
     dump_json(meta_path, meta, 'lxr_index_meta')
-    
+
     # generate wt_asset list
     wt_symbols: List[str] = []
-    exg_map = {'SSE':'SH', 'SZSE':'SZ', 'BJSE':'BJ'}
+    exg_map = {'SSE': 'SH', 'SZSE': 'SZ', 'BJSE': 'BJ'}
     for exg in exgs:
         for key in wt_asset[exg]:
             wt_symbols.append(f"{key}.{exg_map[exg]}")
-    
+
     return wt_symbols
-    
+
     # for asset in unprocessed_asset_list:
     #     folder = mkdir(f"{cfg_stk.lxr_fundamental_file}/{asset}/")
     #     pds = os.listdir(folder) # parquets
@@ -815,18 +822,21 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
 
 dtHelper = WtDataHelper()
 
-def generate_database_files(wt_assets:list, force_sync:bool=False):
+
+def generate_database_files(wt_assets: list, force_sync: bool = False):
     '''
     force-sync: would check DATABASE file for each csv \n
     non-force-sync(default): only check symbol name exist in DATABASE
     '''
     print('Analyzing/Generating L1(CSV)/L2(DSB) database files...')
-    print(f"SRC_CSV:          {GREEN}{cfg_stk.STOCK_CSV_DIR} /<year>/<symbol>/{DEFAULT}")
-    print(f"DB_DSB:           {GREEN}{cfg_stk.STOCK_DB_DIR} /<symbol>/1m/{DEFAULT}")
+    print(
+        f"SRC_CSV:          {GREEN}{cfg_stk.STOCK_CSV_DIR} /<year>/<symbol>/{DEFAULT}")
+    print(
+        f"DB_DSB:           {GREEN}{cfg_stk.STOCK_DB_BAR_DIR} /<symbol>/1m/{DEFAULT}")
 
     assets = wt_assets
     unprocessed_asset_list = []
-    processed_asset_list = os.listdir(mkdir(f"{cfg_stk.STOCK_DB_DIR}/"))
+    processed_asset_list = os.listdir(mkdir(f"{cfg_stk.STOCK_DB_BAR_DIR}/"))
 
     # print(f'Num of processed L2(DSB) assets: {len(processed_asset_list)}')
 
@@ -840,11 +850,9 @@ def generate_database_files(wt_assets:list, force_sync:bool=False):
     # print(f'DB(1m): num of assets to be processed: {num_assets}')
 
     # Replace your for loop with:
-    if len(unprocessed_asset_list)!=0:
+    if len(unprocessed_asset_list) != 0:
         process_all_assets(unprocessed_asset_list)
 
-from multiprocessing import Pool
-import multiprocessing as mp
 
 def process_all_assets(unprocessed_asset_list):
     # Use number of CPU cores minus 1 to avoid overloading
@@ -858,10 +866,11 @@ def process_all_assets(unprocessed_asset_list):
         ))
     return results
 
+
 def process_single_asset(asset):
     src_folder = f"{cfg_stk.STOCK_CSV_DIR}/{asset}/1m/"
     src_csvs = os.listdir(src_folder)
-    db_folder = mkdir(f"{cfg_stk.STOCK_DB_DIR}/{asset}/1m/")
+    db_folder = mkdir(f"{cfg_stk.STOCK_DB_BAR_DIR}/{asset}/1m/")
     db_dsbs = os.listdir(db_folder)
 
     for src_csv in src_csvs:
@@ -876,11 +885,13 @@ def process_single_asset(asset):
             process_dataframe(src_csv_path, db_dsb_path)
     return asset
 
+
 def process_dataframe(csv_file_path, dsb_file_path):
     def process_Binance():
         # Binance csv starts from month xx: 8:01am
         # print(csv_file_path)
-        df = pd.read_csv(csv_file_path, header=None, skiprows=1, encoding='utf-8', on_bad_lines='warn')
+        df = pd.read_csv(csv_file_path, header=None, skiprows=1,
+                         encoding='utf-8', on_bad_lines='warn')
         # Open_time Open High Low Close Volume Close_time Quote_asset_volume Number_of_trades Taker_buy_base_asset_volume Taker_buy_quote_asset_volume Ignore
         df = df.iloc[:, :6]
         df.columns = ['time', 'open', 'high', 'low', 'close', 'vol']
@@ -894,26 +905,32 @@ def process_dataframe(csv_file_path, dsb_file_path):
     store_bars(process_Binance(), dsb_file_path)
     # print(dtHelper.read_dsb_bars(dsb_file_path).to_df())
 
-def store_bars(df, file_path): # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
+
+def store_bars(df, file_path):  # 'date' 'time' 'open' 'high' 'low' 'close' 'vol'
     if os.path.exists(file_path):
         pass
     else:
         # '%Y-%m-%d %H:%M:%S.%f'
-        datetime = pd.to_datetime(df['time'], unit='ms') # Unix Epoch time to datetime
+        # Unix Epoch time to datetime
+        datetime = pd.to_datetime(df['time'], unit='ms')
         df['date'] = datetime.dt.strftime('%Y%m%d').astype('int64')
         df['time'] = datetime.dt.strftime('%H%M').astype('int')
 
         # wt-specific times
         df['time'] = (df['date'] - 19900000)*10000 + df['time']
 
-        df = df[['date', 'time', 'open', 'high', 'low', 'close', 'vol']].reset_index(drop=True)
+        df = df[['date', 'time', 'open', 'high', 'low',
+                 'close', 'vol']].reset_index(drop=True)
         BUFFER = WTSBarStruct*len(df)
         buffer = BUFFER()
+
         def assign(procession, buffer):
-            tuple(map(lambda x: setattr(buffer[x[0]], procession.name, x[1]), enumerate(procession)))
+            tuple(map(lambda x: setattr(
+                buffer[x[0]], procession.name, x[1]), enumerate(procession)))
         df.apply(assign, buffer=buffer)
         store_path = mkdir(file_path)
-        dtHelper.store_bars(barFile=store_path, firstBar=buffer, count=len(df), period="m1")
+        dtHelper.store_bars(barFile=store_path,
+                            firstBar=buffer, count=len(df), period="m1")
 #
 # # ================================================
 # # DATABASE file to MERGED DATABASE file

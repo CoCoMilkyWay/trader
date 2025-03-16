@@ -1,9 +1,9 @@
 {
-    "python.analysis.autoImportCompletions": false,
-    "python.analysis.typeCheckingMode": "basic",
     "files.associations": {
         "*.ipp": "cpp"
     },
+    "python.analysis.autoImportCompletions": false,
+    "python.analysis.typeCheckingMode": "basic",
     "python.analysis.extraPaths": [
         "./app",
         "./run/run_cpt",
