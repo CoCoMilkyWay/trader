@@ -27,54 +27,54 @@ def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
     enable_logging()
     
-    wt_assets, symbols = prepare_all_files(num=cfg_stk.num)
+    wt_assets = prepare_all_files(num=cfg_stk.num)
     # 
     # 
     # 
     # print(f'Data ready({len(symbols)} symbols): ', symbols)
     # 
-    # # backtesting =================================================================================
-    # engine = WtBtEngine(EngineType.ET_SEL)
-    # engine.init(folder='.', cfgfile='./config/configbt.yaml')
-    # engine.configBacktest(cfg_stk.start, cfg_stk.end)
-    # engine.commitBTConfig()
-    # 
-    # str_name = f'bt_crypto'
-    # bt_folder = f'./outputs_bt'
-    # 
-    # if run:
-    #     straInfo = Main_Alpha(name=str_name, codes=wt_assets,period=cfg_stk.wt_period)
-    #     engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl='NO_HOLIDAYS', session='ALLDAY', slippage=0, isRatioSlp=False)
-    #     engine.run_backtest()
-    # 
-    # if analyze:
-    #     print('Analyzing ...')
-    #     analyst = WtBtAnalyst()
-    #     analyst.add_strategy(str_name, folder=bt_folder,
-    #                          init_capital=cfg_cpt.capital, rf=0.0, annual_trading_days=365)
-    #     analyst.run_new()
-    # 
-    # if snoop:
-    #     print('http://127.0.0.1:8081/backtest/backtest.html')
-    #     
-    #     dtServo = WtDtServo()
-    #     
-    #     dtServo.setBasefiles(
-    #         folder          = "./config/",
-    #         commfile=     'cpt_comms.json', 
-    #         contractfile= 'cpt_assets.json', 
-    #         holidayfile=  'cpt_holidays.json', 
-    #         sessionfile=  'cpt_sessions.json',
-    #         hotfile         = "",
-    #                          )
-    #     dtServo.setStorage(
-    #         path='../storage',
-    #         adjfactor=''
-    #         )
-    #     snooper = WtBtSnooper(dtServo)
-    #     snooper.run_as_server(port=8081, host="0.0.0.0")
-    #     # kw = input('press any key to exit\n')
-    #     engine.release_backtest()
+    # backtesting =================================================================================
+    engine = WtBtEngine(EngineType.ET_SEL)
+    engine.init(folder='.', cfgfile='./config/configbt.yaml')
+    engine.configBacktest(cfg_stk.start, cfg_stk.end)
+    engine.commitBTConfig()
+    
+    str_name = f'bt_stock'
+    bt_folder = f'./outputs_bt'
+    
+    if run:
+        straInfo = Main_Alpha(name=str_name, codes=wt_assets,period=cfg_stk.wt_period)
+        engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl=cfg_stk.date_policy, session=cfg_stk.session_policy, slippage=0, isRatioSlp=False)
+        engine.run_backtest()
+    
+    if analyze:
+        print('Analyzing ...')
+        analyst = WtBtAnalyst()
+        analyst.add_strategy(str_name, folder=bt_folder,
+                             init_capital=cfg_stk.capital, rf=0.0, annual_trading_days=240)
+        analyst.run_new()
+    
+    if snoop:
+        print('http://127.0.0.1:8081/backtest/backtest.html')
+        
+        dtServo = WtDtServo()
+        
+        dtServo.setBasefiles(
+            folder          = "./config/",
+            commfile=     'cpt_comms.json', 
+            contractfile= 'cpt_assets.json', 
+            holidayfile=  'cpt_holidays.json', 
+            sessionfile=  'cpt_sessions.json',
+            hotfile         = "",
+                             )
+        dtServo.setStorage(
+            path='../storage',
+            adjfactor=''
+            )
+        snooper = WtBtSnooper(dtServo)
+        snooper.run_as_server(port=8081, host="0.0.0.0")
+        # kw = input('press any key to exit\n')
+        engine.release_backtest()
 
 if __name__ == '__main__':
     run_bt()

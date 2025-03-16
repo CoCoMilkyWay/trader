@@ -3,7 +3,7 @@
 class cfg_stk:  # Constants Configs
     import os
     
-    period, n = 'm', 60  # bar period
+    period, n = 'm', 1  # bar period
     wt_period = period + str(n)
     num = 10  # number of assets (int/None)
     start = 202101010000
@@ -16,7 +16,7 @@ class cfg_stk:  # Constants Configs
     # main functions:
     parallel = num >= 30
     profile  = False
-    stat     = True
+    stat     = False
     plot     = False
     analyze  = False
     snoop    = False
@@ -24,10 +24,12 @@ class cfg_stk:  # Constants Configs
     # 
     exchg = ['SSE', 'SZSE', 'BJSE']
     product = 'STK'
+    date_policy = 'CHINA'
+    session_policy = 'SD0930'
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    WT_DATABASE_DIR = script_dir + '/../../../database' # raw data
-    WT_STORAGE_DIR = script_dir + '/../../storage' # processed data
+    WT_DATABASE_DIR = os.path.abspath(script_dir + '/../../../database') # raw data
+    WT_STORAGE_DIR = os.path.abspath(script_dir + '/../../storage') # processed data
     # STOCK_CSV_DIR = 'E:/raw_m1/stk'
     # STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
     # STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'

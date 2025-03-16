@@ -1,3 +1,6 @@
+from wtpy.apps import WtBtAnalyst
+from wtpy.monitor import WtBtSnooper
+from wtpy import WtBtEngine, EngineType, WtDtServo
 from wtpy.SessionMgr import SessionMgr
 from wtpy.WtCoreDefs import WTSBarStruct
 from multiprocessing import Pool
@@ -45,7 +48,7 @@ def load_json(file_path):
 
 def dump_json(file_path, df, desc=None):
     if desc:
-        print(f'Dumping {desc}... ', end="")
+        print(f'{desc+':':20}{GREEN}{file_path}{DEFAULT} ... ', end="")
     # Create a temporary file in the same directory as the target file.
     dir_name = os.path.dirname(file_path)
     with tempfile.NamedTemporaryFile('w', delete=False, dir=dir_name, encoding='utf-8', errors='ignore') as temp_file:
@@ -58,7 +61,7 @@ def dump_json(file_path, df, desc=None):
     # Atomically replace the target file with the temporary file.
     os.replace(temp_file.name, file_path)
     if desc:
-        print(f'done')
+        print(f'dumped')
 
 
 def store_sparse_df(df: pd.DataFrame, path: str):
@@ -101,25 +104,22 @@ def mkdir(path_str):
 #         print(str)
 #     return str
 #
-from wtpy import WtBtEngine, EngineType, WtDtServo
-from wtpy.monitor import WtBtSnooper
-from wtpy.apps import WtBtAnalyst
 
 
 def testBtSnooper():
     dtServo = WtDtServo()
     dtServo.setBasefiles(
-        folder          = "cfg/",
-        commfile        = "assets_cfg/stk_comms.json",
-        contractfile    = "assets_list/stocks.json",
-        holidayfile     = "misc/holidays.json",
-        sessionfile     = "sessions/sessions.json",
-        hotfile         = "assets_list/hots.json"
-                         )
+        folder="cfg/",
+        commfile="assets_cfg/stk_comms.json",
+        contractfile="assets_list/stocks.json",
+        holidayfile="misc/holidays.json",
+        sessionfile="sessions/sessions.json",
+        hotfile="assets_list/hots.json"
+    )
     dtServo.setStorage(
         path='storage',
         adjfactor='cfg/misc/adjfactors.json'
-        )
+    )
     snooper = WtBtSnooper(dtServo)
     snooper.run_as_server(port=8081, host="0.0.0.0")
 
@@ -157,14 +157,19 @@ def prepare_all_files(num=None):
     dump_json(cfg_stk.wt_tradedays_file, wt_tradedays, "wt_tradedays")
     dump_json(cfg_stk.wt_holidays_file, wt_holidays, "wt_holidays")
 
-    _lxr_fundamental_file(
+    lxr_meta = _lxr_fundamental_file(
         cfg_stk.STOCK_DB_FUND_DIR, wt_asset, wt_tradedays)
+    dump_json(f"{cfg_stk.STOCK_DB_FUND_DIR}/meta.json",
+              lxr_meta, 'lxr_index_meta')
+
     process_bar_data(wt_asset, force_sync=False)
 
-    wt_assets = []
-    symbols = []
+    assets: List[str] = []
+    for exg in cfg_stk.exchg:
+        for key in wt_asset[exg]:
+            assets.append(f'{exg}.{wt_asset[exg][key]['product']}.{key}')
 
-    return wt_assets, symbols
+    return assets
 
 
 def _wt_asset_file(path: str) -> Dict:
@@ -644,7 +649,7 @@ def _check_state(file_path: str, file_name: str, days: int = 1) -> int:
 
 
 def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
-    print('Analyzing/Generating Fundamental database files...')
+    # print('Analyzing/Generating Fundamental database files...')
     print(f"Metric_NpArray(zip):{GREEN}{path}/<symbol>/{DEFAULT}")
 
     API_LIMITS = 10
@@ -758,10 +763,7 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
                         for idx_m, metric in enumerate(new_metrics):
                             data[idx_d, idx_m] = item.get(metric)
 
-    # save new meta info
-    dump_json(meta_path, meta, 'lxr_index_meta')
-
-    return
+    return meta
 
 
 def process_bar_data(wt_assets: Dict, force_sync: bool = False) -> None:
@@ -818,11 +820,11 @@ class BarProcessor:
             assets: List of assets to process
             force_sync: Whether to force processing even if already processed
         """
-        print('Analyzing/Generating L1(CSV)/L2(DSB) database files...')
+        # print('Analyzing/Generating L1(CSV)/L2(DSB) database files...')
         print(
-            f"SRC_CSV:          {GREEN}{cfg_stk.STOCK_CSV_DIR} /<year>/<symbol>/{DEFAULT}")
+            f"SRC_CSV:            {GREEN}{cfg_stk.STOCK_CSV_DIR}/<year>/<symbol>/{DEFAULT}")
         print(
-            f"DB_DSB:           {GREEN}{cfg_stk.STOCK_DB_BAR_DIR} /<symbol>/1m/{DEFAULT}")
+            f"DB_DSB:             {GREEN}{cfg_stk.STOCK_DB_BAR_DIR}/<symbol>/1m/{DEFAULT}")
 
         # Determine which assets need processing
         unprocessed_assets = self._get_unprocessed_assets(assets, force_sync)
@@ -943,11 +945,11 @@ class BarProcessor:
         Args:
             assets: List of assets to process
         """
-        print('Analyzing/Generating L3(DSB)/L4(DSB) database files...')
+        # print('Analyzing/Generating L3(DSB)/L4(DSB) database files...')
         print(
-            f"MERGED_DB_DSB:    {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/min1/<exchange>/<symbol>.dsb{DEFAULT}")
+            f"MERGED_DB_DSB:      {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/min1/<exchange>/<symbol>.dsb{DEFAULT}")
         print(
-            f"RESAMPLED_DB_DSB: {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/{'min'+str(cfg_stk.n)}/<exchange>/<symbol>.dsb{DEFAULT}")
+            f"RESAMPLED_DB_DSB:   {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/{'min'+str(cfg_stk.n)}/<exchange>/<symbol>.dsb{DEFAULT}")
 
         # Prepare parameters for parallel processing
         process_params = []
@@ -982,7 +984,7 @@ class BarProcessor:
 
         if len(os.listdir(database_db_folder)) == 0:
             return
-        
+
         try:
             # Merge DSB files first
             self._combine_dsb_1m(asset, database_db_folder,
@@ -1220,22 +1222,22 @@ def enable_logging():
 #     bao_ls = list(bao_df['code'])
 #     return bao_ls, bao_valid
 
-# def time_diff_in_min(start: int, end: int) -> int:
-#     from datetime import datetime
-#     def parse_time(time: int) -> datetime:
-#         time_str = str(time)
-#         # Extract time components from the last 10 characters of the string
-#         year   = int(time_str[-12:-8])
-#         month  = int(time_str[-8:-6])
-#         day    = int(time_str[-6:-4])
-#         hour   = int(time_str[-4:-2])
-#         minute = int(time_str[-2:])
-#         return datetime(year, month, day, hour, minute)
-#     # Parse both start and end strings into datetime objects
-#     start_time = parse_time(start)
-#     end_time   = parse_time(end)
-#     # Calculate the difference in time
-#     delta = end_time - start_time
-#     # Convert the time difference to minutes and return it as an integer
-#     min_diff = int(delta.total_seconds() // 60)
-#     return min_diff
+def time_diff_in_min(start: int, end: int) -> int:
+    from datetime import datetime
+    def parse_time(time: int) -> datetime:
+        time_str = str(time)
+        # Extract time components from the last 10 characters of the string
+        year   = int(time_str[-12:-8])
+        month  = int(time_str[-8:-6])
+        day    = int(time_str[-6:-4])
+        hour   = int(time_str[-4:-2])
+        minute = int(time_str[-2:])
+        return datetime(year, month, day, hour, minute)
+    # Parse both start and end strings into datetime objects
+    start_time = parse_time(start)
+    end_time   = parse_time(end)
+    # Calculate the difference in time
+    delta = end_time - start_time
+    # Convert the time difference to minutes and return it as an integer
+    min_diff = int(delta.total_seconds() // 60)
+    return min_diff
