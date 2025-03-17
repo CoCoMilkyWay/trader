@@ -167,7 +167,8 @@ def prepare_all_files():
     assets: List[str] = []
     for exg in cfg_stk.exchg:
         for key in wt_asset[exg]:
-            if f"{key}.dsb" in os.listdir(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/{exg}"):
+            db_dir = mkdir(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/{exg}")
+            if f"{key}.dsb" in os.listdir(db_dir):
                 assets.append(f'{exg}.{wt_asset[exg][key]['product']}.{key}')
 
     return assets
