@@ -61,7 +61,7 @@ class Main_Fund(BaseSelStrategy):
         return
     
     def on_bar(self, context:SelContext, code:str, period:str, newBar:dict):
-        print(f"on_bar({code}): {newBar}")
+        print(f"on_bar({code}): {newBar} {period}")
         # self.P.parallel_feed(code, newBar)
         return
     

@@ -45,8 +45,14 @@ def run_bt():
     bt_folder = f'./outputs_bt'
     
     if run:
-        straInfo = Main_Fund(name=str_name, codes=wt_assets,period=cfg_stk.wt_period)
-        engine.set_sel_strategy(straInfo, period=cfg_stk.wt_period, isRatioSlp=False)
+        straInfo = Main_Fund(
+            name=str_name, 
+            codes=wt_assets,
+            period=cfg_stk.wt_period_l)
+        engine.set_sel_strategy(
+            straInfo, 
+            date=0, time=cfg_stk.n, period=cfg_stk.period_u, 
+            isRatioSlp=False)
         engine.run_backtest()
     
     if analyze:
