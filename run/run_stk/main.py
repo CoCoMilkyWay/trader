@@ -28,7 +28,7 @@ def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
     enable_logging()
     
-    wt_assets = prepare_all_files(num=cfg_stk.num)
+    wt_assets = prepare_all_files()
     wt_assets = wt_assets[:cfg_stk.num]
     # 
     # 
@@ -46,7 +46,7 @@ def run_bt():
     
     if run:
         straInfo = Main_Fund(name=str_name, codes=wt_assets,period=cfg_stk.wt_period)
-        engine.set_sel_strategy(straInfo, time=1, period='min', trdtpl=cfg_stk.days_policy, session=cfg_stk.session_policy, slippage=0, isRatioSlp=False)
+        engine.set_sel_strategy(straInfo, period=cfg_stk.wt_period, isRatioSlp=False)
         engine.run_backtest()
     
     if analyze:

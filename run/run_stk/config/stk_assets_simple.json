@@ -3720,12 +3720,6 @@
             "name": "神马股份",
             "product": "STK"
         },
-        "600811": {
-            "code": "600811",
-            "exchg": "SSE",
-            "name": "东方集团",
-            "product": "STK"
-        },
         "600812": {
             "code": "600812",
             "exchg": "SSE",
@@ -23688,12 +23682,6 @@
             "code": "300267",
             "exchg": "SZSE",
             "name": "尔康制药",
-            "product": "STK"
-        },
-        "300268": {
-            "code": "300268",
-            "exchg": "SZSE",
-            "name": "ST佳沃",
             "product": "STK"
         },
         "300269": {

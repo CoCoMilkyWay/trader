@@ -14,7 +14,7 @@ replayer:
     #     path: ../storage/       #历史数据存储跟目录
 env:
     mocker: sel                 #回测引擎，cta/sel/hft/exec/uf
-    # slippage: 0                 # 滑点
+    slippage: 0                 # 滑点
 
 # cta:                # 策略工厂配置
 #     module: WtCtaStraFact.dll       # 策略生成器模块名
