@@ -2,12 +2,13 @@
 
 class cfg_stk:  # Constants Configs
     import os
-    
-    period, n = 'm', 1  # bar period
-    wt_period = period + str(n)
+    # use m1, m5, m30, m60
+    period_u, period_l, n = 'min', 'm', 60  # bar period (upper/lower case)
+    wt_period_u = period_u + str(n)
+    wt_period_l = period_l + str(n)
     num = 1  # number of assets (int/None)
-    start = 202101010930
-    end   = 202101050930
+    start = 202101010000
+    end   = 202102010000
     capital = 10000000
     
     # run_mode(1 in 3):
@@ -24,8 +25,6 @@ class cfg_stk:  # Constants Configs
     # 
     exchg = ['SSE', 'SZSE', 'BJSE']
     product = 'STK'
-    days_policy = 'CHINA'
-    session_policy = 'SD0930'
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
     WT_DATABASE_DIR = os.path.abspath(script_dir + '/../../../database') # raw data
@@ -33,9 +32,10 @@ class cfg_stk:  # Constants Configs
     # STOCK_CSV_DIR = 'E:/raw_m1/stk'
     # STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
     # STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'
-    STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")
-    STOCK_DB_BAR_DIR = WT_DATABASE_DIR + '/stock/bars'
-    STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
+    # STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")
+    STOCK_CSV_DIR = 'D:/data/stock_csv'
+    STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
+    STOCK_DB_FUND_DIR = 'D:/data/stock_fundamental'
     # 
     # config files
     wt_asset_file = script_dir + '/stk_assets.json'

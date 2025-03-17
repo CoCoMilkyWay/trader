@@ -132,7 +132,7 @@ LXR_API = LixingrenAPI()
 BS_API = BaostockAPI()
 
 
-def prepare_all_files(num=None):
+def prepare_all_files():
     """
     wt: wondertrader/wtpy
     lxr: lixingren
@@ -167,7 +167,8 @@ def prepare_all_files(num=None):
     assets: List[str] = []
     for exg in cfg_stk.exchg:
         for key in wt_asset[exg]:
-            assets.append(f'{exg}.{wt_asset[exg][key]['product']}.{key}')
+            if f"{key}.dsb" in os.listdir(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/{exg}"):
+                assets.append(f'{exg}.{wt_asset[exg][key]['product']}.{key}')
 
     return assets
 
@@ -291,9 +292,7 @@ def _wt_asset_file(path: str) -> Dict:
         old = {}
 
     print('HTTP Querying A-stock ExchangeInfo...')
-    # info = API.query("basic_all")
-    new = load_json(os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), 'combined_data.json'))
+    new = LXR_API.query("basic_all")
 
     output = {"SSE": {}, "SZSE": {}, "BJSE": {}, }
     simple = copy.deepcopy(output)
@@ -371,8 +370,9 @@ def _wt_asset_file(path: str) -> Dict:
             "exchg": exg,
             "name": name,
             "product": "STK",
-            }
-    dump_json(f"{cfg_stk.script_dir+'/stk_assets_simple.json'}", simple, "wt_asset")
+        }
+    dump_json(f"{cfg_stk.script_dir+'/stk_assets_simple.json'}",
+              simple, "wt_asset")
     return output
 
 
@@ -554,7 +554,7 @@ def _wt_adj_factor_file(path: str, wt_asset: Dict):
             print(f"Updating {len(pending_assets)} adj_factors for: {exg}")
             codes = [f"{map[exg]}.{asset}" for asset in pending_assets]
             adj_factors = BS_API.query_adjust_factor(
-                codes, '1990-01-01', '2100-01-01')
+                codes, '1990-01-01', '2050-01-01')
             for pending_asset in pending_assets:
                 wt[exg][pending_asset] = adj_factors[pending_asset]
     return wt, wt_asset
@@ -804,13 +804,13 @@ class BarProcessor:
             force_sync: Whether to force processing of already processed assets
         """
         # Generate full asset list from configured exchanges
-        assets = self._generate_asset_list(wt_assets)
+        all_assets = self._generate_asset_list(wt_assets)
 
         # Step 1: Process CSV to DSB (L1 to L2)
-        self._process_l1_to_l2(assets, force_sync)
+        self._process_l1_to_l2(all_assets, force_sync)
 
         # Step 2: Process DSB merging and resampling (L3 and L4)
-        self._process_l3_and_l4(assets)
+        self._process_l3_and_l4(all_assets)
 
     def _generate_asset_list(self, wt_assets: Dict) -> List[str]:
         """Generate complete asset list in the format 'symbol.exchange'"""
@@ -820,7 +820,7 @@ class BarProcessor:
                 assets.append(f"{key}.{self.exchange_mapping[exchange]}")
         return assets
 
-    def _process_l1_to_l2(self, assets: List[str], force_sync: bool) -> None:
+    def _process_l1_to_l2(self, all_assets: List[str], force_sync: bool) -> None:
         """
         Process CSV files to DSB files (L1 to L2 conversion)
 
@@ -835,7 +835,8 @@ class BarProcessor:
             f"DB_DSB:             {GREEN}{cfg_stk.STOCK_DB_BAR_DIR}/<symbol>/1m/{DEFAULT}")
 
         # Determine which assets need processing
-        unprocessed_assets = self._get_unprocessed_assets(assets, force_sync)
+        unprocessed_assets = self._get_unprocessed_assets(
+            all_assets, force_sync)
 
         # Process unprocessed assets with multiprocessing
         if unprocessed_assets:
@@ -852,12 +853,22 @@ class BarProcessor:
         Returns:
             List of assets that need processing
         """
-        processed_asset_list = os.listdir(
-            mkdir(f"{cfg_stk.STOCK_DB_BAR_DIR}/"))
+        src_folder = f"{cfg_stk.STOCK_CSV_DIR}/"
+        processed_output_list = \
+            os.listdir(mkdir(f"{cfg_stk.STOCK_DB_BAR_DIR}/"))
+
+        valid_input_list = set()
+        if os.path.exists(src_folder):
+            for src_year in os.listdir(src_folder):
+                src_csvs = os.listdir(src_folder + src_year)  # 600000.SH.csv
+                for src_csvs in src_csvs:
+                    asset = src_csvs[:-4]  # remove .csv
+                    valid_input_list.add(asset)
 
         unprocessed_asset_list = []
         for asset in assets:
-            if asset not in processed_asset_list or force_sync:
+            # output lacking and input ready
+            if ((asset not in processed_output_list) and (asset in valid_input_list)) or force_sync:
                 unprocessed_asset_list.append(asset)
 
         return unprocessed_asset_list
@@ -886,10 +897,6 @@ class BarProcessor:
         db_folder = mkdir(f"{cfg_stk.STOCK_DB_BAR_DIR}/{asset}/1m/")
         db_dsbs = os.listdir(db_folder)  # Files in format '{year}.{month}.dsb'
 
-        # Skip if already processed
-        if len(db_dsbs) != 0:
-            return
-
         asset_name = f"{asset}.csv"
         for src_year in src_years:
             # Find matching CSV file for this asset
@@ -899,9 +906,9 @@ class BarProcessor:
 
             src_csv_path = os.path.join(src_folder, src_year, asset_name)
             self._csv_to_dsb(src_csv_path, src_year,
-                             db_folder, asset, dt_helper)
+                             db_folder, dt_helper)
 
-    def _csv_to_dsb(self, src_csv_path: str, src_year: str, db_folder: str, asset: str, dt_helper) -> None:
+    def _csv_to_dsb(self, src_csv_path: str, src_year: str, db_folder: str, dt_helper) -> None:
         """
         Convert CSV data to DSB format
 
@@ -909,7 +916,6 @@ class BarProcessor:
             src_csv_path: Path to source CSV file
             src_year: Year of the data
             db_folder: Destination folder for DSB files
-            asset: Asset identifier
             dt_helper: Instance of WtDataHelper
         """
         # Read and format CSV data
@@ -946,7 +952,7 @@ class BarProcessor:
             dt_helper.store_bars(barFile=store_path,
                                  firstBar=buffer, count=len(sub_df), period="m1")
 
-    def _process_l3_and_l4(self, assets: List[str]) -> None:
+    def _process_l3_and_l4(self, all_assets: List[str]) -> None:
         """
         Process L3 (merged DSB) and L4 (resampled DSB) database files
 
@@ -960,23 +966,32 @@ class BarProcessor:
             f"RESAMPLED_DB_DSB:   {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/{'min'+str(cfg_stk.n)}/<exchange>/<symbol>.dsb{DEFAULT}")
 
         # Prepare parameters for parallel processing
-        process_params = []
-        for asset in assets:
+        unprocessed_asset_list = []
+        for asset in all_assets:
             name, exchange = asset.split('.')
             database_db_folder = f"{cfg_stk.STOCK_DB_BAR_DIR}/{asset}/1m/"
             merged_db_path = f'{cfg_stk.WT_STORAGE_DIR}/his/min1/{self.reverse_exchange_mapping[exchange]}/{name}.dsb'
             resampled_db_path = f'{cfg_stk.WT_STORAGE_DIR}/his/{"min"+str(cfg_stk.n)}/{self.reverse_exchange_mapping[exchange]}/{name}.dsb'
 
-            process_params.append(
-                (asset, database_db_folder, merged_db_path, resampled_db_path))
+            input_valid = os.path.exists(database_db_folder) and len(
+                os.listdir(database_db_folder)) != 0
+            L3_unprocessed = (not os.path.exists(merged_db_path))
+            L4_unprocessed = (not os.path.exists(
+                resampled_db_path)) or L3_unprocessed
+
+            if input_valid and (L3_unprocessed or L4_unprocessed):
+                unprocessed_asset_list.append(
+                    (asset, database_db_folder, merged_db_path, resampled_db_path, L3_unprocessed, L4_unprocessed))
 
         # Process with multiprocessing
         with Pool(self.num_processes) as pool:
             results = list(tqdm(
-                pool.imap(self._process_single_merge_resample, process_params),
-                total=len(process_params),
+                pool.imap(self._process_single_merge_resample,
+                          unprocessed_asset_list),
+                total=len(unprocessed_asset_list),
                 desc=f'Merging and Resampling(x{cfg_stk.n})'
             ))
+        
 
     def _process_single_merge_resample(self, params: Tuple) -> None:
         """
@@ -988,18 +1003,16 @@ class BarProcessor:
         # Create WtDataHelper in the process
         dt_helper = WtDataHelper()
 
-        asset, database_db_folder, merged_db_path, resampled_db_path = params
-
-        if len(os.listdir(database_db_folder)) == 0:
-            return
+        asset, database_db_folder, merged_db_path, resampled_db_path, L3_unprocessed, L4_unprocessed = params
 
         try:
-            # Merge DSB files first
-            self._combine_dsb_1m(asset, database_db_folder,
-                                 merged_db_path, dt_helper=dt_helper)
+            if L3_unprocessed:
+                # Merge DSB files first
+                self._combine_dsb_1m(database_db_folder,
+                                     merged_db_path, dt_helper=dt_helper)
 
             # Resample if necessary
-            if cfg_stk.n != 1:
+            if L4_unprocessed:
                 self._resample(merged_db_path, cfg_stk.n,
                                resampled_db_path, dt_helper=dt_helper)
 
@@ -1007,16 +1020,15 @@ class BarProcessor:
             print(f'Error processing: {asset}')
             print(e)
 
-    def _combine_dsb_1m(self, asset: str, database_db_folder: str, merged_db_path: str,
+    def _combine_dsb_1m(self, database_db_folder: str, merged_db_path: str,
                         begin_date: datetime = datetime(1990, 1, 1),
-                        end_date: datetime = datetime(2100, 1, 1),
+                        end_date: datetime = datetime(2050, 1, 1),
                         total: bool = True,
                         dt_helper=None) -> None:
         """
         Combine multiple DSB files into a single merged file
 
         Args:
-            asset: Asset identifier
             database_db_folder: Source folder with DSB files
             merged_db_path: Target path for merged DSB file
             begin_date: Start date for filtering
@@ -1027,9 +1039,6 @@ class BarProcessor:
         # Create WtDataHelper if not provided
         if dt_helper is None:
             dt_helper = WtDataHelper()
-
-        if os.path.exists(merged_db_path):
-            return
 
         dataframes = []
 
@@ -1063,21 +1072,17 @@ class BarProcessor:
         if dt_helper is None:
             dt_helper = WtDataHelper()
 
-        if os.path.exists(store_path):
-            return
-
         # Initialize session manager for resampling
         sess_mgr = SessionMgr()
         sess_mgr.load(f"{cfg_stk.script_dir}/stk_sessions.json")
         session_info = sess_mgr.getSession("SD0930")
-
         # Perform resampling
         df = dt_helper.resample_bars(
             barFile=src_path,
             period='m1',
             times=times,
-            fromTime=200001010931,
-            endTime=205001010931,
+            fromTime=199001010000,
+            endTime= 205001010000,
             sessInfo=session_info,
             alignSection=False
         ).to_df()
@@ -1087,7 +1092,7 @@ class BarProcessor:
 
     def _sort_files_by_date(self, folder_path: str,
                             start_date: datetime = datetime(1900, 1, 1),
-                            end_date: datetime = datetime(2100, 1, 1)) -> List[str]:
+                            end_date: datetime = datetime(2050, 1, 1)) -> List[str]:
         """
         Sort DSB files by date
 
@@ -1122,7 +1127,8 @@ class BarProcessor:
             Datetime object representing the file date
         """
         base_name = filename[:-4]  # Remove last 4 characters (".dsb")
-        parts = base_name.split('.')
+        base_name = base_name.split('_')[1]
+        parts = base_name.split('-')
 
         if len(parts) == 3:
             year, month, day = parts
@@ -1232,18 +1238,19 @@ def enable_logging():
 
 def time_diff_in_min(start: int, end: int) -> int:
     from datetime import datetime
+
     def parse_time(time: int) -> datetime:
         time_str = str(time)
         # Extract time components from the last 10 characters of the string
-        year   = int(time_str[-12:-8])
-        month  = int(time_str[-8:-6])
-        day    = int(time_str[-6:-4])
-        hour   = int(time_str[-4:-2])
+        year = int(time_str[-12:-8])
+        month = int(time_str[-8:-6])
+        day = int(time_str[-6:-4])
+        hour = int(time_str[-4:-2])
         minute = int(time_str[-2:])
         return datetime(year, month, day, hour, minute)
     # Parse both start and end strings into datetime objects
     start_time = parse_time(start)
-    end_time   = parse_time(end)
+    end_time = parse_time(end)
     # Calculate the difference in time
     delta = end_time - start_time
     # Convert the time difference to minutes and return it as an integer
