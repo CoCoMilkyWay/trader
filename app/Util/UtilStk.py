@@ -167,7 +167,7 @@ def prepare_all_files():
     assets: List[str] = []
     for exg in cfg_stk.exchg:
         for key in wt_asset[exg]:
-            db_dir = mkdir(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/{exg}")
+            db_dir = mkdir(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/{exg}/")
             if f"{key}.dsb" in os.listdir(db_dir):
                 assets.append(f'{exg}.{wt_asset[exg][key]['product']}.{key}')
 
@@ -896,7 +896,7 @@ class BarProcessor:
         src_folder = f"{cfg_stk.STOCK_CSV_DIR}/"
         src_years = os.listdir(src_folder)
         db_folder = mkdir(f"{cfg_stk.STOCK_DB_BAR_DIR}/{asset}/1m/")
-        db_dsbs = os.listdir(db_folder)  # Files in format '{year}.{month}.dsb'
+        # Files in format '{year}.{month}.dsb'
 
         asset_name = f"{asset}.csv"
         for src_year in src_years:

@@ -2,8 +2,8 @@
 
 class cfg_stk:  # Constants Configs
     import os
-    # use m1, m5, m30, m60
-    period_u, period_l, n = 'min', 'm', 60  # bar period (upper/lower case)
+    # use m1, m5, m30, m60 (wtpy requires that both 1m and 5m are present)
+    period_u, period_l, n = 'min', 'm', 60
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
     num = 1  # number of assets (int/None)
