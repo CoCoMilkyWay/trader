@@ -56,7 +56,7 @@ def main():
     # Start main.py with viztracer
     print("Starting main.py...")
     
-    main = f"./strategies/Strategy_Alpha/main.py"
+    main = f"./strategies/{cfg_stk.strategy}/main.py"
     # main = f"./strategies/Strategy_Fund/main.py"
     try:
         if cfg_stk.profile:

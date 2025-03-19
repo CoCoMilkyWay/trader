@@ -14,13 +14,13 @@ sys.path.append(os.path.join(os.path.dirname(__file__), TOP + "app/Exchange_API/
 from config.cfg_stk import cfg_stk
 from Util.UtilStk import enable_logging, prepare_all_files, mkdir
 
-from .Parallel_Process_Core import Parallel_Process_Core
-from .Parallel_Process_Worker import Parallel_Process_Worker
+from strategies.Strategy_Fund.Parallel_Process_Core import Parallel_Process_Core
 
-run = True
 analyze = cfg_stk.analyze
 snoop = cfg_stk.snoop if analyze else False
 panel = cfg_stk.panel if snoop else False
+
+import multiprocessing
 
 def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
@@ -28,7 +28,6 @@ def run_bt():
     
     wt_asset = prepare_all_files()
     
-
     wt_assets: List[str] = []
     ipo_dates: List[str] = []
     for exg in cfg_stk.exchg:
@@ -38,17 +37,19 @@ def run_bt():
                 wt_assets.append(f'{exg}.{wt_asset[exg][key]['product']}.{key}')
                 ipo_dates.append(wt_asset[exg][key]['extras']['ipoDate'])
 
-    # load balancing
-    ipo_dates_parsed = [datetime.fromisoformat(date[:-6]) for date in ipo_dates]
-    sorted_wt_assets = [x for _, x in sorted(zip(ipo_dates_parsed, wt_assets))][:cfg_stk.num]
+    # cpu load balancing (from early to new)
+    parsed_ipo_dates = [datetime.fromisoformat(date[:-6]) for date in ipo_dates]
+    sorted_wt_assets = [x for _, x in sorted(zip(parsed_ipo_dates, wt_assets))][:cfg_stk.num]
 
     code_info: Dict[str, Dict] = {}
     # 1. prepare meta data
     for idx, code in enumerate(sorted_wt_assets):
-        code_info[code] = {
-            'idx':idx,
-        }
+        code_info[code] = {'idx':idx}
 
-    # 2. init worker process
-    P = Parallel_Process_Core(code_info, Parallel_Process_Worker)
+    # 2. init precess manager
+    P = Parallel_Process_Core(code_info)
+    
+if __name__ == '__main__':
+    run_bt()
+
 

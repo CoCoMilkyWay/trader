@@ -1,24 +1,18 @@
-from wtpy.apps import WtBtAnalyst
 from wtpy.monitor import WtBtSnooper
-from wtpy import WtBtEngine, EngineType, WtDtServo
+from wtpy import WtDtServo
 from wtpy.SessionMgr import SessionMgr
 from wtpy.WtCoreDefs import WTSBarStruct
 from multiprocessing import Pool
 import multiprocessing as mp
 from wtpy.wrapper import WtDataHelper
-import torch
 from config.cfg_stk import cfg_stk
 import os
-import sys
 import json
 import time
 import copy
 import tempfile
 import numpy as np
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-import pyarrow.feather as feather
 
 from tqdm import tqdm
 from datetime import datetime, timezone, timedelta
@@ -88,22 +82,6 @@ def mkdir(path_str):
     if not os.path.exists(path):
         os.makedirs(path, exist_ok=True)
     return path_str
-
-
-# def log(path_str, str, stdout=1, type='a'):
-#     # 'w+': write and read
-#     # 'w': overwrite
-#     # 'a': append
-#     with open(path_str,type) as file:
-#         # Writing data to the file
-#         file.write(f'{str}\n')
-#         # # Moving the cursor to the beginning of the file to read from the beginning
-#         # file.seek(0)
-#         # data = file.read()
-#     if stdout:
-#         print(str)
-#     return str
-#
 
 
 def testBtSnooper():
@@ -280,9 +258,7 @@ def _wt_asset_file(path: str) -> Dict:
 
     state = _check_state(path, "WT-AssetInfo", 1)
 
-    if state == 2:  # new
-        return load_json(path)
-    elif state == 2:  # old
+    if state != 0:
         old = load_json(path)
     else:  # non-exist
         old = {}
@@ -716,19 +692,6 @@ def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
     # now we are sure that all the meta are the same, fell free to update data
     processed_assets = os.listdir(mkdir(f"{path}/"))
 
-    # for asset in processed_assets:
-    #     years = os.listdir(f"{path}/{asset}/")
-    #     for year in years:
-    #         arr = load_compressed_array(f"{path}/{asset}/{year}")
-    #         nan_inf_mask = np.isnan(arr) | np.isinf(arr)
-    #         col_nan_inf_counts = nan_inf_mask.sum(axis=0)  # Count NaN/Inf per column
-    #         col_threshold = 0.5 * arr.shape[0]  # Compute threshold count per column
-    #         cols = [new_metrics[i] for i in np.where(col_nan_inf_counts >= col_threshold)[0]]
-    #         # num_nan = np.isnan(data).sum()
-    #         # num_inf = np.isinf(data).sum()
-    #         # num_total = data.shape[0]*data.shape[1]
-    #         print(asset, year, cols, )#f"NaN:{num_nan/num_total:.2f}, Inf:{num_inf/num_total:.2f}")
-    # return
     for exg in exgs:
         pending_assets = []
         for key in wt_asset[exg]:
@@ -1218,30 +1181,6 @@ def enable_logging():
         # Only output the message without timestamps etc
         format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
     )
-
-
-# def get_bao_stocks(pool: str = 'hs300') -> Tuple[List[str], bool]:
-#     import baostock as bs
-#     import pandas as pd
-#     lg = bs.login()
-#     print('login respond error_code:'+lg.error_code)
-#     print('login respond  error_msg:'+lg.error_msg)
-#     bao_valid:bool = False
-#     if pool == 'hs300':
-#         rs = bs.query_hs300_stocks()
-#         bao_valid = True
-#     elif pool == 'zz500':
-#         rs = bs.query_zz500_stocks()
-#         bao_valid = True
-#     print('query error_code:'+rs.error_code)
-#     print('query  error_msg:'+rs.error_msg)
-#     bao_stocks = []
-#     while (rs.error_code == '0') & rs.next():
-#         bao_stocks.append(rs.get_row_data())
-#     bs.logout()
-#     bao_df = pd.DataFrame(bao_stocks, columns=rs.fields)
-#     bao_ls = list(bao_df['code'])
-#     return bao_ls, bao_valid
 
 def time_diff_in_min(start: int, end: int) -> int:
     from datetime import datetime

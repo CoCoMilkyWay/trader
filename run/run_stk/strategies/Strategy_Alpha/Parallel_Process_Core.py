@@ -20,6 +20,7 @@ CONTROL_INITED = 1
 CONTROL_STOP = 2
 # -------- Shared Memory Structures --------
 
+# instance = num_worker * num_codes_per_worker
 class SharedData(ctypes.Structure):
     """Structure for storing input/output data in shared memory."""
     _fields_ = [
@@ -40,14 +41,16 @@ class SharedData(ctypes.Structure):
         ('signal', ctypes.c_int),
         ('value', ctypes.c_float),
     ]
-    
+
+# instance = num_worker
 class SharedControl(ctypes.Structure):
     """Structure for flow control."""
     _fields_ = [
         ('init', ctypes.c_int * 256), # 256 workers max
         ('stop', ctypes.c_int),
     ]
-    
+
+# this is just a notification pipe to minimize scanning cost over many small shared buffers
 class SharedRingBuffer(ctypes.Structure):
     """Structure representing a finite ring buffer."""
     _fields_ = [
@@ -132,6 +135,7 @@ class Parallel_Process_Core:
             
             lock = Lock()
             
+            # on Window, only 'spawn'(safer) is valid, compared to 'fork'(faster)
             p = Process(
                 target=self.parallel_exec,
                 args=(i, self.worker_code_info[i], shared_data, self.shared_control, ring_buffer, lock, self.Process_Core, self.shared_tensor),

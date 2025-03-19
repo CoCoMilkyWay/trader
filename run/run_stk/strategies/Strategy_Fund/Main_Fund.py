@@ -84,4 +84,3 @@ class Main_Fund(BaseSelStrategy):
         # self.P.parallel_close()
         # print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
         return
-    
