@@ -6,9 +6,9 @@ class cfg_stk:  # Constants Configs
     period_u, period_l, n = 'min', 'm', 60
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
-    num = 1  # number of assets (int/None)
-    start = 202101010000
-    end   = 202102010000
+    num = 5  # number of assets (int/None)
+    start = 199001010000
+    end   = 203001010000
     capital = 10000000
     
     # run_mode(1 in 3):
@@ -29,13 +29,12 @@ class cfg_stk:  # Constants Configs
     script_dir = os.path.dirname(os.path.abspath(__file__))
     WT_DATABASE_DIR = os.path.abspath(script_dir + '/../../../database') # raw data
     WT_STORAGE_DIR = os.path.abspath(script_dir + '/../../storage') # processed data
-    # STOCK_CSV_DIR = 'E:/raw_m1/stk'
-    # STOCK_CSV_DIR = 'D:/data/stock_csv' + product + '/csv'
-    # STOCK_DB_DIR = 'D:/data/stock_db' + product + '/bars'
-    # STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")
-    STOCK_CSV_DIR = 'D:/data/stock_csv'
-    STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
-    STOCK_DB_FUND_DIR = 'D:/data/stock_fundamental'
+    # STOCK_CSV_DIR = 'D:/data/stock_csv'
+    # STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
+    # STOCK_DB_FUND_DIR = 'D:/data/stock_fundamental'
+    STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")
+    STOCK_DB_BAR_DIR = WT_DATABASE_DIR + '/stock/bars'
+    STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
     # 
     # config files
     wt_asset_file = script_dir + '/stk_assets.json'

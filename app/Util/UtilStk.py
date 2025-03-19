@@ -164,14 +164,7 @@ def prepare_all_files():
 
     process_bar_data(wt_asset, force_sync=False)
 
-    assets: List[str] = []
-    for exg in cfg_stk.exchg:
-        for key in wt_asset[exg]:
-            db_dir = mkdir(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/{exg}/")
-            if f"{key}.dsb" in os.listdir(db_dir):
-                assets.append(f'{exg}.{wt_asset[exg][key]['product']}.{key}')
-
-    return assets
+    return wt_asset
 
 
 def _wt_asset_file(path: str) -> Dict:
@@ -287,7 +280,9 @@ def _wt_asset_file(path: str) -> Dict:
 
     state = _check_state(path, "WT-AssetInfo", 1)
 
-    if state != 0:  # old or new
+    if state == 2:  # new
+        return load_json(path)
+    elif state == 2:  # old
         old = load_json(path)
     else:  # non-exist
         old = {}
@@ -1128,8 +1123,9 @@ class BarProcessor:
             Datetime object representing the file date
         """
         base_name = filename[:-4]  # Remove last 4 characters (".dsb")
-        base_name = base_name.split('_')[1]
-        parts = base_name.split('-')
+        # base_name = base_name.split('_')[1]
+        # parts = base_name.split('-')
+        parts = base_name.split('.')
 
         if len(parts) == 3:
             year, month, day = parts
@@ -1193,7 +1189,17 @@ class BarProcessor:
 # ================================================
 # Others
 # ================================================
-
+# from wtpy.WtDataDefs import WtNpKline
+# from wtpy.wrapper import WtDataHelper
+# 
+# dtHelper = WtDataHelper()
+# def compare_read_dsb_bars():
+#     
+#     ret:WtNpKline = dtHelper.read_dsb_bars(f"/home/chuyin/work/trader/database/stock/bars/000032.SZ/1m/2021.11.dsb")
+#     # ret:WtNpKline = dtHelper.read_dsb_bars(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/SSE/600000.dsb")
+#     num_bars = len(ret)
+#     print(f"read_dsb_bars {num_bars} bars")
+#     print(ret.ndarray[-500:])
 
 def enable_logging():
     import logging

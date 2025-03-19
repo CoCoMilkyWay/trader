@@ -55,11 +55,14 @@ def main():
 
     # Start main.py with viztracer
     print("Starting main.py...")
+    
+    main = f"./strategies/Strategy_Alpha/main.py"
+    # main = f"./strategies/Strategy_Fund/main.py"
     try:
         if cfg_stk.profile:
-            subprocess.run(["viztracer", "--tracer_entries", "1000000", "main.py"], check=True)
+            subprocess.run(["viztracer", "--tracer_entries", "1000000", main], check=True)
         else:
-            subprocess.run(["python", "main.py"], check=True)
+            subprocess.run(["python", main], check=True)
         print("main.py finished")
         if cfg_stk.profile:
             subprocess.run(["vizviewer", "result.json"], check=True)

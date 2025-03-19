@@ -78,7 +78,46 @@ class Main_Fund(BaseSelStrategy):
             if self.barnum == 1:
                 self.inited = True
             return
+        # compare_read_dsb_bars()
 
+        # self.P.parallel_collect()
+    
+    # def on_calculate(self, context: SelContext):
+    #     # all sub-ed bars closed (main/non-main) at this period
+    #     self.barnum += 1
+    #     
+    #     date = context.get_date()
+    #     time = context.stra_get_time()
+    #     print(date, time)
+    #     if date!=self.date:
+    #         print(date)
+    #     self.date = date
+    #     self.time = time
+    #     
+    #     for idx, code in enumerate(self.__codes__):
+    #         try:
+    #             np_bars = context.stra_get_bars(code, self.__period__, 1,)
+    #             print(code, np_bars)
+    #         except Exception as e:
+    #             print(f'{code}: {e}')
+    #             continue
+    #         if not np_bars:
+    #             print(f'no bars: {code}')
+    #             continue
+    #         # print(np_bars.ndarray)
+    #         # multi-level k bar generation
+    #         # TA = self.tech_analysis[code]
+    #         # TA.analyze(np_bars)
+    #         
+    #         # indicator guard (prepare and align)
+    #         if not self.inited:
+    #             if self.barnum < 1*24*60: # need 1 day(s) of 1M data
+    #                 self.inited = True
+    #             continue
+    #         
+    #         # strategy
+    #         # self.ST_Train(context, code)
+    
     def on_backtest_end(self, context: SelContext):
         # self.elapsed_time = time() - self.start_time
         # self.P.parallel_close()
