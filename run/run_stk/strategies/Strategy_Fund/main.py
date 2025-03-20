@@ -20,8 +20,6 @@ analyze = cfg_stk.analyze
 snoop = cfg_stk.snoop if analyze else False
 panel = cfg_stk.panel if snoop else False
 
-import multiprocessing
-
 def run_bt():
     ''' refer to run/db/db_cfg.py for other configs '''
     enable_logging()

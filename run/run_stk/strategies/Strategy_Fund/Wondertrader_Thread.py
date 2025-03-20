@@ -8,14 +8,6 @@ from config.cfg_stk import cfg_stk
 
 
 class Wondertrader_Thread:
-    """
-    Because WTCPP/WTPY is mainly a single-asset CTA-style trading engine
-    For efficient market-wide back-testing with server CPUs,
-    it is easiest to instance N WTCPP worker threads then manage data-coherence manually
-
-    disable all other CTA-style features offered by WTCPP
-    """
-
     def __init__(
         self,
         wt_assets: List[str],

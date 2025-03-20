@@ -9,7 +9,7 @@ class cfg_stk:  # Constants Configs
     period_u, period_l, n = 'min', 'm', 60
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
-    num = 5  # number of assets (int/None)
+    num = 10  # number of assets (int/None)
     start = 199001010000
     end   = 203001010000
     capital = 10000000
@@ -62,7 +62,8 @@ class cfg_stk:  # Constants Configs
     # # analyze_longshort = True
     # # analyze_n_month = 3
     # 
-    # Fees =========================================
+    # MISC =========================================
     FEE = 0.0015
-    # NO_FEE = 5
+    # memory management (manual set for simplicity)
+    max_trade_session_ratio = 250/365*(4.5/24)
     

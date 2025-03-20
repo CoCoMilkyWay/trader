@@ -20,7 +20,8 @@ DATA_INPUT_READY = 1
 DATA_OUTPUT_READY = 2
 
 CONTROL_CLEAR = 0
-CONTROL_INITED = 1
+CONTROL_SLV_INITED = 1
+CONTROL_MST_CONFIRMED = 1
 CONTROL_STOP = 2
 
 # -------- ITC/IPC Shared Memory Structures --------
@@ -95,9 +96,8 @@ class Parallel_Process_Core:
         self.workers = []                    # Worker processes
 
         # get config data from dummy class
-        self.C_dummy = \
-            Parallel_Process_Worker(-1,
-                                    {'dummy_code': {'idx': -1}}, torch.zeros((1)))
+        self.C_dummy = Parallel_Process_Worker(
+            -1, {'dummy_code': {'idx': -1}}, torch.zeros((1)), True)
         self.shared_tensor = self._init_shared_tensor()
 
         logical_cpus = psutil.cpu_count(logical=True)
@@ -151,7 +151,7 @@ class Parallel_Process_Core:
             p = Process(
                 target=self.slave_process,
                 args=(i, self.worker_code_info[i], shared_data, self.shared_control,
-                      Parallel_Process_Worker, self.shared_tensor),
+                      ring_buffer, lock, Parallel_Process_Worker, self.shared_tensor),
                 name=f"Worker-{i + 1}",
                 daemon=True
             )
@@ -162,12 +162,16 @@ class Parallel_Process_Core:
             self.locks.append(lock)
             self.workers.append(p)
 
+        # start master process
+        self.master_process()
+
     def _init_shared_tensor(self):
         from config.cfg_stk import cfg_stk
         from Util.UtilStk import time_diff_in_min
         self.start = cfg_stk.start
         self.end = cfg_stk.end
-        N_timestamps = time_diff_in_min(self.start, self.end)
+        N_timestamps = int(time_diff_in_min(self.start, self.end)
+                           * cfg_stk.max_trade_session_ratio)
         N_features = len(self.C_dummy.feature_names)
         N_labels = len(self.C_dummy.label_names)
         N_columns = N_features + N_labels
@@ -175,6 +179,9 @@ class Parallel_Process_Core:
 
         print(
             f"Initializing Pytorch Tensor: (timestamp({N_timestamps}), feature({N_features}) + label({N_labels}), codes({N_codes}))")
+        # float16 = 2 Bytes
+        print(
+            f"Memory reserving: {(N_timestamps * N_columns * N_codes)*2/(1024**2):.2f} MB")
         # tensor(a,b,c) is stored like:
         #   for each value a, we have a matrix(b,c):
         #   for each value b, we have a vector(c): thus c are stored continuously in memory
@@ -188,12 +195,16 @@ class Parallel_Process_Core:
         # check slaves ready
         for i in range(self.num_workers):
             while True:
-                initiated = self.shared_control.init[i] == CONTROL_INITED
+                initiated = self.shared_control.init[i] == CONTROL_SLV_INITED
                 if initiated:
                     # print(f"Worker {i+1} signaled ready")
                     break
                 time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
+
         print("Parallel init complete.")
+
+        for i in range(self.num_workers):
+            self.shared_control.init[i] = CONTROL_MST_CONFIRMED
 
         while True:
             # send info =======================================================
@@ -260,11 +271,16 @@ class Parallel_Process_Core:
 
         # Pin each worker to a specific core
         set_cpu_affinity((worker_id+1)*HYPER_THREAD)
-        # print(f'Worker Initiated...')
+        print(f'Worker {worker_id} Initiated...')
+
+        shared_control.init[worker_id] = CONTROL_SLV_INITED
+
+        while True:
+            if shared_control.init[worker_id] == CONTROL_MST_CONFIRMED:
+                break
+            time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
 
         C = Process_Worker(worker_id, worker_code_info, shared_tensor)
-
-        shared_control.init[worker_id] = CONTROL_INITED
 
         while shared_control.stop != CONTROL_STOP:  # Keep processing indefinitely unless terminated externally
             # use ring-buffer to save scanning cost
@@ -281,6 +297,8 @@ class Parallel_Process_Core:
                     # print(f'Processing worker {worker_id} mem {code_idx} status {status}')
                     cs_signal = data.cs_signal
                     cs_value = data.cs_value
+                    data.ts_signal = code_idx
+                    data.ts_value = 0.0
                     data.status = DATA_OUTPUT_READY
                 elif status == DATA_OUTPUT_READY:
                     raise Exception(
