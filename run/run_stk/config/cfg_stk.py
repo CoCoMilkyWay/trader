@@ -9,9 +9,9 @@ class cfg_stk:  # Constants Configs
     period_u, period_l, n = 'min', 'm', 60
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
-    num = 10  # number of assets (int/None)
-    start = 199001010000
-    end   = 203001010000
+    num = 100  # number of assets (int/None)
+    start = 202001010000
+    end   = 202101010000
     capital = 10000000
     
     # run_mode(1 in 3):
@@ -40,6 +40,7 @@ class cfg_stk:  # Constants Configs
     # STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
     # 
     # config files
+    lxr_asset_file = script_dir + '/lxr_assets.json'
     wt_asset_file = script_dir + '/stk_assets.json'
     lxr_profile_file = script_dir + '/info/lxr_profile.json'
     lxr_industry_file = script_dir + '/info/lxr_industry.json'
@@ -65,5 +66,5 @@ class cfg_stk:  # Constants Configs
     # MISC =========================================
     FEE = 0.0015
     # memory management (manual set for simplicity)
-    max_trade_session_ratio = 250/365*(4.5/24)
+    max_trade_session_ratio = 250/365*(4.5/24)/n
     

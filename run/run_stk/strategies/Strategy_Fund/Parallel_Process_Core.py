@@ -261,7 +261,7 @@ class Parallel_Process_Core:
             self.num_timestamps += 1
 
     @staticmethod
-    def slave_process(worker_id: int, worker_code_info: Dict[str, Dict], shared_data, shared_control, ring_buffer, lock, Process_Worker, shared_tensor):
+    def slave_process(worker_id: int, worker_code_info: Dict[str, Dict], shared_data, shared_control, ring_buffer, lock, Process_Worker, shared_tensor: torch.Tensor):
         """
         Pin this worker to a dedicated CPU (e.g., worker_id + 1)
                     cpu0,     cpu1, cpu2, cpu3
@@ -271,16 +271,18 @@ class Parallel_Process_Core:
 
         # Pin each worker to a specific core
         set_cpu_affinity((worker_id+1)*HYPER_THREAD)
-        print(f'Worker {worker_id} Initiated...')
 
+        C = Process_Worker(worker_id, worker_code_info, shared_tensor)
         shared_control.init[worker_id] = CONTROL_SLV_INITED
+
+        print(f'Worker {worker_id} Initiated...')
 
         while True:
             if shared_control.init[worker_id] == CONTROL_MST_CONFIRMED:
                 break
             time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
 
-        C = Process_Worker(worker_id, worker_code_info, shared_tensor)
+        C.run()
 
         while shared_control.stop != CONTROL_STOP:  # Keep processing indefinitely unless terminated externally
             # use ring-buffer to save scanning cost

@@ -263,8 +263,14 @@ def _wt_asset_file(path: str) -> Dict:
     else:  # non-exist
         old = {}
 
-    print('HTTP Querying A-stock ExchangeInfo...')
-    new = LXR_API.query("basic_all")
+    # TODO: just being lazy here
+    raw_path = cfg_stk.lxr_asset_file
+    if os.path.exists(raw_path):
+        new = load_json(raw_path)
+    else:
+        print('HTTP Querying A-stock ExchangeInfo...')
+        new = LXR_API.query("basic_all")
+        dump_json(raw_path, new)
 
     output = {"SSE": {}, "SZSE": {}, "BJSE": {}, }
     simple = copy.deepcopy(output)
@@ -630,7 +636,7 @@ def _check_state(file_path: str, file_name: str, days: int = 1) -> int:
 
 def _lxr_fundamental_file(path: str, wt_asset: Dict, wt_tradedays: Dict):
     # print('Analyzing/Generating Fundamental database files...')
-    print(f"Metric_NpArray(zip):{GREEN}{path}/<symbol>/{DEFAULT}")
+    print(f"Fundamental_Npz:    {GREEN}{path}/<symbol>/{DEFAULT}")
 
     API_LIMITS = 10
     exgs = cfg_stk.exchg
@@ -950,7 +956,6 @@ class BarProcessor:
                 total=len(unprocessed_asset_list),
                 desc=f'Merging and Resampling(x{cfg_stk.n})'
             ))
-        
 
     def _process_single_merge_resample(self, params: Tuple) -> None:
         """
@@ -1041,7 +1046,7 @@ class BarProcessor:
             period='m1',
             times=times,
             fromTime=199001010000,
-            endTime= 205001010000,
+            endTime=205001010000,
             sessInfo=session_info,
             alignSection=False
         ).to_df()
@@ -1154,15 +1159,16 @@ class BarProcessor:
 # ================================================
 # from wtpy.WtDataDefs import WtNpKline
 # from wtpy.wrapper import WtDataHelper
-# 
+#
 # dtHelper = WtDataHelper()
 # def compare_read_dsb_bars():
-#     
+#
 #     ret:WtNpKline = dtHelper.read_dsb_bars(f"/home/chuyin/work/trader/database/stock/bars/000032.SZ/1m/2021.11.dsb")
 #     # ret:WtNpKline = dtHelper.read_dsb_bars(f"{cfg_stk.WT_STORAGE_DIR}/his/min1/SSE/600000.dsb")
 #     num_bars = len(ret)
 #     print(f"read_dsb_bars {num_bars} bars")
 #     print(ret.ndarray[-500:])
+
 
 def enable_logging():
     import logging
@@ -1181,6 +1187,7 @@ def enable_logging():
         # Only output the message without timestamps etc
         format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
     )
+
 
 def time_diff_in_min(start: int, end: int) -> int:
     from datetime import datetime

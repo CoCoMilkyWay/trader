@@ -1,4 +1,6 @@
+import time
 import torch
+from tqdm import tqdm
 from typing import List, Dict, Callable
 
 from wtpy import WtBtEngine, EngineType
@@ -8,6 +10,12 @@ from wtpy import BaseSelStrategy
 from config.cfg_stk import cfg_stk
 
 from .TechnicalAnalysis_Core import TechnicalAnalysis_Core
+
+
+def stdio(str):
+    print(str)
+    return str
+
 
 class Parallel_Process_Worker():
     """
@@ -46,14 +54,15 @@ class Parallel_Process_Worker():
         if is_dummy:
             return
 
-        # WTCPP interface
-        engine = WtBtEngine(EngineType.ET_SEL, logCfg='./config/logcfg.yaml')
-        engine.init(folder='.', cfgfile='./config/configbt.yaml')
-        engine.configBacktest(cfg_stk.start, cfg_stk.end)
-        engine.commitBTConfig()
+        # WTCPP initialization
+        self.engine = WtBtEngine(
+            EngineType.ET_SEL, logCfg='./config/logcfg.yaml')
+        self.engine.init(folder='.', cfgfile='./config/configbt.yaml')
+        self.engine.configBacktest(cfg_stk.start, cfg_stk.end)
+        self.engine.commitBTConfig()
 
         str_name = f'bt_stock'
-        
+
         # Register callback functions for WonderTrader CPP interface
         callback_functions = [
             self.on_init,
@@ -62,56 +71,80 @@ class Parallel_Process_Worker():
             self.on_calculate,
             self.on_backtest_end,
         ]
-        
+
         straInfo = Strategy_Interface(
             name=str_name,
             callback_functions=callback_functions,
         )
-        engine.set_sel_strategy(
+        self.engine.set_sel_strategy(
             straInfo,
             date=0, time=cfg_stk.n, period=cfg_stk.period_u,
             isRatioSlp=False)
-        engine.run_backtest()
+
+    def run(self):
+        self.start_time = time.time()
+        self.engine.run_backtest()
 
     def on_init(self, context: SelContext):
+        self.context = context  # export environment
+        if self.__id__ == 0:
+            print('Preparing Bars in DDR...')
+            self.pbar = tqdm(total=len(self.__codes__))
+
         for idx, code in enumerate(self.__codes__):
-            print(self.__id__, idx, code)
             context.stra_prepare_bars(code, cfg_stk.wt_period_l, 1)
+            if self.__id__ == 0:
+                self.pbar.update(1)
+                self.pbar.set_description(f'Init: {code}', True)
         return
 
     def on_tick(self, context: SelContext, code: str, newTick: dict):
         return
 
     def on_bar(self, context: SelContext, code: str, period: str, newBar: dict):
-        print(self.__id__, code, newBar['time'])
+        # multi-level k bar generation
+        TA = self.tech_analysis[code]
+        TA.analyze(newBar['open'], newBar['high'], newBar['low'],
+                   newBar['close'], newBar['vol'], newBar['time'])
+
+        # # indicator guard (prepare and align)
+        # if not self.inited:
+        #     self.barnum += 1
+        #     if self.barnum > 1*24*60: # need 1 day(s) of 1M data
+        #         self.inited = True
+        #     return
+
+        # strategy
+        # self.ST_Train(context, code)
         return
 
     def on_calculate(self, context: SelContext):
+        """
+        TimeSeries   (cpu1):                    |   on_bar_A(T0)    on_bar_A(T1)    ... 
+        TimeSeries   (cpu2):                    |   on_bar_B(T0)    on_bar_B(T1)    ... 
+        TimeSeries   (... ):                ->  |   ...          -> ...          -> ... 
+        CrossSection (cpu0):    on_calc(skip)   V   on_calc(init)   on_calc(T0)     ... (CS is delaying TS by 1 for better compute efficiency)
+        """
         return
 
     def on_backtest_end(self, context: SelContext):
-        return
+        self.elapsed_time = time.time() - self.start_time
+        if self.__id__ == 0:
+            print(f'main BT loop time elapsed: {self.elapsed_time:2f}s')
 
-    # def on_bar(self, code: str, open: float, high: float, low: float, close: float, vol: float, time: int):
-    #     # multi-level k bar generation
-    #     TA = self.tech_analysis[code]
-    #     TA.analyze(open, high, low, close, vol, time)
-#
-    # def on_backtest_end(self):
-    #     if cfg_stk.stat:
-    #         from Util.CheckDist import CheckDist
-    #         from Util.UtilCpt import mkdir
-    #         import pandas as pd
-    #         df = pd.DataFrame(
-    #             self.shared_tensor[:, :, 0].to(torch.float32).numpy())
-    #         df.columns = pd.Index(self.feature_names + self.label_names)
-    #         CheckDist(df, [self.feature_types])
-#
-    #     return
+        # # feature distribution analysis
+        # if cfg_stk.stat and self.__id__ == 0:
+        #     from Util.CheckDist import CheckDist
+        #     import pandas as pd
+        #     df = pd.DataFrame(
+        #         self.shared_tensor[:, :, 0].to(torch.float32).numpy())
+        #     df.columns = pd.Index(self.feature_names + self.label_names)
+        #     CheckDist(df, [self.feature_types])
+        return
 
 
 class Strategy_Interface(BaseSelStrategy):
-    def __init__(self, name: str,callback_functions: List[Callable]):
+    def __init__(self, name: str, callback_functions: List[Callable]):
         BaseSelStrategy.__init__(self, name)
         [self.cb_on_init,
          self.cb_on_tick,
