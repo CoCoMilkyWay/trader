@@ -11,7 +11,7 @@ from wtpy import BaseCtaStrategy
 
 from Util.UtilCpt import mkdir
 
-from ..CPT_Train.TechnicalAnalysis_Core import TechnicalAnalysis_Core
+from ..CPT_Train.TimeSeriesAnalysis import TimeSeriesAnalysis
 
 from config.cfg_cpt import cfg_cpt
 import warnings
@@ -37,7 +37,7 @@ class Main_Train(BaseCtaStrategy):
         self.date = None
         
         # TA core
-        self.tech_analysis: Dict[str, TechnicalAnalysis_Core] = {}
+        self.tech_analysis: Dict[str, TimeSeriesAnalysis] = {}
         
         # ML_models
         
@@ -77,7 +77,7 @@ class Main_Train(BaseCtaStrategy):
         
     def init_new_code(self, code: str):
         # initiate new code specific models/structs
-        self.tech_analysis[code] = TechnicalAnalysis_Core(code=code, train=cfg_cpt.train)
+        self.tech_analysis[code] = TimeSeriesAnalysis(code=code, train=cfg_cpt.train)
         
     def on_calculate(self, context: CtaContext):
         # all sub-ed bars closed (main/non-main) at this period

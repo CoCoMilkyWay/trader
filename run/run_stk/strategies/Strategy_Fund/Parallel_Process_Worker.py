@@ -9,7 +9,7 @@ from wtpy import BaseSelStrategy
 
 from config.cfg_stk import cfg_stk
 
-from .TechnicalAnalysis_Core import TechnicalAnalysis_Core
+from .TimeSeriesAnalysis_Core import TimeSeriesAnalysis
 
 
 def stdio(str):
@@ -36,14 +36,18 @@ class Parallel_Process_Worker():
         self.inited = False
         self.barnum = 0
 
+        # cross-section data
+        self.cs_signal = None
+        self.cs_value = None
+
         # TA core
-        self.tech_analysis: Dict[str, TechnicalAnalysis_Core] = {}
+        self.tech_analysis: Dict[str, TimeSeriesAnalysis] = {}
 
         for idx, code in enumerate(self.__codes__):
             plot = idx == 0 and self.__id__ == 0
             if plot:
                 print(f'TA cores Initiated, back-test ready...')
-            self.tech_analysis[code] = TechnicalAnalysis_Core(
+            self.tech_analysis[code] = TimeSeriesAnalysis(
                 code=code, code_idx=self.__code_idxes__[idx], shared_tensor=shared_tensor, plot=plot)
             if idx == 0:
                 self.feature_names = self.tech_analysis[code].feature_names

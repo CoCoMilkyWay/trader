@@ -3,7 +3,7 @@ from typing import List, Dict
 
 from config.cfg_cpt import cfg_cpt
 
-from .TechnicalAnalysis_Core import TechnicalAnalysis_Core
+from .TimeSeriesAnalysis_Core import TimeSeriesAnalysis
 
 class Parallel_Process_Worker():
     def __init__(self, id:int, code_info:Dict[str, Dict[str, int]], shared_tensor:torch.Tensor):
@@ -17,13 +17,13 @@ class Parallel_Process_Worker():
         self.barnum = 0
         
         # TA core
-        self.tech_analysis: Dict[str, TechnicalAnalysis_Core] = {}
+        self.tech_analysis: Dict[str, TimeSeriesAnalysis] = {}
         
         for idx, code in enumerate(self.__codes__):
             plot = idx == 0 and self.__id__ == 0
             if plot:
                 print(f'TA cores Initiated, back-test ready...')
-            self.tech_analysis[code] = TechnicalAnalysis_Core(code=code, code_idx=self.__code_idxes__[idx], shared_tensor=shared_tensor, plot=plot)
+            self.tech_analysis[code] = TimeSeriesAnalysis(code=code, code_idx=self.__code_idxes__[idx], shared_tensor=shared_tensor, plot=plot)
             if idx == 0:
                 self.feature_names = self.tech_analysis[code].feature_names
                 self.feature_types = self.tech_analysis[code].feature_types

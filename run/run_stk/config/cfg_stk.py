@@ -6,10 +6,10 @@ class cfg_stk:  # Constants Configs
     # strategy = 'Strategy_Alpha'
     
     # use m1, m5, m30, m60 (wtpy requires that both 1m and 5m are present)
-    period_u, period_l, n = 'min', 'm', 60
+    period_u, period_l, n = 'min', 'm', 5
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
-    num = 100  # number of assets (int/None)
+    num = 500  # number of assets (int/None)
     start = 202001010000
     end   = 202101010000
     capital = 10000000

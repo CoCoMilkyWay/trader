@@ -56,7 +56,7 @@ from misc.pytorch_model import \
     DataCheckResult, ModelType, GeneralizedModel, \
     CNN, Recurrent, Transformer, Ensemble
 
-class TechnicalAnalysis:
+class TimeSeriesAnalysis:
     
     # explicitly declare which attributes a class can have
     # Primarily used to optimize memory usage and access time for class instances

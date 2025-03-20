@@ -1,16 +1,19 @@
+import os, sys
 import time
 import torch
 import ctypes
+import asyncio
 import psutil
 from multiprocessing import Process, sharedctypes, Lock
 from typing import Dict
 
 from .Parallel_Process_Worker import Parallel_Process_Worker
+from .TimeSeriesAnalysis_Core import TimeSeriesAnalysis
 
 # -------- Configurable Constants ----------
 # ignore hyper-thread of intel/amd cpu(we want more cache hit)
 HYPER_THREAD = 2
-CPU_BACKOFF = 0.0001
+CPU_BACKOFF = 0.001 # most system is 1ms accuracy
 
 MAX_WORKER = 256
 MAX_CODES_PER_WORKER = 256
@@ -70,15 +73,28 @@ class SharedRingBuffer(ctypes.Structure):
         ('buffer', ctypes.c_int * MAX_CODES_PER_WORKER)
     ]
 
+# -------- Coroutines --------
+
+"""
+Coroutine -> MultiThreading -> MultiProcessing
+async io is a Coroutine method (loop-based event) that is faster than multi-threading (interrupt-based context switch)
+better with async functions(e.g. callback functions) with specific order or deterministic flow: A -> B -> C -> A -> ...
+for truly random order, consider multi-threading
+"""
 # -------- Utility Functions --------
 
 
-def set_cpu_affinity(cpu_id: int):
+def set_cpu_affinity_and_process_priority(cpu_id: int):
     """Pin the current process to a specific CPU for better CPU utilization."""
     # linux: os.sched_setaffinity(0, {cpu_id})
     p = psutil.Process()
     p.cpu_affinity([cpu_id])
-
+    if sys.platform.startswith("win"):
+        p.nice(psutil.HIGH_PRIORITY_CLASS)
+    else:
+        try: # need privileges, may fail
+            p.nice(-10) # lower = higher priority
+        except: pass
 # -------- Main ParallelProcess Class --------
 
 
@@ -109,7 +125,7 @@ class Parallel_Process_Core:
         cpu = physical_cpus - 1
 
         # Pin main process to CPU 0
-        set_cpu_affinity(0)
+        set_cpu_affinity_and_process_priority(0)
 
         # Determine the number of workers based on the available logical CPUs
         self.num_workers = min(cpu, physical_cpus-1, len(self.code_info))
@@ -192,7 +208,8 @@ class Parallel_Process_Core:
         return shared_tensor
 
     def master_process(self):
-        # check slaves ready
+        
+        # check slaves ready ==================================================
         for i in range(self.num_workers):
             while True:
                 initiated = self.shared_control.init[i] == CONTROL_SLV_INITED
@@ -256,7 +273,7 @@ class Parallel_Process_Core:
                             break
                         # Yield CPU to avoid busy-waiting
                         time.sleep(CPU_BACKOFF)
-
+            print('received ts data')
             # =================================================================
             self.num_timestamps += 1
 
@@ -270,7 +287,9 @@ class Parallel_Process_Core:
         """
 
         # Pin each worker to a specific core
-        set_cpu_affinity((worker_id+1)*HYPER_THREAD)
+        set_cpu_affinity_and_process_priority((worker_id+1)*HYPER_THREAD)
+        # Set highest priority with thread scheduling policy: FIFO
+        # os.sched_setscheduler(0, os.SCHED_FIFO, 99)
 
         C = Process_Worker(worker_id, worker_code_info, shared_tensor)
         shared_control.init[worker_id] = CONTROL_SLV_INITED
@@ -282,7 +301,7 @@ class Parallel_Process_Core:
                 break
             time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
 
-        C.run()
+        C.run() # this is inherently multi-threading
 
         while shared_control.stop != CONTROL_STOP:  # Keep processing indefinitely unless terminated externally
             # use ring-buffer to save scanning cost
@@ -297,8 +316,11 @@ class Parallel_Process_Core:
                 if status == DATA_INPUT_READY:
                     # Process the data
                     # print(f'Processing worker {worker_id} mem {code_idx} status {status}')
-                    cs_signal = data.cs_signal
-                    cs_value = data.cs_value
+                    C.cs_signal = data.cs_signal
+                    C.cs_value = data.cs_value
+                    
+                    # await C.on_calculate()
+                    
                     data.ts_signal = code_idx
                     data.ts_value = 0.0
                     data.status = DATA_OUTPUT_READY

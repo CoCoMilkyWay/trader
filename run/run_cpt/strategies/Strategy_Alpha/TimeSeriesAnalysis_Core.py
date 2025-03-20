@@ -13,9 +13,9 @@ from Chan.KLine.KLine_List import CKLine_List
 from Math.sl_tp.Adaptive_SuperTrend import AdaptiveSuperTrend
 
 from .Labels import ts_label, NUM_LABELS
-from .TechnicalAnalysis_Rules import TechnicalAnalysis_Rules, IndicatorManager, ParamType, IndicatorArg, ScalingMethod
+from .TimeSeriesAnalysis_Rules import TimeSeriesAnalysis_Rules, IndicatorManager, ParamType, IndicatorArg, ScalingMethod
 
-class TechnicalAnalysis_Core:
+class TimeSeriesAnalysis:
     def __init__(self, code:str, code_idx:int, shared_tensor:torch.Tensor, plot:bool=False):
         self._code = code
         self._code_idx = code_idx
@@ -86,7 +86,7 @@ class TechnicalAnalysis_Core:
         """Define and initialize all technical indicators"""
         # Indicator management system
         self.indicator_manager = IndicatorManager(self, self._code_idx)
-        self.indicator_manager.process_definitions(TechnicalAnalysis_Rules.indicator_definitions)
+        self.indicator_manager.process_definitions(TimeSeriesAnalysis_Rules.indicator_definitions)
         
     def _init_features_labels_and_scalers(self):
         # Generate column names and scaling methods from feature specs

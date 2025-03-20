@@ -66,7 +66,7 @@ class FeatureType:
     MISC = "misc" # unclear type, could try any operators on them
     ML = "ml" # machine learning predictor as intermediate alpha
 
-class TechnicalAnalysis_Rules:
+class TimeSeriesAnalysis_Rules:
     """
     dummy indicator(only instantiated after called as dependency):
         1. with param = None
