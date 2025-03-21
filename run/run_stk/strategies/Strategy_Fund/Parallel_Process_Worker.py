@@ -30,7 +30,7 @@ class Parallel_Process_Worker():
         self.__codes__ = [code for code in code_info.keys()]
         self.__code_idxes__ = [code_info[code]['idx']
                                for code in self.__codes__]
-
+        print(self.__codes__)
         self.shared_tensor = shared_tensor
 
         self.inited = False
