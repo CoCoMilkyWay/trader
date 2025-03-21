@@ -6,13 +6,16 @@ class cfg_stk:  # Constants Configs
     # strategy = 'Strategy_Alpha'
     
     # use m1, m5, m30, m60 (wtpy requires that both 1m and 5m are present)
-    period_u, period_l, n = 'min', 'm', 5
+    period_u, period_l, n = 'min', 'm', 60
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
     num = 500  # number of assets (int/None)
     start = 202001010000
     end   = 202101010000
     capital = 10000000
+    
+    wt_tradedays = 'CHINA'
+    wt_session = 'SD0930'
     
     # run_mode(1 in 3):
     # train  = True

@@ -6318,6 +6318,12 @@
             "name": "宏盛股份",
             "product": "STK"
         },
+        "603091": {
+            "code": "603091",
+            "exchg": "SSE",
+            "name": "众鑫股份",
+            "product": "STK"
+        },
         "603093": {
             "code": "603093",
             "exchg": "SSE",

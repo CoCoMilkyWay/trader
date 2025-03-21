@@ -40,23 +40,37 @@ class Parallel_Process_Worker():
         self.cs_signal = None
         self.cs_value = None
 
-        # TA core
-        self.tech_analysis: Dict[str, TimeSeriesAnalysis] = {}
+        # profile
+        self.tmp = 0.0
+        self.t_exe = 0.0  # wtcpp time
+        self.t_com = 0.0  # ITC/IPC time
+
+        # TS core (price/volume/fundamentals)
+        self.timeseries_analysis: Dict[str, TimeSeriesAnalysis] = {}
 
         for idx, code in enumerate(self.__codes__):
             plot = idx == 0 and self.__id__ == 0
             if plot:
                 print(f'TA cores Initiated, back-test ready...')
-            self.tech_analysis[code] = TimeSeriesAnalysis(
+            self.timeseries_analysis[code] = TimeSeriesAnalysis(
                 code=code, code_idx=self.__code_idxes__[idx], shared_tensor=shared_tensor, plot=plot)
             if idx == 0:
-                self.feature_names = self.tech_analysis[code].feature_names
-                self.feature_types = self.tech_analysis[code].feature_types
-                self.label_names = self.tech_analysis[code].label_names
-                self.scaling_methods = self.tech_analysis[code].scaling_methods
+                self.feature_names = self.timeseries_analysis[code].feature_names
+                self.feature_types = self.timeseries_analysis[code].feature_types
+                self.label_names = self.timeseries_analysis[code].label_names
+                self.scaling_methods = self.timeseries_analysis[code].scaling_methods
 
         if is_dummy:
             return
+
+        # ITC communication:
+        #   __init__(): python thread
+        #   on_init(): triggered by C-callback, thus is part of the C-thread
+        #       0: non-inited
+        #       1: inited
+        #       2: master-data-ready
+        #       3: slave-data-ready
+        self.state: int = 0
 
         # WTCPP initialization
         self.engine = WtBtEngine(
@@ -83,6 +97,7 @@ class Parallel_Process_Worker():
         self.engine.set_sel_strategy(
             straInfo,
             date=0, time=cfg_stk.n, period=cfg_stk.period_u,
+            trdtpl=cfg_stk.wt_tradedays, session=cfg_stk.wt_session,
             isRatioSlp=False)
 
     def run(self):
@@ -100,6 +115,8 @@ class Parallel_Process_Worker():
             if self.__id__ == 0:
                 self.pbar.update(1)
                 self.pbar.set_description(f'Init: {code}', True)
+
+        self.state = 1
         return
 
     def on_tick(self, context: SelContext, code: str, newTick: dict):
@@ -107,8 +124,8 @@ class Parallel_Process_Worker():
 
     def on_bar(self, context: SelContext, code: str, period: str, newBar: dict):
         # multi-level k bar generation
-        TA = self.tech_analysis[code]
-        TA.analyze(newBar['open'], newBar['high'], newBar['low'],
+        TS = self.timeseries_analysis[code]
+        TS.analyze(newBar['open'], newBar['high'], newBar['low'],
                    newBar['close'], newBar['vol'], newBar['time'])
 
         # # indicator guard (prepare and align)
@@ -123,13 +140,22 @@ class Parallel_Process_Worker():
         return
 
     def on_calculate(self, context: SelContext):
-        """
-        TimeSeries   (cpu1):                    |   on_bar_A(T0)    on_bar_A(T1)    ... 
-        TimeSeries   (cpu2):                    |   on_bar_B(T0)    on_bar_B(T1)    ... 
-        TimeSeries   (... ):                ->  |   ...          -> ...          -> ... 
-        CrossSection (cpu0):    on_calc(skip)   V   on_calc(init)   on_calc(T0)     ... (CS is delaying TS by 1 for better compute efficiency)
-        """
-        return
+        t = time.time()
+        self.t_exe = t - self.tmp
+        self.tmp = t
+        while True:
+            if self.state == 2:
+                # wait for cross section data ready
+                # should already be ready when programs stabilizes
+                self.state = 3
+                t = time.time()
+                self.t_com = t - self.tmp
+                self.tmp = t
+                break
+            time.sleep(0.001)  # Yield CPU to avoid busy-waiting
+        if self.__id__ == 0:
+            
+            print(f"{self.t_exe*1000:.1f}, {self.t_com*1000:.1f}: {context.get_time()}")
 
     def on_backtest_end(self, context: SelContext):
         self.elapsed_time = time.time() - self.start_time

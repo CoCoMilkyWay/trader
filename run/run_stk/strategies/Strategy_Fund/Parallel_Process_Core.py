@@ -1,19 +1,20 @@
-import os, sys
+import os
+import sys
 import time
 import torch
 import ctypes
-import asyncio
 import psutil
+import threading
 from multiprocessing import Process, sharedctypes, Lock
 from typing import Dict
 
 from .Parallel_Process_Worker import Parallel_Process_Worker
-from .TimeSeriesAnalysis_Core import TimeSeriesAnalysis
+from .CrossSectionAnalysis_Core import CrossSectionAnalysis
 
 # -------- Configurable Constants ----------
 # ignore hyper-thread of intel/amd cpu(we want more cache hit)
 HYPER_THREAD = 2
-CPU_BACKOFF = 0.001 # most system is 1ms accuracy
+CPU_BACKOFF = 0.001  # most system is 1ms accuracy
 
 MAX_WORKER = 256
 MAX_CODES_PER_WORKER = 256
@@ -75,9 +76,10 @@ class SharedRingBuffer(ctypes.Structure):
 
 # -------- Coroutines --------
 
+
 """
 Coroutine -> MultiThreading -> MultiProcessing
-async io is a Coroutine method (loop-based event) that is faster than multi-threading (interrupt-based context switch)
+async io is a Coroutine method (global event queue loop) that is faster than multi-threading (interrupt-based context switch)
 better with async functions(e.g. callback functions) with specific order or deterministic flow: A -> B -> C -> A -> ...
 for truly random order, consider multi-threading
 """
@@ -92,9 +94,10 @@ def set_cpu_affinity_and_process_priority(cpu_id: int):
     if sys.platform.startswith("win"):
         p.nice(psutil.HIGH_PRIORITY_CLASS)
     else:
-        try: # need privileges, may fail
-            p.nice(-10) # lower = higher priority
-        except: pass
+        try:  # need privileges, may fail
+            p.nice(-10)  # lower = higher priority
+        except:
+            pass
 # -------- Main ParallelProcess Class --------
 
 
@@ -102,7 +105,6 @@ class Parallel_Process_Core:
     def __init__(self, code_info: Dict[str, Dict]):
         """Initialize workers, shared memory, and setup shared metadata."""
         self.code_info = code_info           # Metadata about codes → determines worker memory allocation
-        self.num_timestamps = 0              # num_timestamps
         self.num_workers = 0                 # Number of workers
         self.worker_code_num = []            # Number of codes handled by each worker
         self.worker_code_info = []           # Codes assigned to each worker
@@ -208,21 +210,31 @@ class Parallel_Process_Core:
         return shared_tensor
 
     def master_process(self):
-        
+        """
+        TimeSeries   (cpu1):                    |   on_bar_A(T0)    on_bar_A(T1)    ... 
+        TimeSeries   (cpu2):                    |   on_bar_B(T0)    on_bar_B(T1)    ... 
+        TimeSeries   (... ):                ->  |   ...          -> ...          -> ... 
+        CrossSection (cpu0):    preparation     V          skip     on_calc(T0)     ... (CS is delaying TS by 1 for better compute efficiency)
+        """
+        # init CrossSection Analysis
+        self.cross_analysis = CrossSectionAnalysis(
+            self.code_info, self.shared_tensor)
+
         # check slaves ready ==================================================
         for i in range(self.num_workers):
             while True:
-                initiated = self.shared_control.init[i] == CONTROL_SLV_INITED
-                if initiated:
+                if self.shared_control.init[i] == CONTROL_SLV_INITED:
                     # print(f"Worker {i+1} signaled ready")
                     break
                 time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
 
-        print("Parallel init complete.")
-
         for i in range(self.num_workers):
             self.shared_control.init[i] = CONTROL_MST_CONFIRMED
 
+        print("Parallel init complete.")
+
+        cs_signal = 0
+        cs_value = 0.0
         while True:
             # send info =======================================================
             for code in self.code_info.keys():
@@ -235,8 +247,8 @@ class Parallel_Process_Core:
                 status = data.status  # this pass value, not pointer, thus safe
                 if status == DATA_EMPTY:  # Only write to the slot if it's empty
                     # Write the new data into shared memory
-                    data.cs_signal = code_idx
-                    data.cs_value = 0.0
+                    data.cs_signal = cs_signal
+                    data.cs_value = cs_value
                     data.status = DATA_INPUT_READY
                 elif status == DATA_INPUT_READY:
                     raise RuntimeError(
@@ -258,12 +270,13 @@ class Parallel_Process_Core:
                             f"Worker {worker_id}: Ring buffer is full, data {code_idx} lost.")
 
             # receive info ====================================================
+            # NOTE: main process should wait here, if not waiting, then all slave process are starving
             results = []
             for w in range(self.num_workers):
                 shared_data = self.shared_data[w]
                 num_codes = self.worker_code_num[w]
                 for i in range(num_codes):
-                    while self.shared_control.stop != CONTROL_STOP:
+                    while True:
                         data = shared_data[i]
                         status = data.status
                         if status == DATA_OUTPUT_READY:
@@ -273,9 +286,8 @@ class Parallel_Process_Core:
                             break
                         # Yield CPU to avoid busy-waiting
                         time.sleep(CPU_BACKOFF)
-            print('received ts data')
-            # =================================================================
-            self.num_timestamps += 1
+            # cross section calculation =======================================
+            cs_signal, cs_value = self.cross_analysis.analyze(results)
 
     @staticmethod
     def slave_process(worker_id: int, worker_code_info: Dict[str, Dict], shared_data, shared_control, ring_buffer, lock, Process_Worker, shared_tensor: torch.Tensor):
@@ -290,9 +302,16 @@ class Parallel_Process_Core:
         set_cpu_affinity_and_process_priority((worker_id+1)*HYPER_THREAD)
         # Set highest priority with thread scheduling policy: FIFO
         # os.sched_setscheduler(0, os.SCHED_FIFO, 99)
-
         C = Process_Worker(worker_id, worker_code_info, shared_tensor)
-        shared_control.init[worker_id] = CONTROL_SLV_INITED
+        
+        thread = threading.Thread(target=C.run)
+        thread.start()
+
+        while True:
+            if C.state == 1:
+                shared_control.init[worker_id] = CONTROL_SLV_INITED
+                break
+            time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
 
         print(f'Worker {worker_id} Initiated...')
 
@@ -301,9 +320,8 @@ class Parallel_Process_Core:
                 break
             time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
 
-        C.run() # this is inherently multi-threading
+        while True:  # Keep processing indefinitely unless terminated externally
 
-        while shared_control.stop != CONTROL_STOP:  # Keep processing indefinitely unless terminated externally
             # use ring-buffer to save scanning cost
             if ring_buffer.tail != ring_buffer.head:
                 with lock:
@@ -318,9 +336,14 @@ class Parallel_Process_Core:
                     # print(f'Processing worker {worker_id} mem {code_idx} status {status}')
                     C.cs_signal = data.cs_signal
                     C.cs_value = data.cs_value
-                    
-                    # await C.on_calculate()
-                    
+
+                    C.state = 2
+                    while True:
+                        if C.state == 3:  # wait for wtcpp to trigger on_calculate
+                            break
+                        # Yield CPU to avoid busy-waiting
+                        time.sleep(CPU_BACKOFF)
+
                     data.ts_signal = code_idx
                     data.ts_value = 0.0
                     data.status = DATA_OUTPUT_READY
@@ -334,15 +357,13 @@ class Parallel_Process_Core:
                     raise Exception(
                         f"Err: Worker {worker_id} has unexpected status {status} at index {code_idx}.")
 
-            time.sleep(CPU_BACKOFF)  # Yield CPU to avoid busy-waiting
-
         C.on_backtest_end()
 
     def parallel_close(self):
         """Gracefully terminate all workers."""
         from Util.UtilCpt import mkdir
         meta = {
-            'timestamps': [self.num_timestamps, self.start, self.end],
+            'timestamps': [self.cross_analysis.num_timestamps, self.start, self.end],
             'features': [],
             'labels': [],
             'codes': [],
