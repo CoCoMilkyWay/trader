@@ -153,9 +153,8 @@ class Parallel_Process_Worker():
                 self.tmp = t
                 break
             time.sleep(0.001)  # Yield CPU to avoid busy-waiting
-        if self.__id__ == 0:
-            
-            print(f"{self.t_exe*1000:.1f}, {self.t_com*1000:.1f}: {context.get_time()}")
+        # if self.__id__ == 0:
+        #     print(f"{self.t_exe*1000:.1f}, {self.t_com*1000:.1f}: {context.get_time()}")
 
     def on_backtest_end(self, context: SelContext):
         self.elapsed_time = time.time() - self.start_time
