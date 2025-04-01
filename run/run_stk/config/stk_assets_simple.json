@@ -12882,6 +12882,12 @@
             "name": "奥精医疗",
             "product": "STK"
         },
+        "688615": {
+            "code": "688615",
+            "exchg": "SSE",
+            "name": "合合信息",
+            "product": "STK"
+        },
         "688616": {
             "code": "688616",
             "exchg": "SSE",
@@ -30092,6 +30098,12 @@
             "name": "斯菱股份",
             "product": "STK"
         },
+        "301551": {
+            "code": "301551",
+            "exchg": "SZSE",
+            "name": "无线传媒",
+            "product": "STK"
+        },
         "301552": {
             "code": "301552",
             "exchg": "SZSE",
@@ -30234,6 +30246,12 @@
             "code": "301611",
             "exchg": "SZSE",
             "name": "珂玛科技",
+            "product": "STK"
+        },
+        "301618": {
+            "code": "301618",
+            "exchg": "SZSE",
+            "name": "长联科技",
             "product": "STK"
         },
         "302132": {
@@ -31748,6 +31766,12 @@
             "code": "920016",
             "exchg": "BJSE",
             "name": "中草香料",
+            "product": "STK"
+        },
+        "920099": {
+            "code": "920099",
+            "exchg": "BJSE",
+            "name": "瑞华技术",
             "product": "STK"
         },
         "920118": {

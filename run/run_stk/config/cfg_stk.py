@@ -9,9 +9,9 @@ class cfg_stk:  # Constants Configs
     period_u, period_l, n = 'min', 'm', 60
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
-    num = 500  # number of assets (int/None)
-    start = 202001010000
-    end   = 202006010000
+    num = 10000  # number of assets (int/None)
+    start = 199001010000
+    end   = 205001010000
     capital = 10000000
     
     wt_tradedays = 'CHINA'
