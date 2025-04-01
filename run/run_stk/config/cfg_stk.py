@@ -6,7 +6,7 @@ class cfg_stk:  # Constants Configs
     # strategy = 'Strategy_Alpha'
     
     # use m1, m5, m30, m60 (wtpy requires that both 1m and 5m are present)
-    period_u, period_l, n = 'min', 'm', 60
+    period_u, period_l, n = 'min', 'm', 5
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
     num = 10000  # number of assets (int/None)
@@ -21,7 +21,6 @@ class cfg_stk:  # Constants Configs
     # train  = True
     
     # main functions:
-    parallel = num >= 30
     profile  = False
     stat     = False
     plot     = False
@@ -35,12 +34,12 @@ class cfg_stk:  # Constants Configs
     script_dir = os.path.dirname(os.path.abspath(__file__))
     WT_DATABASE_DIR = os.path.abspath(script_dir + '/../../../database') # raw data
     WT_STORAGE_DIR = os.path.abspath(script_dir + '/../../storage') # processed data
-    STOCK_CSV_DIR = 'D:/data/stock_csv'
-    STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
-    STOCK_DB_FUND_DIR = 'D:/data/stock_fundamental'
-    # STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")
-    # STOCK_DB_BAR_DIR = WT_DATABASE_DIR + '/stock/bars'
-    # STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
+    # STOCK_CSV_DIR = 'D:/data/stock_csv'
+    # STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
+    # STOCK_DB_FUND_DIR = 'D:/data/stock_fundamental'
+    STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")
+    STOCK_DB_BAR_DIR = WT_DATABASE_DIR + '/stock/bars'
+    STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
     # 
     # config files
     lxr_asset_file = script_dir + '/lxr_assets.json'
