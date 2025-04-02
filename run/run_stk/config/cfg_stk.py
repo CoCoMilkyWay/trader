@@ -27,7 +27,7 @@ class cfg_stk:  # Constants Configs
     analyze = False
     snoop = False
     panel = False
-    #
+
     exchg = ['SSE', 'SZSE', 'BJSE']
     product = 'STK'
 
