@@ -134,7 +134,7 @@ class Parallel_Process_Worker():
         TS.analyze(newBar['open'], newBar['high'], newBar['low'],
                    newBar['close'], newBar['vol'], newBar['time'])
         
-        CS.prepare() # prepare TS data for later analysis
+        CS.prepare() # prepare TS data for later CS analysis
 
         # # indicator guard (prepare and align)
         # if not self.inited:
