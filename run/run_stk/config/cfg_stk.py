@@ -32,10 +32,8 @@ class cfg_stk:  # Constants Configs
     product = 'STK'
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    WT_DATABASE_DIR = os.path.abspath(
-        script_dir + '/../../../database')  # raw data
-    WT_STORAGE_DIR = os.path.abspath(
-        script_dir + '/../../storage')  # processed data
+    WT_DATABASE_DIR = os.path.abspath(script_dir + '/../../../database')  # raw data
+    WT_STORAGE_DIR = os.path.abspath(script_dir + '/../../storage')  # processed data
 
     if os.name == 'posix':  # Linux
         STOCK_CSV_DIR = os.path.expanduser("~/work/data/stock_csv")

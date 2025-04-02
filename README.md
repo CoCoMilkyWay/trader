@@ -2,9 +2,14 @@
 
 ## **Layer 1** (for both backtesting and trading)
 ### **Flow:**
-- Data collection, handling, and database construction
-- Diverse data types and cleaning (different frequencies, different sources: k-bar, order book, fundamental, event-driven, etc.)
-- Indicator construction (extremely computation-intensive)
+- Data collection, handling, and database construction(not sql, use raw or binary(compressed) text file-based library)
+- Diverse data types and cleaning:
+  - different frequencies (aligned to a single time axis)
+  - different sources: k-bar, order book, fundamental, event-driven, etc.
+  - different construction method/models
+  - different cleaning method
+- Solving for data/feature calculation dependencies
+- Indicator(feature) construction (extremely computation-intensive)
 
 ### **Pros:**
 - Provides unified code for both real trading and backtesting, ensuring backtest integrity
