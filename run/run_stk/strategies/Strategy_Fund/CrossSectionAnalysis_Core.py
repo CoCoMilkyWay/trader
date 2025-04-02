@@ -9,6 +9,12 @@ class CrossSectionAnalysis:
         self.shared_tensor = shared_tensor
         self.init = True
 
+    def prepare(self):
+        """
+        prepare TS data for later CS analysis
+        """
+        pass
+
     def analyze(self, results: List[Tuple[int, float]]):
         if self.num_timestamps == 0:
             return 0, 0.0
