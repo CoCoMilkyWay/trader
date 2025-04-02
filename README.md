@@ -12,8 +12,8 @@
             this is not a problem for real trading, as only take few ms (unless you do high-freq),
             but would be extremely slow for backtesting/mining/parameter-searching
         - Mostly Serial, Scalar with bar/tick-level-fine-grained sync:
-            can only use cpu, and most annoyingly single-threaded
-            most annoyingly the cost of multi-processing are just not justified
+            - can only use cpu
+            - most annoyingly the cost of multi-processing are just not justified
     - Output:
         - a dense tensor (stored as multiple sparse/compress tensor) of time-series/cross-section features
     - Hardware:
