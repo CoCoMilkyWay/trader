@@ -1,50 +1,65 @@
-# calculation architecture:
-- **Layer 1**: (for both backtest and trading)
-    - Flow:
-        - data collection, handling, database construction
-        - diverse data types and cleaning (different frequency, different source: k-bar, orderbook, fundamental, event-driven, etc.)
-        - indicator construction (extremely computation intensive)
-    - Good:
-        - provide unified code for both real-trading and backtesting, ensure backtest integrity
-    - Problem:
-        - Heavy, slow, complicated
-        - Need cross section calculation on each bar over thousands of assets, 
-            this is not a problem for real trading, as only take few ms (unless you do high-freq),
-            but would be extremely slow for backtesting/mining/parameter-searching
-        - Mostly Serial, Scalar with bar/tick-level-fine-grained sync:
-            - can only use cpu (single-threaded, disable hyper-threading and thread migration)
-            - most annoyingly the cost of multi-processing are just not justified
-    - Output:
-        - a huge dense tensor (stored as multiple sparse/compressed tensor) of time-series/cross-section features
-    - Hardware:
-        - mostly a single CPU thread (with very limited parallelism (just sad :< ))
-2. **Layer 2**: (for both backtest and trading)
-    - Flow:
-        - construct(through research/mining) alpha formula/rules from static dense features tensor of layer 1
-        - DRL(deep-reinforced) layer to do alpha mining
-        - standard alpha/CTA research with financial domain knowledge
-        - ML(DL/ensemble) layer to construct superalpha from alpha pool
-        - Parameter tuning for strategies
-    - Key:
-        - each alpha should able to be constructed simply using a few features with a limited amount of operators
-    - Good:
-        - completely eliminate the need to run Layer 1 for each backtest run, MASSIVELY increase backtest speed
-        - because of layer abstraction, add a bit overhead for real trading, but is completely fine for minute-level-trading
-        - because all features are ready, fine-grained sync no longer needed, can freely calculate with no worries of:
-            - backtest/real-trading discrepancy
-            - future informations
-    - Output:
-        - alpha, super(composite) alpha, trading signal
-    - Hardware:
-        - GPU clusters (happy now :>)
+# Calculation Architecture
 
-- For fast backtesting/researching/alpha-mining:
-    - for GPU calculation, only dense tensors can support all operations, compared to sparse tensors
-    - Size calculation for dense tensor (time-series * cross-section * features):
-        - 20years * 24hrs * 1min * 5000assets * 200 features * 16b = 20TiB
-        - 20years * 5hrs * 5min * 5000assets * 200 features * 16b = 582GiB
-        - 1years * 5hrs * 5min * 5000assets * 100 features * 16b = 14GiB (this is the max batch size for GPU calculation)
-    - for tick data, you need to have multiple GPUs and do batch runs daily
+## **Layer 1** (for both backtesting and trading)
+### **Flow:**
+- Data collection, handling, and database construction
+- Diverse data types and cleaning (different frequencies, different sources: k-bar, order book, fundamental, event-driven, etc.)
+- Indicator construction (extremely computation-intensive)
+
+### **Pros:**
+- Provides unified code for both real trading and backtesting, ensuring backtest integrity
+
+### **Problems:**
+- Heavy, slow, and complicated
+- Requires cross-sectional calculations on each bar over thousands of assets
+  - This is not an issue for real trading, as it takes only a few milliseconds (unless performing high-frequency trading)
+  - However, it becomes extremely slow for backtesting, mining, and parameter searching
+- Mostly serial and scalar, with bar/tick-level fine-grained synchronization:
+  - Can only utilize CPU (single-threaded, hyper-threading and thread migration disabled)
+  - Most annoyingly, the cost of multi-processing is simply not justified
+
+### **Output:**
+- A huge dense tensor (stored as multiple sparse/compressed tensors) of time-series/cross-sectional features
+
+### **Hardware:**
+- Mostly a single CPU thread (with very limited parallelism, just sad :< )
+
+---
+
+## **Layer 2** (for both backtesting and trading)
+### **Flow:**
+- Constructs (through research/mining) alpha formulas/rules from the static dense feature tensor of Layer 1
+- DRL (deep reinforcement learning) layer for alpha mining
+- Standard alpha/CTA research utilizing financial domain knowledge
+- ML (DL/ensemble) layer to construct super-alpha from the alpha pool
+- Parameter tuning for strategies
+
+### **Key:**
+- Each alpha should be constructible using only a few features with a limited number of operators
+
+### **Pros:**
+- Completely eliminates the need to run Layer 1 for each backtest run, MASSIVELY increasing backtest speed
+- Due to layer abstraction, it adds a slight overhead for real trading, but this is completely fine for minute-level trading
+- Since all features are precomputed, fine-grained synchronization is no longer needed, allowing free computation without concerns about:
+  - Backtest/real-trading discrepancies
+  - Future information leaks
+
+### **Output:**
+- Alpha, super (composite) alpha, and trading signals
+
+### **Hardware:**
+- GPU clusters (happy now :>)
+
+---
+
+## **For Fast Backtesting, Research, and Alpha Mining:**
+- For GPU-based calculations, only dense tensors support all operations, compared to sparse tensors.
+- **Size calculations for dense tensors (time-series × cross-section × features):**
+  - **20 years × 24 hrs × 1 min × 5000 assets × 200 features × 16b = 20 TiB**
+  - **20 years × 5 hrs × 5 min × 5000 assets × 200 features × 16b = 582 GiB**
+  - **1 year × 5 hrs × 5 min × 5000 assets × 100 features × 16b = 14 GiB** (this is the max batch size for GPU calculations)
+- For tick data, multiple GPUs are required for batch runs on a daily basis.
+
 
 - Sparse Tensor formats:
 ```
