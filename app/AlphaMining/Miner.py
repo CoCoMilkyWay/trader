@@ -1,27 +1,22 @@
 import os
 import sys
-import ray
-import json
 import time
-from typing import List
-from torch import Tensor
+import shutil
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "."))
 
-import Mining
-
-from Mining.Config import DATA, CAPACITY
-from Mining.Expression.Operand import Operand
-
-from Mining.Util.RNG_Util import set_seed
+from Mining.RL.Agent.Core.TrainLoop import TrainLoop
+from Mining.RL.Agent.Core.PlayLoop import PlayLoop
+from Mining.RL.Agent.Core.ReplayBuffer import ReplayBuffer
+from Mining.RL.Agent.Core.CheckPoint import CheckPoint
+from Mining.RL.Agent.Core.Game import AbstractGame, Game
 
 from Mining.RL.Env.TokenGenEnv import TokenGenEnv
+from Mining.Expression.Operand import Operand
+from Mining.Config import DATA, CAPACITY
 
 from Mining.Config import *
-from Mining.RL.Agent.Core.Game import AbstractGame, Game
-from Mining.RL.Agent.Core.CheckPoint import CheckPoint
-from Mining.RL.Agent.Core.ReplayBuffer import ReplayBuffer
-from Mining.RL.Agent.Core.PlayLoop import PlayLoop
-from Mining.RL.Agent.Core.TrainLoop import TrainLoop
+from Mining.Util.RNG_Util import set_seed
 
 ENV = TokenGenEnv
 
@@ -51,13 +46,30 @@ class Miner:
         self.config = AgentConfig()
         self.game = Game(self.env)
         self.replay_buffer = {}
-        
+
+    def remove_ray_temp(self, temp_dir):
+        # Remove temporary files in the RAY_TMP_DIR
+        print("Cleaning temporary directory...")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+            print(f"Removed temporary directory: {temp_dir}")
+        else:
+            print(f"No temporary directory found at {temp_dir}")
 
     def run(self):
-        app_path = os.path.join(os.path.dirname(Mining.__file__), "..")
-        exc_path = [] # ["/Example/"]  # dont send data
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        ray_tmp_dir = os.path.join(script_dir, "../../misc/ray_tmp")
+        self.remove_ray_temp(ray_tmp_dir)
+
+        app_path = os.path.join(script_dir, ".")
+        exc_path = []  # ["/Example/"]  # dont send data
+
+        import ray
         ray.init(
-            runtime_env={"working_dir": app_path, "excludes": exc_path}
+            runtime_env={"working_dir": app_path, "excludes": exc_path},
+            _temp_dir=ray_tmp_dir,
         )
 
         nodes = ray.nodes()
@@ -93,9 +105,9 @@ class Miner:
 
         ray.shutdown()
 
+
 if __name__ == '__main__':
     M = Miner()
-
 
     """
     A MuZero-Based MDP algo with MCTS mechanism(V value) designed specifically for alpha-mining

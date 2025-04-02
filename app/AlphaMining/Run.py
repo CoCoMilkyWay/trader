@@ -2,8 +2,10 @@ import os
 import sys
 import glob
 import subprocess
+import shutil
 
 PROFILE = False
+
 
 def kill_python_processes_windows(current_pid):
     """Kill all running Python processes in Windows, except this script."""
@@ -46,8 +48,8 @@ def remove_old_files():
 
 
 def main():
-    # Change to the directory where this script is located
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
 
     current_pid = os.getpid()  # Store the current process ID
 

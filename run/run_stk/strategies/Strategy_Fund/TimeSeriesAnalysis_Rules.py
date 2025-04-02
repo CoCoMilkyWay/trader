@@ -42,14 +42,16 @@ from Math.models.LSTM import LSTM
 
 from Math.models.models import \
     ScalingMethod
-    # SplitMethod, \
-    # DataCheckResult, ModelType, GeneralizedModel, \
-    # CNN, Recurrent, Transformer, Ensemble
+# SplitMethod, \
+# DataCheckResult, ModelType, GeneralizedModel, \
+# CNN, Recurrent, Transformer, Ensemble
+
 
 class ParamType(Enum):
     SOURCE = 1       # Data source like closes[0]
     REFERENCE = 2    # Other indicator reference
     LITERAL = 3      # Literal value
+
 
 @dataclass
 class IndicatorArg:
@@ -57,14 +59,16 @@ class IndicatorArg:
     value: Any
     attr: Optional[str] = None
 
+
 class FeatureType:
     PRICE = "price"
     VOLUME = "volume"
     OSCILLATOR = "oscillator"
     RATIO = "ratio"
     CONDITION = "condition"
-    MISC = "misc" # unclear type, could try any operators on them
-    ML = "ml" # machine learning predictor as intermediate alpha
+    MISC = "misc"  # unclear type, could try any operators on them
+    ML = "ml"  # machine learning predictor as intermediate alpha
+
 
 class TimeSeriesAnalysis_Rules:
     """
@@ -72,38 +76,39 @@ class TimeSeriesAnalysis_Rules:
         1. with param = None
         2. empty features
     """
-    
+
     # parameters used to parse final indicators
-    P_MA = None
-    P_EMA = [5]
-    P_VEMA = [5, 20]
-    P_STDDEV = [20]
-    P_ATR = [10]
-    P_MASSI = [[9], [25]]
-    P_RVI = [[10], [7]]
-    P_GK = [10]
-    P_BBAND = [[5, 20], [2,4]]
-    P_DONCHIAN = [5, 20]
-    P_KELTNER = [[5, 20], [2]]
-    P_CANDLESTRENGTH = [10]
-    P_RSI = [14]
-    P_STO_RSI = [3]
-    P_MACD = [9]
-    P_AROON = [25]
-    P_CCI = [20]
-    P_TSI_TREND = [20]
-    P_TSI_TRUE = [[25], [13]]
-    P_ROC = [14]
-    P_FISHER = [9]
-    P_CMO = [9]
-    P_ADX = [14]
-    P_SQUEEZE = [20]
-    P_WILLIAM_R = [7, 14, 30, 60]
-    P_AOBV = [13]
-    P_AVWAP = [20]
-    P_EOM = [14]
-    P_LSTM = None
-    
+    N = True
+    P_MA             = [None]                          if N else [None]
+    P_EMA            = [5]                             if N else [5]
+    P_VEMA           = [None, None]                    if N else [5, 20]
+    P_STDDEV         = [None]                          if N else [20]
+    P_ATR            = [10]                            if N else [10]
+    P_MASSI          = [[None], [None]]                if N else [[9], [25]]
+    P_RVI            = [[None], [None]]                if N else [[10], [7]]
+    P_GK             = [None]                          if N else [10]
+    P_BBAND          = [[None, None], [None, None]]    if N else [[5, 20], [2, 4]]
+    P_DONCHIAN       = [None, None]                    if N else [5, 20]
+    P_KELTNER        = [[None, None], [None]]          if N else [[5, 20], [2]]
+    P_CANDLESTRENGTH = [None]                          if N else [10]
+    P_RSI            = [None]                          if N else [14]
+    P_STO_RSI        = [None]                          if N else [3]
+    P_MACD           = [None]                          if N else [9]
+    P_AROON          = [None]                          if N else [25]
+    P_CCI            = [None]                          if N else [20]
+    P_TSI_TREND      = [None]                          if N else [20]
+    P_TSI_TRUE       = [[None], [None]]                if N else [[25], [13]]
+    P_ROC            = [None]                          if N else [14]
+    P_FISHER         = [None]                          if N else [9]
+    P_CMO            = [None]                          if N else [9]
+    P_ADX            = [None]                          if N else [14]
+    P_SQUEEZE        = [None]                          if N else [20]
+    P_WILLIAM_R      = [None, None, None, None]        if N else [7, 14, 30, 60]
+    P_AOBV           = [None]                          if N else [13]
+    P_AVWAP          = [None]                          if N else [20]
+    P_EOM            = [None]                          if N else [14]
+    P_LSTM           = [None]                          if N else [None]
+
     # Technical indicator configurations
     indicator_definitions = [
         # Overlay indicators
@@ -141,7 +146,7 @@ class TimeSeriesAnalysis_Rules:
                 ('ema', -1, FeatureType.VOLUME),
             ]
         },
-        
+
         # Volatility indicators
         {
             'param0': P_STDDEV,
@@ -219,7 +224,8 @@ class TimeSeriesAnalysis_Rules:
             'constructor': bband,
             'args': [
                 IndicatorArg(ParamType.REFERENCE, ('ma', 'param0'), 'ma'),
-                IndicatorArg(ParamType.REFERENCE, ('stddev', 'param0'), 'stddev'),
+                IndicatorArg(ParamType.REFERENCE,
+                             ('stddev', 'param0'), 'stddev'),
                 IndicatorArg(ParamType.LITERAL, 'param1'),
             ],
             'features': [
@@ -257,7 +263,7 @@ class TimeSeriesAnalysis_Rules:
                 ('lower_band', -1, FeatureType.PRICE),
             ]
         },
-        
+
         # Performance indicators
         {
             'name': ('logreturn',),
@@ -299,10 +305,10 @@ class TimeSeriesAnalysis_Rules:
             'features': [
                 ('day_of_week', None, FeatureType.OSCILLATOR),
                 ('hour_of_day', None, FeatureType.OSCILLATOR),
-                ],
+            ],
             'scaler': ScalingMethod.STANDARD
         },
-        
+
         # Momentum indicators
         {
             'param0': P_RSI,
@@ -353,7 +359,7 @@ class TimeSeriesAnalysis_Rules:
             'features': [
                 ('aroon_up',   -1, FeatureType.OSCILLATOR),
                 ('aroon_down', -1, FeatureType.OSCILLATOR),
-                ],
+            ],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -449,16 +455,20 @@ class TimeSeriesAnalysis_Rules:
             'constructor': squeeze,
             'args': [
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
-                IndicatorArg(ParamType.REFERENCE, ('bband', 'param0', 2), 'upper_band'),
-                IndicatorArg(ParamType.REFERENCE, ('bband', 'param0', 2), 'lower_band'),
-                IndicatorArg(ParamType.REFERENCE, ('keltner', 'param0', 2), 'upper_band'),
-                IndicatorArg(ParamType.REFERENCE, ('keltner', 'param0', 2), 'lower_band'),
+                IndicatorArg(ParamType.REFERENCE,
+                             ('bband', 'param0', 2), 'upper_band'),
+                IndicatorArg(ParamType.REFERENCE,
+                             ('bband', 'param0', 2), 'lower_band'),
+                IndicatorArg(ParamType.REFERENCE,
+                             ('keltner', 'param0', 2), 'upper_band'),
+                IndicatorArg(ParamType.REFERENCE,
+                             ('keltner', 'param0', 2), 'lower_band'),
                 IndicatorArg(ParamType.LITERAL, 'param0'),
             ],
             'features': [
                 ('squeeze_rating', -1, FeatureType.RATIO),
                 ('momentum',       -1, FeatureType.MISC),
-                ],
+            ],
             'scaler': ScalingMethod.STANDARD
         },
         {
@@ -468,12 +478,12 @@ class TimeSeriesAnalysis_Rules:
                 IndicatorArg(ParamType.SOURCE, ('closes', 0)),
                 IndicatorArg(ParamType.SOURCE, ('highs', 0)),
                 IndicatorArg(ParamType.SOURCE, ('lows', 0)),
-                IndicatorArg(ParamType.LITERAL, 7 ),
+                IndicatorArg(ParamType.LITERAL, 7),
                 IndicatorArg(ParamType.LITERAL, 14),
                 IndicatorArg(ParamType.LITERAL, 28),
-                IndicatorArg(ParamType.LITERAL, 4 ),
-                IndicatorArg(ParamType.LITERAL, 2 ),
-                IndicatorArg(ParamType.LITERAL, 1 ),
+                IndicatorArg(ParamType.LITERAL, 4),
+                IndicatorArg(ParamType.LITERAL, 2),
+                IndicatorArg(ParamType.LITERAL, 1),
             ],
             'features': [('uo', -1, FeatureType.OSCILLATOR)],
             'scaler': ScalingMethod.STANDARD
@@ -566,16 +576,21 @@ class TimeSeriesAnalysis_Rules:
             'name': ('lstm', 'param0'),
             'constructor': LSTM,
             'args': [
-                IndicatorArg(ParamType.REFERENCE, ('candlestrength', P_CANDLESTRENGTH[0]), 'strength'),
-                IndicatorArg(ParamType.REFERENCE, ('candlestrength', P_CANDLESTRENGTH[0]), 'tr_mult'),
-                IndicatorArg(ParamType.REFERENCE, ('candlestrength', P_CANDLESTRENGTH[0]), 'v_mult'),
+                IndicatorArg(ParamType.REFERENCE, ('candlestrength',
+                             P_CANDLESTRENGTH[0]), 'strength'),
+                IndicatorArg(ParamType.REFERENCE, ('candlestrength',
+                             P_CANDLESTRENGTH[0]), 'tr_mult'),
+                IndicatorArg(ParamType.REFERENCE,
+                             ('candlestrength', P_CANDLESTRENGTH[0]), 'v_mult'),
                 IndicatorArg(ParamType.REFERENCE, ('atr', P_ATR[0]), 'atr'),
                 IndicatorArg(ParamType.REFERENCE, ('rsi', P_RSI[0]), 'rsi'),
-                IndicatorArg(ParamType.REFERENCE, ('logreturn', ), 'log_returns'),
+                IndicatorArg(ParamType.REFERENCE,
+                             ('logreturn', ), 'log_returns'),
             ],
             'features': [('prediction', -1, FeatureType.ML)],
         },
     ]
+
 
 class IndicatorManager:
     """
@@ -599,27 +614,29 @@ class IndicatorManager:
         """Process indicator definitions, separating templates and concrete indicators"""
 
         # Process concrete definitions with topological sort
-        real_definitions = {} # definitions with valid parameters and features
-        dummy_definitions = {} # all definitions with empty parameters
+        real_definitions = {}  # definitions with valid parameters and features
+        dummy_definitions = {}  # all definitions with empty parameters
         for defn in definitions:
-            real_names, dummy_names, real = self._get_indicator_name(defn['name'], defn)
-            
+            real_names, dummy_names, real = self._get_indicator_name(
+                defn['name'], defn)
+            # print(real_names, dummy_names, real)
+
             if real:
                 for real_name in real_names:
                     real_definitions[real_name] = copy.deepcopy(defn)
-            
+
             for dummy_name in dummy_names:
                 if dummy_name not in dummy_definitions.keys():
                     defn = copy.deepcopy(defn)
                     for key in list(defn.keys()):
                         if key.startswith('param'):
-                            defn[key] = None # dummify parameters
+                            defn[key] = None  # dummify parameters
                     dummy_definitions[dummy_name] = defn
 
         # build the complete real dependency tree
         dependencies: Dict[str, Set[str]] = defaultdict(set)
         reverse_deps: Dict[str, Set[str]] = defaultdict(set)
-        
+
         # Check if a definition has dependencies and add them recursively
         def _add_dependencies(name_str: str, defn: Dict):
             params = []
@@ -629,82 +646,90 @@ class IndicatorManager:
             for arg in defn['args']:
                 if arg.type == ParamType.REFERENCE:
                     real_dep, dummy_dep = self._get_dep_name(params, arg.value)
-                    
+
                     # print(f'add: {name_str} -> {real_dep}')
                     dependencies[name_str].add(real_dep)
                     reverse_deps[real_dep].add(name_str)
-                    
+
                     # check if the dependencies are defined
                     if real_dep not in real_definitions.keys():
                         # instance from the dummy definitions
-                        real_definitions[real_dep] = copy.deepcopy(dummy_definitions[dummy_dep])
+                        real_definitions[real_dep] = copy.deepcopy(
+                            dummy_definitions[dummy_dep])
                         # pass parameters
                         for key in list(real_definitions[real_dep].keys()):
                             if key.startswith('param'):
                                 try:
                                     i = int(key.lstrip("param"))
-                                    real_definitions[real_dep][key] = int(real_dep.split(sep='_')[i+1])
+                                    real_definitions[real_dep][key] = int(
+                                        real_dep.split(sep='_')[i+1])
                                 except Exception as e:
-                                    raise KeyError(f"Parameter({key}) mismatch building: {name_str} -> {real_dep}")
-                                    
+                                    raise KeyError(
+                                        f"Parameter({key}) mismatch building: {name_str} -> {real_dep}")
+
                     # Recursively add dependencies of the dependency if it exists in real_definitions
                     _add_dependencies(real_dep, real_definitions[real_dep])
 
-        for real_name, defn in list(real_definitions.items()):  # iterate over copy as it dynamically changes
+        # iterate over copy as it dynamically changes
+        for real_name, defn in list(real_definitions.items()):
             _add_dependencies(real_name, defn)
 
         # roots: real indicators with no dep
         roots = {name_str for name_str in real_definitions.keys()
                  if not dependencies[name_str]}
         if self.id == 0:
-            print('TimeSeries Analysis: '); pprint(real_definitions.keys())
+            print('TimeSeries Analysis: ')
+            pprint(real_definitions.keys())
             # print(f'dummy_definitions:'); pprint(dummy_definitions.keys())
             # print(f'real_definitions:'); pprint(real_definitions.keys())
             # print(f'Dependency tree:'); pprint(dependencies)
             # print(f'Reverse_deps tree:'); pprint(reverse_deps)
             # print(f'Roots:'); pprint(roots)
-        
+
         processed = set()
         queue = list(roots)  # Start with root nodes
-        
-        while queue: # bottom(roots) -> top method
+
+        while queue:  # bottom(roots) -> top method
             current_node = queue.pop(0)
             if current_node in processed:
                 continue  # Skip if already processed
-            
+
             # Get pre-resolved definition from real_definitions
             defn = real_definitions[current_node]
-            
+
             # Instance the indicator
             self._create_indicator(current_node, defn)
             processed.add(current_node)
-            
+
             # Check dependents(top) have all dependencies(bottom) instanced
             for dependent in reverse_deps.get(current_node, []):
                 if all(dep in processed for dep in dependencies[dependent]):
                     if dependent not in processed and dependent not in queue:
                         queue.append(dependent)
-        
+
         # Verify all real_definitions were processed
         missing = set(real_definitions.keys()) - processed
         if missing:
-            raise ValueError(f"Failed to process indicators: {missing}. Circular dependency or missing definition.")
-        
+            raise ValueError(
+                f"Failed to process indicators: {missing}. Circular dependency or missing definition.")
+
     def _get_dep_name(self, params: List[int], name_tuple) -> Tuple[str, str]:
         base, params_raw = name_tuple[0], name_tuple[1:]
         ref_params = []
-        for param_raw in params_raw: # int(not list) or str('param0', 'param1', ...)
+        # int(not list) or str('param0', 'param1', ...)
+        for param_raw in params_raw:
             if type(param_raw) == str:
-                param_idx = int(param_raw[5:]) # 'paramN' -> N
+                param_idx = int(param_raw[5:])  # 'paramN' -> N
                 ref_params.append(params[param_idx])
             elif type(param_raw) == int:
                 ref_params.append(param_raw)
             else:
-                raise RuntimeError(f"Dep params should be int or string: {name_tuple}")
+                raise RuntimeError(
+                    f"Dep params should be int or string: {name_tuple}")
         real_dep = f"{base}_{"_".join(map(str, ref_params))}"
         dummy_dep = base
         return real_dep, dummy_dep
-    
+
     def _get_indicator_name(self, name_tuple, defn: Dict) -> Tuple[list[str], list[str], bool]:
         """Generate unique indicator name from name specification"""
         is_real = True
@@ -712,20 +737,21 @@ class IndicatorManager:
         dummy_name = []
         if isinstance(name_tuple, tuple):
             base, params_raw = name_tuple[0], name_tuple[1:]
-            params = [] # int or list
+            params = []  # int or list
             for param_raw in params_raw:
-                if type(param_raw) == str: # "param0", "param1", ...
-                    param_parsed = defn[param_raw] # None or list
-                    if param_parsed is None: # "param0" == None
-                        is_real = False # this is just a constructor
+                if type(param_raw) == str:  # "param0", "param1", ...
+                    params_parsed = defn[param_raw]  # list
+                    if any([param_parsed is None for param_parsed in params_parsed]):
+                        is_real = False  # this is just a constructor
                         continue
                     else:
-                        params.append(param_parsed)
+                        params.append(params_parsed)
                 elif type(param_raw) == list:
                     params.append(param_raw)
                 else:
-                    raise RuntimeError(f"Indicator params should be None or list: {name_tuple}")
-            
+                    raise RuntimeError(
+                        f"Indicator params should be None or list: {name_tuple}")
+
             # parse names
             if len(params) > 0:
                 combinations = list(itertools.product(*params))
@@ -735,39 +761,41 @@ class IndicatorManager:
                 real_name.append(f"{base}")
             dummy_name.append(f"{base}")
             return real_name, dummy_name, is_real
-        
+
         raise RuntimeError(f"Cannot get indicator name: {name_tuple}")
-    
+
     def _create_indicator(self, real_name: str, definition: Dict) -> None:
         """Create indicator instance with resolved parameters"""
         # 1. Resolve indicator name with actual parameters
         if real_name in self.indicator_registry:
             return
-        
+
         # 2. Resolve arguments with parameter substitution
         params = []
         for part in real_name.split(sep='_'):
             if part.isdigit():
                 params.append(int(part))
-                
+
         resolved_args = []
         for arg in definition['args']:
             if arg.type == ParamType.LITERAL:
                 # Handle parameter references like 'param0'
                 value = arg.value
                 if isinstance(value, str) and value.startswith('param'):
-                    param_idx = int(value[5:]) # 'paramN' -> N
+                    param_idx = int(value[5:])  # 'paramN' -> N
                     resolved_value = params[param_idx]
                 else:
-                    resolved_value = int(value) if type(value) is str else value
+                    resolved_value = int(value) if type(
+                        value) is str else value
                 resolved_args.append(resolved_value)
             elif arg.type == ParamType.REFERENCE:
                 # Dependency already exists due to topological order
                 real_dep, dummy_dep = self._get_dep_name(params, arg.value)
-                resolved_args.append(getattr(self.indicator_registry[real_dep], arg.attr))
+                resolved_args.append(
+                    getattr(self.indicator_registry[real_dep], arg.attr))
             elif arg.type == ParamType.SOURCE:
                 # Directly access parent data series
-                if len(arg.value) == 2: # 0:1min, 1:5min
+                if len(arg.value) == 2:  # 0:1min, 1:5min
                     src, idx = arg.value
                     resolved_args.append(getattr(self.parent, src)[idx])
                 elif len(arg.value) == 1:
@@ -778,17 +806,17 @@ class IndicatorManager:
                         f"Failed to parse source arg {real_name}: {arg}")
             else:
                 raise ValueError(f"Unknown argument type {arg.type}")
-            
+
         # 3. Instantiate and register
         # print(f'creating {real_name}: {resolved_args}')
         instance = definition['constructor'](*resolved_args)
         self.indicator_registry[real_name] = instance
         setattr(self.parent, real_name, instance)
-        
+
         # 4. Store feature configuration
         if 'features' in definition:
             self.feature_specs[real_name] = {
                 'instance': instance,
                 'features': definition['features'],
                 'scaler': definition.get('scaler')
-                }
+            }
