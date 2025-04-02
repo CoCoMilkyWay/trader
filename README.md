@@ -58,7 +58,7 @@
   - **20 years × 24 hrs × 1 min × 5000 assets × 200 features × 16b = 20 TiB**
   - **20 years × 5 hrs × 5 min × 5000 assets × 200 features × 16b = 582 GiB**
   - **1 year × 5 hrs × 5 min × 5000 assets × 100 features × 16b = 14 GiB** (this is the max batch size for GPU calculations)
-- For tick data, multiple GPUs are required for batch runs on a daily basis.
+- For tick data, multiple GPUs are required for batch runs on a daily basis(batch size).
 
 
 - Sparse Tensor formats:
