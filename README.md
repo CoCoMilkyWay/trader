@@ -15,9 +15,9 @@
             - can only use cpu (single-threaded, disable hyper-threading and thread migration)
             - most annoyingly the cost of multi-processing are just not justified
     - Output:
-        - a dense tensor (stored as multiple sparse/compress tensor) of time-series/cross-section features
+        - a huge dense tensor (stored as multiple sparse/compressed tensor) of time-series/cross-section features
     - Hardware:
-        - mostly a single CPU thread (with very limited parallelism (you can try, and you will fail :>))
+        - mostly a single CPU thread (with very limited parallelism (just sad :< ))
 2. **Layer 2**: (for both backtest and trading)
     - Flow:
         - construct(through research/mining) alpha formula/rules from static dense features tensor of layer 1
