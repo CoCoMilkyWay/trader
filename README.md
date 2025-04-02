@@ -14,7 +14,7 @@
 ### **Pros:**
 - Provides unified code for both real trading and backtesting, ensuring backtest integrity
 - since data are fed bar-by-bar and executed sequentially mostly by single thread, 
-  you have no worry future information is hidden in this complicated process
+  you have no worry about future information is hidden in this complicated process
 
 ### **Problems:**
 - Heavy, slow, and complicated
