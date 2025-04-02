@@ -15,7 +15,7 @@
   - This is not an issue for real trading, as it takes only a few milliseconds (unless performing high-frequency trading)
   - However, it becomes extremely slow for backtesting, mining, and parameter searching
 - Mostly serial and scalar, with bar/tick-level fine-grained synchronization:
-  - Can only utilize CPU (single-threaded, hyper-threading and thread migration disabled)
+  - Can only utilize CPU (single-threaded, you can disable hyper-threading and thread migration)
   - Most annoyingly, the cost of multi-processing is simply not justified
 
 ### **Output:**
