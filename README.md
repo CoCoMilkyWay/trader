@@ -26,7 +26,7 @@
   - Most annoyingly, the cost of multi-processing is simply not justified
 
 ### **Output:**
-- A huge dense tensor (stored as multiple sparse/compressed tensors) of time-series/cross-sectional features
+- A static, gigantic dense tensor (stored as multiple sparse/compressed tensors) of time-series/cross-sectional features
 
 ### **Hardware:**
 - Mostly a single CPU thread (with very limited parallelism, just sad :< )
