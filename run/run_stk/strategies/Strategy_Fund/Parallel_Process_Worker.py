@@ -10,6 +10,7 @@ from wtpy import BaseSelStrategy
 from config.cfg_stk import cfg_stk
 
 from .TimeSeriesAnalysis_Core import TimeSeriesAnalysis
+from .CrossSectionAnalysis_Core import CrossSectionAnalysis
 
 
 def stdio(str):
@@ -47,6 +48,9 @@ class Parallel_Process_Worker():
 
         # TS core (price/volume/fundamentals)
         self.timeseries_analysis: Dict[str, TimeSeriesAnalysis] = {}
+
+        # CS core (ranks)
+        self.crosssection_analysis: CrossSectionAnalysis = CrossSectionAnalysis(code_info=code_info,shared_tensor=shared_tensor)
 
         for idx, code in enumerate(self.__codes__):
             plot = idx == 0 and self.__id__ == 0
@@ -125,8 +129,12 @@ class Parallel_Process_Worker():
     def on_bar(self, context: SelContext, code: str, period: str, newBar: dict):
         # multi-level k bar generation
         TS = self.timeseries_analysis[code]
+        CS = self.crosssection_analysis
+        
         TS.analyze(newBar['open'], newBar['high'], newBar['low'],
                    newBar['close'], newBar['vol'], newBar['time'])
+        
+        CS.prepare() # prepare TS data for later CS analysis
 
         # # indicator guard (prepare and align)
         # if not self.inited:

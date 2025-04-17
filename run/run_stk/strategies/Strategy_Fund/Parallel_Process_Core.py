@@ -92,7 +92,7 @@ def set_cpu_affinity_and_process_priority(cpu_id: int):
     p = psutil.Process()
     p.cpu_affinity([cpu_id])
     if sys.platform.startswith("win"):
-        p.nice(psutil.HIGH_PRIORITY_CLASS)
+        p.nice(psutil.HIGH_PRIORITY_CLASS) # type: ignore
     else:
         try:  # need privileges, may fail
             p.nice(-10)  # lower = higher priority
@@ -190,13 +190,14 @@ class Parallel_Process_Core:
         self.end = cfg_stk.end
         N_timestamps = int(time_diff_in_min(self.start, self.end)
                            * cfg_stk.max_trade_session_ratio)
-        N_features = len(self.C_dummy.feature_names)
+        N_TS_features = len(self.C_dummy.feature_names)
+        N_CS_features = 0
         N_labels = len(self.C_dummy.label_names)
-        N_columns = N_features + N_labels
+        N_columns = N_TS_features + N_CS_features + N_labels
         N_codes = len(self.code_info.keys())
 
         print(
-            f"Initializing Pytorch Tensor: (timestamp({N_timestamps}), feature({N_features}) + label({N_labels}), codes({N_codes}))")
+            f"Initializing Pytorch Tensor: (timestamp({N_timestamps}), feature({N_TS_features}+{N_CS_features}) + label({N_labels}), codes({N_codes}))")
         # float16 = 2 Bytes
         print(
             f"Memory reserving: {(N_timestamps * N_columns * N_codes)*2/(1024**2):.2f} MB")
