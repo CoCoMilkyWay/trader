@@ -16,12 +16,18 @@ class TV:
     def __init__(self, username: str, password: str):
         self.username = username
         self.password = password
-        self.tv = TvDatafeed()
+        self.tv = TvDatafeed(self.username, self.password)
         # tvl = TvDatafeedLive()
 
+    def get_cme_bars(self, symbol:str):
+        
+        # 'MNQM2025'
         df = self.tv.get_hist(
-            symbol='CME_MINI:NQM2025',
+            symbol=f'CME_MINI:{symbol}',
             exchange='CME_MINI',
             interval=Interval.in_1_minute,
-            n_bars=5000,
+            n_bars=1000,
+            extended_session=True
         )
+        
+        return df

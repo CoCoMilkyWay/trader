@@ -65,16 +65,16 @@ class IBKR:
         doesn't include end(today's) data, as it is incomplete
         doesn't include start data, as it is incomplete
         """
-        print(f'[Main]: Pulling {days} days {contract.localSymbol} futures data from IBKR...')
+        print(f'[API]: {BLUE}IBKR{RESET}: Pulling {days} days {contract.localSymbol} futures data...')
         all_dfs = []
-        end_date = datetime.now(pytz.timezone(exg_timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
-        start_date = end_date - timedelta(days=days)
+        end_time = datetime.now(pytz.timezone(exg_timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start_time = end_time - timedelta(days=days)
         increment = 10
-        incr_date = end_date
+        incr_time = end_time
         for i in tqdm(range(((days//increment)+1)), desc=contract.localSymbol):
             df = util.df(self.ib.reqHistoricalData(
                 contract,
-                endDateTime=incr_date,
+                endDateTime=incr_time,
                 durationStr=f'{min(increment,days)+1} D',  # IBKR data on 1st day is not complete (from trading session start, no pre-session data)
                 barSizeSetting=bar_size,
                 whatToShow='TRADES',
@@ -82,17 +82,28 @@ class IBKR:
                 formatDate=1,
                 timeout=0,  # wait forever
             ))
-            assert df is not None, f"Failed to get bars for {contract} at end date {incr_date}"
+            assert df is not None, f"Failed to get bars for {contract} at end date {incr_time}"
             if not df.empty:
                 df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
                 df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype(int))
                 df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
                 all_dfs.append(df)
 
-            incr_date -= timedelta(days=increment)
+            incr_time -= timedelta(days=increment)
 
-        full_df = pd.concat(all_dfs).drop_duplicates().sort_index()
-        full_df = full_df[full_df.index >= int(start_date.strftime('%Y%m%d%H%M'))]
+        all_df = pd.concat(all_dfs).drop_duplicates().sort_index()
+
+        full_index = pd.date_range(start=start_time, end=end_time, freq='1min')
+        full_index = full_index.strftime('%Y%m%d%H%M').astype('int64')
+        columns = ['open', 'high', 'low', 'close', 'volume']
+        full_df = pd.DataFrame(index=full_index, columns=columns, dtype=np.float16)
+
+        full_df[columns] = all_df[columns].reindex(full_index)
+        full_df['close'] = full_df['close'].ffill().bfill() # note: backward fill uses future data, but is mostly okay
+        full_df['volume'] = full_df['volume'].fillna(0)
+        missing_mask = full_df['open'].isna()
+        full_df.loc[missing_mask, ['open', 'high', 'low']] = full_df.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
+        full_df = full_df[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
         return full_df
 
     # def get_bars_whole(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai'):

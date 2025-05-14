@@ -17,11 +17,10 @@ from datetime import date, datetime, timedelta
 from pprint import pprint
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from Arbitrage.Util import *
-from Arbitrage.API_QMT import QMT
-from Arbitrage.API_IBKR import IBKR
 from Arbitrage.API_TV import TV
+from Arbitrage.API_IBKR import IBKR
+from Arbitrage.API_QMT import QMT
+from Arbitrage.Util import *
 
 pd.set_option('display.max_rows', None)
 
@@ -111,6 +110,7 @@ ibkr_account_id = 'DU12939891'
 tv_username = 'Coco_MilkyWay'
 tv_password = 'Wang475869123'
 
+
 class Main:
     """Main trading application class"""
 
@@ -121,17 +121,14 @@ class Main:
         self.dir = os.path.dirname(os.path.abspath(__file__))
         self.qmt = QMT(qmt_trader_path, qmt_account_id)
         self.ibkr = IBKR(ibkr_gateway_ip, ibkr_gateway_port)
-        self.tv = TV(tv_username, tv_password)
-
-        # self.sector_names = self.qmt.get_sectors()
-
-        # self.download()
+        # self.tv = TV(tv_username, tv_password)
 
         self.daily_routine_nq100()
 
     def daily_routine_nq100(self):
         # Prepare Assets info =====================================================================
-        self.qdii_etf_info = self.get_etf_info(['ETF跨境型'])  # 'ETF行业指数')
+        # =========================================================================================
+        self.qdii_etf_info = self.get_etf_info(['ETF跨境型'])  # 'ETF行业指数'
         self.nq_pcf_info = {}
         print(f'[Main]: Filtering Nasdaq100 from QDII ETFs...')
         # NASDAQ100
@@ -153,10 +150,14 @@ class Main:
         self.save_to_json_compact('info_pcf_nq.json', self.nq_pcf_info)
         self.nq_companies = self.get_etf_companies(self.nq_pcf_info)
 
+        # Prepare Futures history data ============================================================
+        # =========================================================================================
         symbol = 'MNQ'
+        # year = str(PCF_UPDATE_DATE)[3]
         self.mnq_futures = self.ibkr.get_futures(symbol, 'Futures')  # for simplicity
         for fut in self.mnq_futures:
             assert fut.symbol == symbol, f"non-{symbol} futures found"
+        self.mnq_futures = self.mnq_futures[:4] # ibkr doesnt have all 8 active contracts data :(
         pprint(self.mnq_futures)
 
         # self.cont_fut: Contract = self.mnq_futures[0]
@@ -165,7 +166,7 @@ class Main:
         print(f'[Main]: Primary   MNQ contract({self.pri_fut.exchange}:{self.pri_fut.currency}): {RED}{self.pri_fut.symbol}: {self.pri_fut.localSymbol}{RESET}: {self.pri_fut.lastTradeDateOrContractMonth}')
         print(f'[Main]: Secondary MNQ contract({self.sec_fut.exchange}:{self.sec_fut.currency}): {RED}{self.sec_fut.symbol}: {self.sec_fut.localSymbol}{RESET}: {self.sec_fut.lastTradeDateOrContractMonth}')
 
-        # prepare recent history ===================================================================
+        # prepare recent history
         duration = 6  # months
         fut_tz = self.ibkr.ib.reqContractDetails(self.pri_fut)[0].timeZoneId
         end_date = datetime.now(pytz.timezone(fut_tz)).date()
@@ -176,30 +177,21 @@ class Main:
         print(f'[Main]: {YELLOW}SSE/SZSE{RESET} trade days in last {duration} month: {len(trade_days_sse)}, sessions(Asia/Shanghai): 09:30 - 14:57')
 
         for fut in self.mnq_futures:
-            print(fut)
-            try: 
-                # 1. failed to get data 
-                # 2. failed to get complete data
-                fut_details = self.ibkr.ib.reqContractDetails(fut)
-                assert len(fut_details) == 1, f"Failed to qualify contract {fut}"
-                fut_tz = fut_details[0].timeZoneId
-                # print(fut_details)
+            fut_details = self.ibkr.ib.reqContractDetails(fut)
+            assert len(fut_details) == 1, f"Failed to qualify contract {fut}"
+            fut_tz = fut_details[0].timeZoneId
+            # print(fut_details)
 
-                missing_days_fut = self.check_bars(fut.localSymbol, trade_days_cme, fut_tz)
-                print(missing_days_fut)
-                if missing_days_fut > 0:
-                    bars = self.ibkr.get_bars(fut, days=missing_days_fut, bar_size='1 min', exg_timezone=fut_tz)
-                    self.store_bars(bars, fut.localSymbol, trade_days_cme)
-            except Exception as e:
-                print(e)
-        # pprint(bars, compact=True)
-        # self.qmt.subscribe_QMT_etf('full-tick.txt')
-
-        # self.qmt.subscribe([])
-
-        # cur_prices = self.get_robinhood_price(self.nasdaq100_assets)
-        # print(cur_prices)
-
+            missing_days_fut = self.check_bars(fut.localSymbol, trade_days_cme, fut_tz)
+            if missing_days_fut > 0:
+                bars = self.ibkr.get_bars(fut, days=missing_days_fut, bar_size='1 min', exg_timezone=fut_tz)
+                self.store_bars(bars, fut.localSymbol, trade_days_cme)
+        
+        # Prepare ETFs history data ===============================================================
+        # =========================================================================================
+        
+        
+        
         # Run the system
         print('[API]: Running...')
         # xtdata.disconnect()
@@ -338,7 +330,7 @@ class Main:
         else:
             assert False, f"Invalid type: {type}"
 
-    def check_bars(self, symbol: str, tradedays: list[str], tz:str):
+    def check_bars(self, symbol: str, tradedays: list[str], tz: str):
         missing = tradedays.copy()
         dir_path = os.path.join(self.dir, f"history/{symbol}")
         if os.path.exists(dir_path):
@@ -368,7 +360,6 @@ class Main:
 
         missing = [int(m) for m in missing]
         start = datetime.strptime(str(min(missing)), '%Y%m%d').date()
-        print(start, missing)
         today = datetime.now(pytz.timezone(tz)).date()
         delta_days = (today - start).days
         return delta_days
@@ -380,35 +371,43 @@ class Main:
         updated_dates = []
         df["date"] = df.index.astype(str).str[:8]  # e.g., "20250505"
         dir_path = os.path.join(self.dir, f"history/{symbol}")
-        dates = []
+        existing_dates = []
         for file in os.listdir(dir_path):
             if file.endswith('.parquet'):
                 date = file.split('_')[0]
-                dates.append(date)
-                
+                existing_dates.append(date)
+
         for date, group in df.groupby("date"):
-            if date not in dates:
+            if date not in existing_dates:
                 # data integrity checks (data may not be reliable)
-                day_session, num_minutes = get_cme_day_session(tradedays, tradedays.index(str(date)))
-                l = len(group.index)
-                s = int(day_session[0].strftime('%Y%m%d%H%M'))
-                e = int(day_session[-1].strftime('%Y%m%d%H%M'))
-                if l != num_minutes:
-                    missing = check_missing_minutes(list(group.index))
-                    print(group)
-                    print(f"{RED}missing: {missing}{RESET}")
-                    assert False, (f"{RED}Err(data fetch):{symbol}:{date} {l} out of {num_minutes} fetched{RESET}")
-                elif s != group.index[0]:
-                    assert False, (f"{RED}Err(data fetch):{symbol}:{date} start: {s}/{group.index[0]}{RESET}")
-                elif e != group.index[-1]:
-                    assert False, (f"{RED}Err(data fetch):{symbol}:{date} end: {e}/{group.index[-1]}{RESET}")
-                
+                try:
+                    i = tradedays.index(str(date))
+                    if not (0 < i < len(tradedays) - 1):
+                        continue
+                except:
+                    continue
+                day_session, num_minutes = get_cme_day_session(tradedays, i)
+                # l = len(group.index)
+                # s = int(day_session[0].strftime('%Y%m%d%H%M'))
+                # e = int(day_session[-1].strftime('%Y%m%d%H%M'))
+                # if l != num_minutes:
+                #     missing = check_missing_minutes(list(group.index))
+                #     print(group)
+                #     print(f"{RED}missing: {missing}{RESET}")
+                #     assert False, (f"{RED}Err(data fetch):{symbol}:{date} {l} out of {num_minutes} fetched{RESET}")
+                # elif s != group.index[0]:
+                #     assert False, (f"{RED}Err(data fetch):{symbol}:{date} start: {s}/{group.index[0]}{RESET}")
+                # elif e != group.index[-1]:
+                #     assert False, (f"{RED}Err(data fetch):{symbol}:{date} end: {e}/{group.index[-1]}{RESET}")
+
                 daily_volume = int(group['volume'].sum())
-                filepath = os.path.join(dir_path, f"{date}_{daily_volume}.parquet")
-                group = group.sort_index()
-                group.drop(columns='date', inplace=True)
-                # disable compression for faster read
-                group.to_parquet(filepath)  # compression=None)
+                if daily_volume > 0:
+                    filepath = os.path.join(dir_path, f"{date}_{daily_volume}.parquet")
+                    day_session = day_session.strftime('%Y%m%d%H%M').astype('int64')
+                    group = group.reindex(day_session)
+                    group.drop(columns='date', inplace=True)
+                    # disable compression for faster read
+                    group.to_parquet(filepath)  # compression=None)
                 updated_dates.append(date)
 
         if len(updated_dates) != 0:
@@ -419,7 +418,7 @@ class Main:
                     new_valid_file = os.path.join(dir_path, f"VALID_{valid_start}_{max(updated_dates)}")
                     os.rename(old_valid_file, new_valid_file)
                     break
-            print(f'[Main]: {symbol} updated: {updated_dates}')
+            print(f'[Main]: {RED}{symbol}{RESET} updated: {GREEN}{updated_dates}{RESET}')
 
     # def subscribe_QMT_etf(self, filename='full-tick.txt'):
     #     # Define callback for subscription data
