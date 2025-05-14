@@ -53,34 +53,9 @@ def parse():
     end_time = pd.to_datetime(str(df_ref_1min.index.max()), format='%Y%m%d%H%M')
 
     trade_days = get_tradedays(exchange_ecals_index, start_time.date(), end_time.date(), type='futures')
-
     trading_sessions = []
     for i in range(1, len(trade_days) - 1):
-        prev_day = pd.to_datetime(trade_days[i - 1], format='%Y%m%d')
-        curr_day = pd.to_datetime(trade_days[i], format='%Y%m%d')
-        next_day = pd.to_datetime(trade_days[i + 1], format='%Y%m%d')
-
-        if (curr_day - prev_day).days == 1 and (next_day - curr_day).days == 1:
-            # Continuous day: full session
-            start = curr_day
-            end = curr_day + timedelta(hours=23, minutes=59)
-        else:
-            if (curr_day - prev_day).days > 1:
-                # First day after gap: session starts at 17:00
-                start = curr_day + timedelta(hours=17)
-                end = curr_day + timedelta(hours=23, minutes=59)
-            elif (next_day - curr_day).days > 1:
-                # Last day before gap: session ends at 15:59
-                start = curr_day
-                end = curr_day + timedelta(hours=15, minutes=59)
-            else:
-                assert False, f"Invalid date range: {prev_day}, {curr_day}, {next_day}"
-                # # Middle day in continuous range
-                # start = curr_day
-                # end = curr_day + timedelta(hours=23, minutes=59)
-
-        day_session = pd.date_range(start=start, end=end, freq='1min')
-        trading_sessions.append(day_session)
+        trading_sessions.append(get_cme_day_session(trade_days, i)[0])
 
     # remove 1st/last day for potentially imcomplete data
     trading_sessions = trading_sessions[1:-1]
@@ -92,6 +67,12 @@ def parse():
 
     print('Splitting reference data by symbol...')
     for symbol, group_symbol in df_ref_1min.groupby("symbol"):
+        parts = str(symbol).split('-')
+        if len(parts) != 1:
+            print(f'Skipping: {symbol}')
+            # skip spread futures
+            continue
+
         expiry_date = get_cme_contract_expiry_date(str(symbol))  # e.g., '20250510' as str
         expiry_threshold = int(str(expiry_date) + '2359')  # '202505102359'
 
@@ -114,7 +95,7 @@ def parse():
             filepath = os.path.join(dir, f"history/{symbol}/{date}_{daily_volume}.parquet")
             mkdir(filepath)
             if daily_volume != 0:
-                group_date.dropna(subset=['date'])
+                group_date.drop(columns='date', inplace=True)
                 group_date.to_parquet(filepath)
             else:
                 pass
@@ -122,7 +103,7 @@ def parse():
         with open(os.path.join(dir, f"history/{symbol}/VALID_{min(df['date'])}_{max(df['date'])}"), 'w'):
             pass  # Just create the file without writing anything
 
-    print(df.dropna(subset=['open'])[-10000:])
+    print(df[-10000:])
     print("Processing complete!")
 
 

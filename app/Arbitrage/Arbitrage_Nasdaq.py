@@ -21,6 +21,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Arbitrage.Util import *
 from Arbitrage.API_QMT import QMT
 from Arbitrage.API_IBKR import IBKR
+from Arbitrage.API_TV import TV
 
 pd.set_option('display.max_rows', None)
 
@@ -106,6 +107,9 @@ ibkr_gateway_ip = '127.0.0.1'
 ibkr_gateway_port = 7497
 ibkr_account_id = 'DU12939891'
 
+# TV
+tv_username = 'Coco_MilkyWay'
+tv_password = 'Wang475869123'
 
 class Main:
     """Main trading application class"""
@@ -117,6 +121,7 @@ class Main:
         self.dir = os.path.dirname(os.path.abspath(__file__))
         self.qmt = QMT(qmt_trader_path, qmt_account_id)
         self.ibkr = IBKR(ibkr_gateway_ip, ibkr_gateway_port)
+        self.tv = TV(tv_username, tv_password)
 
         # self.sector_names = self.qmt.get_sectors()
 
@@ -383,44 +388,25 @@ class Main:
                 
         for date, group in df.groupby("date"):
             if date not in dates:
-                
-                # data integrity checks (ibkr is not reliable source)
-                i = tradedays.index(str(date))
-                # data is already trimmed, so 0 < index < len-1
-                prev_day = pd.to_datetime(tradedays[i - 1], format='%Y%m%d')
-                curr_day = pd.to_datetime(tradedays[i], format='%Y%m%d')
-                next_day = pd.to_datetime(tradedays[i + 1], format='%Y%m%d')
-                if (curr_day - prev_day).days == 1 and (next_day - curr_day).days == 1:
-                    # Continuous day: full session
-                    start = curr_day
-                    end = curr_day + timedelta(hours=23, minutes=59)
-                else:
-                    if (curr_day - prev_day).days > 1:
-                        # First day after gap: session starts at 17:00
-                        start = curr_day + timedelta(hours=17)
-                        end = curr_day + timedelta(hours=23, minutes=59)
-                    elif (next_day - curr_day).days > 1:
-                        # Last day before gap: session ends at 15:59
-                        start = curr_day
-                        end = curr_day + timedelta(hours=15, minutes=59)
-                    else:
-                        assert False, f"Invalid date range: {prev_day}, {curr_day}, {next_day}"
-                num_minutes = int((end - start).total_seconds() / 60) + 1
+                # data integrity checks (data may not be reliable)
+                day_session, num_minutes = get_cme_day_session(tradedays, tradedays.index(str(date)))
                 l = len(group.index)
-                s = int(start.strftime('%Y%m%d%H%M'))
-                e = int(start.strftime('%Y%m%d%H%M'))
+                s = int(day_session[0].strftime('%Y%m%d%H%M'))
+                e = int(day_session[-1].strftime('%Y%m%d%H%M'))
                 if l != num_minutes:
                     missing = check_missing_minutes(list(group.index))
-                    print(f"{RED}Err(data fetch):{symbol}:{date} {l} out of {num_minutes} fetched {missing}{RESET}")
+                    print(group)
+                    print(f"{RED}missing: {missing}{RESET}")
+                    assert False, (f"{RED}Err(data fetch):{symbol}:{date} {l} out of {num_minutes} fetched{RESET}")
                 elif s != group.index[0]:
-                    print(f"{RED}Err(data fetch):{symbol}:{date} start: {s}/{group.index[0]}{RESET}")
+                    assert False, (f"{RED}Err(data fetch):{symbol}:{date} start: {s}/{group.index[0]}{RESET}")
                 elif e != group.index[-1]:
-                    print(f"{RED}Err(data fetch):{symbol}:{date} end: {e}/{group.index[-1]}{RESET}")
+                    assert False, (f"{RED}Err(data fetch):{symbol}:{date} end: {e}/{group.index[-1]}{RESET}")
                 
                 daily_volume = int(group['volume'].sum())
                 filepath = os.path.join(dir_path, f"{date}_{daily_volume}.parquet")
                 group = group.sort_index()
-                group.drop(columns="date")
+                group.drop(columns='date', inplace=True)
                 # disable compression for faster read
                 group.to_parquet(filepath)  # compression=None)
                 updated_dates.append(date)
