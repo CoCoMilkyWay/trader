@@ -121,7 +121,7 @@ def check_missing_minutes(minutes: List):
     print(missing)
 
 
-@lru_cache(maxsize=None)
+# @lru_cache(maxsize=None)
 def _build_session(start_str: str, end_str: str, start2_str: str = '', end2_str: str = '') -> Tuple[pd.DatetimeIndex, int]:
     """
     Build a minute-level session between start and end times (ISO-format strings).
@@ -179,3 +179,19 @@ def get_cme_day_session(trade_days: List[str], i: int) -> Tuple[pd.DatetimeIndex
         return _build_session(start.isoformat(), end.isoformat())
 
     raise ValueError(f"Invalid surrounding gaps for {trade_days[i]}")
+
+def get_A_stock_day_session(trade_day: str) -> Tuple[pd.DatetimeIndex, int]:
+    """
+    Generate SSE/SZSE minute-session for trade_day, where trade_day is in 'YYYYMMDD' strings.
+    Sessions:
+      • day: 09:30–11:29, then 13:00–14:59
+    """
+    # Parse only the three relevant dates
+    fmt = "%Y%m%d"
+    curr_day = datetime.strptime(trade_day, fmt)
+
+    s1 = curr_day + timedelta(hours=9, minutes=30)
+    e1 = curr_day + timedelta(hours=11, minutes=29)
+    s2 = curr_day + timedelta(hours=13)
+    e2 = curr_day + timedelta(hours=14, minutes=59)
+    return _build_session(s1.isoformat(), e1.isoformat(), s2.isoformat(), e2.isoformat())

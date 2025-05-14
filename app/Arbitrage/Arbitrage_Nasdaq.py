@@ -12,7 +12,7 @@ import exchange_calendars as ecals
 
 from tqdm import tqdm
 from typing import List, Dict, Any
-from datetime import date, datetime, timedelta
+from datetime import date, time, datetime, timedelta
 
 from pprint import pprint
 
@@ -56,8 +56,10 @@ Creation Unit（U）：固定常数（如100万份），由基金合同规定。
 芝加哥时间(UTC-5): 对于CME指数期货
 上海时间(UTC+8): 对于A股股票/ETF现货
 '''
-
-PCF_UPDATE_DATE = int(datetime.today().strftime('%Y%m%d')) - 0  # '20250101'
+# PCF files are updated at ~ 6 am
+PCF_UPDATED = datetime.now(pytz.timezone('Asia/Shanghai')).time() < time(6, 0)
+# '20250101'
+PCF_UPDATE_DATE = int(datetime.today().strftime('%Y%m%d')) - 1 if PCF_UPDATED else 0
 
 HK_ETF = []  # 70+
 US_ETF = []  # 20+
@@ -150,8 +152,6 @@ class Main:
         self.save_to_json_compact('info_pcf_nq.json', self.nq_pcf_info)
         self.nq_companies = self.get_etf_companies(self.nq_pcf_info)
 
-        # Prepare Futures history data ============================================================
-        # =========================================================================================
         symbol = 'MNQ'
         # year = str(PCF_UPDATE_DATE)[3]
         self.mnq_futures = self.ibkr.get_futures(symbol, 'Futures')  # for simplicity
@@ -168,14 +168,19 @@ class Main:
 
         # prepare recent history
         duration = 6  # months
-        fut_tz = self.ibkr.ib.reqContractDetails(self.pri_fut)[0].timeZoneId
-        end_date = datetime.now(pytz.timezone(fut_tz)).date()
-        start_date = end_date - timedelta(days=30*duration)
-        trade_days_cme = self.get_tradedays("CMES", start_date, end_date, type='futures')
-        trade_days_sse = self.get_tradedays("XSHG", start_date, end_date, type='spot')
+        fut_tz = "US/Central"
+        etf_tz = "Asia/Shanghai"
+        fut_end_date = datetime.now(pytz.timezone(fut_tz)).date()
+        fut_start_date = fut_end_date - timedelta(days=30*duration)
+        etf_end_date = datetime.now(pytz.timezone(etf_tz)).date()
+        etf_start_date = fut_end_date - timedelta(days=30*duration)
+        trade_days_cme = self.get_tradedays("CMES", fut_start_date, fut_end_date, type='futures')
+        trade_days_sse = self.get_tradedays("XSHG", etf_start_date, etf_end_date, type='spot')
         print(f'[Main]: {YELLOW}CME     {RESET} trade days in last {duration} month: {len(trade_days_cme)}, sessions(US/Central):    17:00 - 15:59')
         print(f'[Main]: {YELLOW}SSE/SZSE{RESET} trade days in last {duration} month: {len(trade_days_sse)}, sessions(Asia/Shanghai): 09:30 - 14:57')
 
+        # Prepare Futures history data ============================================================
+        # =========================================================================================
         for fut in self.mnq_futures:
             fut_details = self.ibkr.ib.reqContractDetails(fut)
             assert len(fut_details) == 1, f"Failed to qualify contract {fut}"
@@ -189,12 +194,13 @@ class Main:
         
         # Prepare ETFs history data ===============================================================
         # =========================================================================================
-        
-        
+        for etf in [etf[0] for etf in nasdaq100]:
+            missing_days_etf = self.check_bars(etf, trade_days_sse, etf_tz)
+            print(f"{etf}:{missing_days_etf}")
         
         # Run the system
         print('[API]: Running...')
-        # xtdata.disconnect()
+        self.qmt.disconnect()
         self.ibkr.disconnect()
         # self.run()
 
