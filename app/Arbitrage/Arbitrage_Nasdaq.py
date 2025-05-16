@@ -8,6 +8,7 @@ import aiohttp
 import asyncio
 import numpy as np
 import pandas as pd
+import akshare as ak
 import exchange_calendars as ecals
 
 from tqdm import tqdm
@@ -56,10 +57,18 @@ Creation Unit（U）：固定常数（如100万份），由基金合同规定。
 芝加哥时间(UTC-5): 对于CME指数期货
 上海时间(UTC+8): 对于A股股票/ETF现货
 '''
-# PCF files are updated at ~ 6 am
-PCF_UPDATED = datetime.now(pytz.timezone('Asia/Shanghai')).time() < time(6, 0)
-# '20250101'
-PCF_UPDATE_DATE = int(datetime.today().strftime('%Y%m%d')) - 1 if PCF_UPDATED else 0
+today = datetime.now().date()
+trade_days = ecals.get_calendar('XSHG').sessions_in_range(pd.Timestamp(today - timedelta(days=14)), pd.Timestamp(today)).strftime('%Y%m%d').tolist()
+
+if today.strftime('%Y%m%d') in trade_days and (time(8, 0) < datetime.now().time() < time(16, 0)):
+    # this check if now is active trading session (pcf can be sure to be aligned, otherwise, maybe for different days)
+    # fund manager would update NAV at different time (all ready before 8am in trading days)
+    # '20250101'
+    PCF_UPDATE_DATE = trade_days[-1] # we are certain all pcf files are ready and are for yesterday
+    active = 1
+else:
+    PCF_UPDATE_DATE = trade_days[-2] # worst case (today's morning(trading), last day not updated, so the 2nd last day pcf
+    active = 0
 
 HK_ETF = []  # 70+
 US_ETF = []  # 20+
@@ -100,6 +109,7 @@ proxy_ip = '127.0.0.1'
 proxy_port = 20000
 
 # QMT
+# C:\Users\chuyin.wang\Desktop\share\fin\国金证券QMT交易端\userdata_mini
 qmt_trader_path = r'D:\QMT\userdata_mini'
 qmt_account_id = '8881848660'
 
@@ -112,7 +122,6 @@ ibkr_account_id = 'DU12939891'
 tv_username = 'Coco_MilkyWay'
 tv_password = 'Wang475869123'
 
-
 class Main:
     """Main trading application class"""
 
@@ -124,7 +133,7 @@ class Main:
         self.qmt = QMT(qmt_trader_path, qmt_account_id)
         self.ibkr = IBKR(ibkr_gateway_ip, ibkr_gateway_port)
         # self.tv = TV(tv_username, tv_password)
-
+        
         self.daily_routine_nq100()
 
     def daily_routine_nq100(self):
@@ -157,7 +166,9 @@ class Main:
         self.mnq_futures = self.ibkr.get_futures(symbol, 'Futures')  # for simplicity
         for fut in self.mnq_futures:
             assert fut.symbol == symbol, f"non-{symbol} futures found"
-        self.mnq_futures = self.mnq_futures[:4] # ibkr doesnt have all 8 active contracts data :(
+        # for non-main contracts, ibkr only records(return) bars with trade
+        # for >3rd front month contracts, it is normal that no trades at all for a few days
+        # expect returned data to be invalid
         pprint(self.mnq_futures)
 
         # self.cont_fut: Contract = self.mnq_futures[0]
@@ -168,35 +179,238 @@ class Main:
 
         # prepare recent history
         duration = 6  # months
-        fut_tz = "US/Central"
-        etf_tz = "Asia/Shanghai"
+        fut_tz = "America/Chicago" # CME (Central time)
+        stk_tz = "America/New_York" # NYSE/Nasdaq (Eastern time)
+        etf_tz = "Asia/Shanghai" # SSE/SZSE/
+        # | Region         | Time Zone   | UTC Offset (Standard) | UTC Offset (DST) | Shanghai Difference (Standard) | Shanghai Difference (DST) |
+        # | -------------- | ----------- | --------------------- | ---------------- | ------------------------------ | ------------------------- |
+        # | **Shanghai**   | CST (China) | UTC+8                 | N/A              | —                              | —                         |
+        # | **US Central** | CST / CDT   | UTC−6                 | UTC−5            | **+14 hours**                  | **+13 hours**             |
+        # | **US Eastern** | EST / EDT   | UTC−5                 | UTC−4            | **+13 hours**                  | **+12 hours**             |
+
+        
         fut_end_date = datetime.now(pytz.timezone(fut_tz)).date()
         fut_start_date = fut_end_date - timedelta(days=30*duration)
         etf_end_date = datetime.now(pytz.timezone(etf_tz)).date()
         etf_start_date = fut_end_date - timedelta(days=30*duration)
         trade_days_cme = self.get_tradedays("CMES", fut_start_date, fut_end_date, type='futures')
         trade_days_sse = self.get_tradedays("XSHG", etf_start_date, etf_end_date, type='spot')
-        print(f'[Main]: {YELLOW}CME     {RESET} trade days in last {duration} month: {len(trade_days_cme)}, sessions(US/Central):    17:00 - 15:59')
-        print(f'[Main]: {YELLOW}SSE/SZSE{RESET} trade days in last {duration} month: {len(trade_days_sse)}, sessions(Asia/Shanghai): 09:30 - 14:57')
+        print(f'[Main]: {YELLOW}CME     {RESET} trade days in last {duration} month: {len(trade_days_cme)}, sessions(America/Central): 17:00 - 15:59')
+        print(f'[Main]: {YELLOW}SSE/SZSE{RESET} trade days in last {duration} month: {len(trade_days_sse)}, sessions(Asia/Shanghai):   09:30 - 14:57')
 
-        # Prepare Futures history data ============================================================
-        # =========================================================================================
-        for fut in self.mnq_futures:
-            fut_details = self.ibkr.ib.reqContractDetails(fut)
-            assert len(fut_details) == 1, f"Failed to qualify contract {fut}"
-            fut_tz = fut_details[0].timeZoneId
-            # print(fut_details)
+        if active:
+            # Prepare Futures history data ============================================================
+            # =========================================================================================
+            for fut in self.mnq_futures:
+                fut_details = self.ibkr.ib.reqContractDetails(fut)
+                assert len(fut_details) == 1, f"Failed to qualify contract {fut}"
+                missing_days_fut = self.check_bars(fut.localSymbol, trade_days_cme, fut_tz)
+                if missing_days_fut > 0:
+                    success, bars = self.ibkr.get_bars(fut, days=missing_days_fut, bar_size='1 min', exg_timezone=fut_tz)
+                    if success:
+                        self.store_bars(bars, fut.localSymbol, trade_days_cme, 'futures')
 
-            missing_days_fut = self.check_bars(fut.localSymbol, trade_days_cme, fut_tz)
-            if missing_days_fut > 0:
-                bars = self.ibkr.get_bars(fut, days=missing_days_fut, bar_size='1 min', exg_timezone=fut_tz)
-                self.store_bars(bars, fut.localSymbol, trade_days_cme)
+            # Prepare ETFs history data ===============================================================
+            # =========================================================================================
+            for etf in nasdaq100:
+                missing_days_etf = self.check_bars(etf[0], trade_days_sse, etf_tz)
+                if missing_days_etf > 0:
+                    success, bars = self.qmt.get_bars(f"{etf[0]}.{etf[1]}", days=missing_days_etf, period='1m', exg_timezone=etf_tz)
+                    if success:
+                        self.store_bars(bars, etf[0], trade_days_sse, 'spot')
         
-        # Prepare ETFs history data ===============================================================
+        # Synthesize Main Fut Contract ============================================================
         # =========================================================================================
-        for etf in [etf[0] for etf in nasdaq100]:
-            missing_days_etf = self.check_bars(etf, trade_days_sse, etf_tz)
-            print(f"{etf}:{missing_days_etf}")
+        history_dir = os.path.join(self.dir, "history")
+        start_date = int(fut_start_date.strftime('%Y%m%d'))
+
+        fut_symbols, etf_symbols = [], []
+        futures_data, etfs_data = {}, {}
+        futures_records, etfs_records = [], []
+
+        # Collect and organize data
+        for symbol in tqdm(os.listdir(history_dir)):
+            symbol_dir = os.path.join(history_dir, symbol)
+            is_fut = 'MNQ' in symbol
+
+            if is_fut:
+                fut_symbols.append(symbol)
+                futures_data.setdefault(symbol, [])
+            else:
+                etf_symbols.append(symbol)
+                etfs_data.setdefault(symbol, [])
+
+            for file in os.listdir(symbol_dir):
+                if 'VALID_' in file:
+                    continue
+                
+                date_str, value_str = file.removesuffix('.parquet').split('_')
+                date = int(date_str)
+                if date < start_date:
+                    continue
+                
+                filepath = os.path.join(symbol_dir, file)
+                df = pd.read_parquet(filepath)
+                # df['symbol'] = symbol
+                # df['date'] = date
+                # df['value'] = int(value_str) if is_fut else float(value_str)
+
+                if not df.empty:
+                    if is_fut:
+                        volume = int(value_str)
+                        futures_records.append((date, volume, symbol))
+                        futures_data[symbol].append(df)
+                    else:
+                        nav = float(value_str)
+                        # nav calc time = 4pm US/East time (in/out DST) = 12 ~ 13 hrs after Shanghai
+                        # open bar time = not the after hour auction price (should it be? maybe)
+                        nyse_nasdaq_close_time = int((pd.to_datetime(str(date))).strftime('%Y%m%d%H%M')) + 1559
+                        nav_sse_szse_time = pd.to_datetime(str(nyse_nasdaq_close_time)).tz_localize(stk_tz).tz_convert(etf_tz).strftime('%Y%m%d%H%M')
+                        
+                        etfs_records.append((date, nav, symbol))
+                        df['nav'] = float("nan")
+                        df.at[int(nav_sse_szse_time), 'nav'] = nav
+                        etfs_data[symbol].append(df)
+                else:
+                    print(f'[Main]: {RED} Empty df from {symbol}: {file}{RESET}')
+
+        futures_records.sort()
+
+        # Main contract roll logic
+        retired = set()
+        main_contract = None
+        main_volume = 0
+        fut_roll = [] # H->M->U->Z (20240916: MNQZ4)
+
+        for date, volume, contract in futures_records:
+            if volume < 1000 or contract in retired:
+                continue
+            if main_contract is None:
+                main_contract = contract
+                main_volume = volume
+                fut_roll.append((date, contract))
+            elif contract != main_contract and volume > main_volume:
+                # Only shift if contract is in its expiration month
+                current_month = (date % 10000) // 100
+                contract_exp_month = month_codes.get(main_contract[-2], 0)
+                if current_month == contract_exp_month:
+                    retired.add(main_contract)
+                    main_contract = contract
+                    main_volume = volume
+                    fut_roll.append((date, contract))
+            else:
+                main_volume = volume
+
+        # Concatenate all DataFrames per symbol (because of filter, some dfs may be empty)
+        futures_concat = {sym: pd.concat(dfs).sort_index() for sym, dfs in futures_data.items() if dfs}
+        etfs_concat = {sym: pd.concat(dfs).sort_index() for sym, dfs in etfs_data.items() if dfs}
+
+        # Generate main_future_concat using fut_roll
+        main_future_concat = []
+        for i, (start_date, contract) in enumerate(fut_roll):
+            end_date = fut_roll[i + 1][0] if i + 1 < len(fut_roll) else None
+            df = futures_concat.get(contract)
+            if df is None:
+                print(f"[Main]: {RED} No data for main contract {contract}{RESET}")
+                continue
+            if end_date:
+                df = df[(df.index >= start_date) & (df.index < end_date)]
+            else:
+                df = df[df.index >= start_date]
+            df = df.copy()
+            df["main_contract"] = contract
+            main_future_concat.append(df)
+        
+        # Final concatenated main future DataFrame
+        main_future_concat = pd.concat(main_future_concat).sort_index()
+
+        for date, contract in fut_roll:
+            print(f"{date}: {contract}")
+
+        # Merge History Data ======================================================================
+        # =========================================================================================
+        main_future_concat.index = pd.to_datetime(main_future_concat.index.astype(str)).tz_localize(fut_tz).tz_convert(etf_tz).strftime('%Y%m%d%H%M').astype('int64')
+        for sym, df in etfs_concat.items():
+            columns = ["close", "nav"] # ["open", "high", "low", "close", "volume", "nav"]
+            etfs_concat[sym] = df.rename(columns={col: f"{sym}_{col}" for col in columns})[[f"{sym}_{col}" for col in columns]]
+        
+        etf_closes = [f"{sym}_close" for sym in etf_symbols]
+        etf_navs = [f"{sym}_nav" for sym in etf_symbols]
+        
+        history = pd.concat([main_future_concat] + list(etfs_concat.values()), axis=1).sort_index()
+        history[etf_closes] = history[etf_closes].ffill().bfill() # note: future info, but is okay
+        # history[etf_navs] = history[etf_navs].ffill().bfill() # note: future info, but is okay
+        # history['volume'] = history['volume'].fillna(0)
+        # missing_mask = history['open'].isna()
+        # history.loc[missing_mask, ['open', 'high', 'low']] = history.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
+        
+        # missing_mask = df['open'].isna()
+        # df.loc[missing_mask, ['open', 'high', 'low']] = df.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
+        for sym in etf_symbols:
+            # NAV calculation
+            history[f'{sym}_nav_pointer'] = np.nan
+            history[f'{sym}_close_pointer'] = np.nan
+            nav_updating_mask = ~ history[f'{sym}_nav'].isna()
+            history.loc[nav_updating_mask, [f'{sym}_nav_pointer']] = history.loc[nav_updating_mask, f'{sym}_nav'].values[:, None].repeat(1, axis=1)
+            history.loc[nav_updating_mask, [f'{sym}_close_pointer']] = history.loc[nav_updating_mask, 'close'].values[:, None].repeat(1, axis=1)
+            
+            history[f'{sym}_nav_pointer'] = history[f'{sym}_nav_pointer'].ffill()
+            history[f'{sym}_close_pointer'] = history[f'{sym}_close_pointer'].ffill()
+            
+            # if active:
+            #     # add last day's NAV value from data on website
+            #     US_time = int((datetime.now().date() - timedelta(days=1)).strftime('%Y%m%d%H%M')) + 1559
+            #     China_time = pd.to_datetime(str(US_time)).tz_localize(stk_tz).tz_convert(etf_tz).strftime('%Y%m%d%H%M')
+            #     nav = self.nq_pcf_info[sym]['NAV']
+            #     print(US_time, China_time, nav)
+            #     history.at[int(China_time), f'{sym}_nav'] = nav
+            
+            history[f'{sym}_nav'] = (history[f'{sym}_nav_pointer'] * (history['close'] / history[f'{sym}_close_pointer'])).round(4)
+            history = history.drop(columns=[f'{sym}_nav_pointer', f'{sym}_close_pointer'])
+            
+            history[f"{sym}_premium"] = ((history[f"{sym}_close"] - history[f"{sym}_nav"])/history[f"{sym}_nav"]*100).round(3)
+
+        # Filter tradable session =================================================================
+        # =========================================================================================
+        hour_min = history.index % 10000  # Get HHMM part
+        # Filter for Shanghai A-share session (09:30–11:29 and 13:00–14:59)
+        mask = (
+            ((hour_min >= 930) & (hour_min <= 1129)) |
+            ((hour_min >= 1300) & (hour_min <= 1459))
+        )
+        filtered = history[mask] # only during this time arbitrage is possible
+        plot_index = pd.to_datetime(filtered.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
+        print(history[['close', '159509_close', '159509_nav', '159509_premium']])
+        
+        # Filter tradable session =================================================================
+        # =========================================================================================
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        
+        fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.8, 0.2])
+        
+        for sym in etf_symbols:
+            fig.add_trace(go.Scatter(x=plot_index, y=filtered[f"{sym}_premium"], mode='lines', name=f"{sym}_premium"), row=1, col=1)
+            
+        fig.add_trace(go.Scatter(x=plot_index, y=filtered[f"close"], mode='lines', name=f"Main_Contract: {filtered.iloc[-1]['main_contract']}"), row=2, col=1)
+        # fig.add_trace(go.Scatter(x=[date*10000 for date, contract in fut_roll], y=[0] * len(fut_roll), mode='markers', name='Future Rolls'))
+        
+        fig.update_layout(
+            title='QDII NASDAQ100 price premium to NAV',
+            xaxis_title='timestamp(min)',
+            yaxis_title='premium(percent)',
+            template='plotly_white',
+            showlegend=True,
+            height=700,  # This affects the absolute pixel height of the whole figure
+        )
+        fig.update_xaxes(
+            showgrid=True,
+            tickmode='linear',     # Force evenly spaced ticks
+            dtick=60*4,               # Set tick interval (e.g., every 1 unit)
+            gridcolor='lightgray',
+            gridwidth=0.5
+        )
+        fig.show()
         
         # Run the system
         print('[API]: Running...')
@@ -288,7 +502,8 @@ class Main:
 
         def check_integrity(result, codeID):
             assert int(codeID) == result['FundID'], f"ETF code mismatch: {codeID} != {result['FundID']}"
-            assert int(PCF_UPDATE_DATE) == result['TradingDay'], f"Date mismatch: {datetime.today().strftime('%Y%m%d')} != {result['TradingDay']}"
+            if active:
+                assert int(PCF_UPDATE_DATE) == result['TradingDay'], f"Date mismatch: {PCF_UPDATE_DATE} != {result['TradingDay']}"
             assert len(result['pcf']) == int(result['StockNum']), f"Expected {result['StockNum']} stocks, but got {len(result['pcf'])}."
 
         asyncio.run(fetch_all_async(ETFs, exchangeID))
@@ -354,7 +569,6 @@ class Main:
                     if date <= valid_end:
                         valid = True
                     elif date in missing:
-                        missing.remove(date)
                         valid = True
                 elif file.startswith("VALID_"):
                     valid = True
@@ -370,7 +584,7 @@ class Main:
         delta_days = (today - start).days
         return delta_days
 
-    def store_bars(self, df: pd.DataFrame, symbol: str, tradedays: list[str]):
+    def store_bars(self, df: pd.DataFrame, symbol: str, tradedays: list[str], type: str):
         """
         user make sure the first/last date has complete data
         """
@@ -383,6 +597,15 @@ class Main:
                 date = file.split('_')[0]
                 existing_dates.append(date)
 
+        start_date = min(df["date"])
+        cur_date = max(df["date"])
+        if type == 'spot':
+            try:
+                nav_table = ak.fund_etf_fund_info_em(fund=symbol, start_date=start_date)
+                nav_table['净值日期'] = pd.to_datetime(nav_table['净值日期'])
+            except:
+                return
+            
         for date, group in df.groupby("date"):
             if date not in existing_dates:
                 # data integrity checks (data may not be reliable)
@@ -392,29 +615,40 @@ class Main:
                         continue
                 except:
                     continue
-                day_session, num_minutes = get_cme_day_session(tradedays, i)
-                # l = len(group.index)
-                # s = int(day_session[0].strftime('%Y%m%d%H%M'))
-                # e = int(day_session[-1].strftime('%Y%m%d%H%M'))
-                # if l != num_minutes:
-                #     missing = check_missing_minutes(list(group.index))
-                #     print(group)
-                #     print(f"{RED}missing: {missing}{RESET}")
-                #     assert False, (f"{RED}Err(data fetch):{symbol}:{date} {l} out of {num_minutes} fetched{RESET}")
-                # elif s != group.index[0]:
-                #     assert False, (f"{RED}Err(data fetch):{symbol}:{date} start: {s}/{group.index[0]}{RESET}")
-                # elif e != group.index[-1]:
-                #     assert False, (f"{RED}Err(data fetch):{symbol}:{date} end: {e}/{group.index[-1]}{RESET}")
+                
+                if type == 'spot':
+                    day_session, num_minutes = get_A_stock_day_session(str(date))
+                elif type == 'futures':
+                    day_session, num_minutes = get_cme_day_session(tradedays, i)
+                else:
+                    assert False, f"Invalid type: {type}"
 
-                daily_volume = int(group['volume'].sum())
-                if daily_volume > 0:
-                    filepath = os.path.join(dir_path, f"{date}_{daily_volume}.parquet")
-                    day_session = day_session.strftime('%Y%m%d%H%M').astype('int64')
-                    group = group.reindex(day_session)
-                    group.drop(columns='date', inplace=True)
-                    # disable compression for faster read
-                    group.to_parquet(filepath)  # compression=None)
-                updated_dates.append(date)
+                if type == 'spot':
+                    target_date = pd.to_datetime(str(date))
+                    if target_date in nav_table['净值日期'].values:
+                        row = nav_table[nav_table['净值日期'] == target_date]
+                        nav = row['单位净值'].values[0]
+                        filepath = os.path.join(dir_path, f"{date}_{nav}.parquet")
+                        
+                        day_session = day_session.strftime('%Y%m%d%H%M').astype('int64')
+                        group = group.reindex(day_session)
+                        group.drop(columns='date', inplace=True)
+                        # disable compression for faster read
+                        group.to_parquet(filepath)  # compression=None)
+                        updated_dates.append(date)
+                    
+                elif type == 'futures':
+                    daily_volume = int(group['volume'].sum())
+                    if daily_volume > 0:
+                        filepath = os.path.join(dir_path, f"{date}_{daily_volume}.parquet")
+                        day_session = day_session.strftime('%Y%m%d%H%M').astype('int64')
+                        group = group.reindex(day_session)
+                        group.drop(columns='date', inplace=True)
+                        # disable compression for faster read
+                        group.to_parquet(filepath)  # compression=None)
+                    updated_dates.append(date)
+                else:
+                    assert False, f"Invalid type: {type}"
 
         if len(updated_dates) != 0:
             for file in os.listdir(dir_path):
@@ -425,33 +659,6 @@ class Main:
                     os.rename(old_valid_file, new_valid_file)
                     break
             print(f'[Main]: {RED}{symbol}{RESET} updated: {GREEN}{updated_dates}{RESET}')
-
-    # def subscribe_QMT_etf(self, filename='full-tick.txt'):
-    #     # Define callback for subscription data
-    #     def subscribed_data_callback(data):
-    #         now = datetime.now()
-    #         print(now, ': ', sys.getsizeof(data))
-    #         self.print_to_file(data, filename)
-    #
-    #         # Uncomment to enable trading logic
-    #         # for stock in data:
-    #         #     if stock not in self.hsa:
-    #         #         continue
-    #         #     cuurent_price = data[stock][0]['lastPrice']
-    #         #     pre_price = data[stock][0]['lastClose']
-    #         #     ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
-    #         #     if ratio > 0.09 and stock not in self.bought_list:
-    #         #         print(f"{now} Latest price Buy {stock} 200 shares")
-    #         #         # async_seq = self.trader.order_stock_async(self.account, stock,
-    #         #         #                                          xtconstant.STOCK_BUY, 1,
-    #         #         #                                          xtconstant.LATEST_PRICE, -1,
-    #         #         #                                          'strategy_name', stock)
-    #         #         self.bought_list.append(stock)
-    #
-    #     # Subscribe to whole market data
-    #     xtdata.subscribe_whole_quote(
-    #         ["SH", "SZ"], callback=subscribed_data_callback)
-    #     print('[API]: Data Subscribed, DataFeed Start')
 
     def print_to_file(self, data, filename):
         """Print data to a file"""

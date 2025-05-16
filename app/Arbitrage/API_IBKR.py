@@ -71,25 +71,30 @@ class IBKR:
         start_time = end_time - timedelta(days=days)
         increment = 10
         incr_time = end_time
-        for i in tqdm(range(((days//increment)+1)), desc=contract.localSymbol):
-            df = util.df(self.ib.reqHistoricalData(
-                contract,
-                endDateTime=incr_time,
-                durationStr=f'{min(increment,days)+1} D',  # IBKR data on 1st day is not complete (from trading session start, no pre-session data)
-                barSizeSetting=bar_size,
-                whatToShow='TRADES',
-                useRTH=False,
-                formatDate=1,
-                timeout=0,  # wait forever
-            ))
-            assert df is not None, f"Failed to get bars for {contract} at end date {incr_time}"
-            if not df.empty:
-                df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-                df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype(int))
-                df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
-                all_dfs.append(df)
-
-            incr_time -= timedelta(days=increment)
+        try:
+            for i in tqdm(range(((days//increment)+1)), desc=contract.localSymbol):
+                df = util.df(self.ib.reqHistoricalData(
+                    contract,
+                    endDateTime=incr_time,
+                    durationStr=f'{min(increment,days)+1} D',  # IBKR data on 1st day is not complete (from trading session start, no pre-session data)
+                    barSizeSetting=bar_size,
+                    whatToShow='TRADES',
+                    useRTH=False,
+                    formatDate=1,
+                    timeout=0,  # wait forever
+                ))
+                assert df is not None, f"{RED} {contract} is empty at enddate {incr_time}{RESET}"
+                if not df.empty:
+                    df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+                    df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype(int))
+                    df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
+                    all_dfs.append(df)
+                incr_time -= timedelta(days=increment)
+        except Exception as e:
+            s = (incr_time - timedelta(days=increment)).date()
+            e = incr_time.date()
+            print(f"{RED}No data for {contract.localSymbol} between {s} and {e}{RESET}")
+            return False, pd.DataFrame([])
 
         all_df = pd.concat(all_dfs).drop_duplicates().sort_index()
 
@@ -103,8 +108,8 @@ class IBKR:
         full_df['volume'] = full_df['volume'].fillna(0)
         missing_mask = full_df['open'].isna()
         full_df.loc[missing_mask, ['open', 'high', 'low']] = full_df.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
-        full_df = full_df[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
-        return full_df
+        full_df = full_df.loc[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
+        return True, full_df
 
     # def get_bars_whole(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai'):
     #     """

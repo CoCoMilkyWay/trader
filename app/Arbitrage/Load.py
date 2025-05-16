@@ -171,7 +171,7 @@ def load_etf():
         # remove 1st/last day for potentially imcomplete data
         valid_index = pd.DatetimeIndex(sorted(set().union(*trading_sessions)))
         full_index = valid_index.to_series().dt.strftime('%Y%m%d%H%M').astype('int64')
-        
+                
         column_names = ['open', 'high', 'low', 'close', 'volume']
         df_temp = pd.DataFrame(index=full_index, columns=column_names, dtype=np.float16)
         
@@ -279,4 +279,4 @@ def get_tradedays(exg: str, start_date: date, end_date: date, type: str) -> List
 
 
 if __name__ == "__main__":
-    load_etf()
+    load_fut()

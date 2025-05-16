@@ -1,15 +1,17 @@
 # coding:utf-8
 import sys
 import time
+import pytz
 import numpy as np
 import pandas as pd
 
-from datetime import date, datetime, timedelta
-from typing import List, Dict, Any
 from xtquant import xtdata
 from xtquant.xttrader import XtQuantTrader, XtQuantTraderCallback
 from xtquant.xttype import StockAccount
 from xtquant import xtconstant
+from tqdm import tqdm
+from typing import List, Dict, Any
+from datetime import date, datetime, timedelta
 
 from pprint import pprint
 
@@ -45,18 +47,20 @@ class QMT:
         权限: 普通版
         https://xuntou.net/#/productvip?id=
         """
-        self.trader.start()
-        if 0:
-            while (r := self.trader.connect()) != 0:
-                print(f'[API]: Trader Connecting... {r}')
-                print(self.trader.connect())
-                time.sleep(1)
-                break
-            while (r := self.trader.subscribe(self.account)) != 0:
-                print(f'[API]: Subscription Channel Connecting... {r}')
-                time.sleep(1)
-                break
+        self.trader.connect()
         print(f'[API]: {BLUE}QMT{RESET}: Server Connected')
+            
+        # if 0:
+        #     while (r := self.trader.connect()) != 0:
+        #         print(f'[API]: Trader Connecting... {r}')
+        #         print(self.trader.connect())
+        #         time.sleep(1)
+        #         break
+        #     while (r := self.trader.subscribe(self.account)) != 0:
+        #         print(f'[API]: Subscription Channel Connecting... {r}')
+        #         time.sleep(1)
+        #         break
+        
 
     def disconnect(self):
         self.xt.disconnect()
@@ -96,38 +100,25 @@ class QMT:
         +------------------------+-----------------------------------------------+
         """
         return xtdata.get_sector_list()
-    
-    def get_bars(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai'):
+
+    def get_bars(self, asset: str, days:int, period: str, exg_timezone: str = 'Asia/Shanghai'):
         """
         data need to be handled/saved in exchange timezone for better organization
-        doesn't include end(today's) data, as it is incomplete
-        doesn't include start data, as it is incomplete
         """
-        print(f'[API]: {BLUE}IBKR{RESET}: Pulling {days} days {contract.localSymbol} futures data...')
-        all_dfs = []
+        print(f'[API]: {BLUE}QMT{RESET}: Pulling {days} days {asset} ETF data...')
+
         end_time = datetime.now(pytz.timezone(exg_timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
         start_time = end_time - timedelta(days=days)
-        increment = 10
-        incr_time = end_time
-        for i in tqdm(range(((days//increment)+1)), desc=contract.localSymbol):
-            df = util.df(self.ib.reqHistoricalData(
-                contract,
-                endDateTime=incr_time,
-                durationStr=f'{min(increment,days)+1} D',  # IBKR data on 1st day is not complete (from trading session start, no pre-session data)
-                barSizeSetting=bar_size,
-                whatToShow='TRADES',
-                useRTH=False,
-                formatDate=1,
-                timeout=0,  # wait forever
-            ))
-            assert df is not None, f"Failed to get bars for {contract} at end date {incr_time}"
-            if not df.empty:
-                df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-                df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype(int))
-                df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
-                all_dfs.append(df)
-            incr_time -= timedelta(days=increment)
-        all_df = pd.concat(all_dfs).drop_duplicates().sort_index()
+        s = start_time.strftime('%Y%m%d')
+        e = end_time.strftime('%Y%m%d')
+        
+        self.xt.download_history_data(asset, period, start_time=s, incrementally=True)
+
+        all_df:pd.DataFrame = xtdata.get_market_data_ex([],[asset],period=period,start_time=s)[asset]
+        # IBKR and other American brokers use open time (we use this)
+        # XT and other Chinese brokers use close time
+        all_df.index = (pd.to_datetime(all_df.index).tz_localize(exg_timezone)-timedelta(minutes=1)).strftime('%Y%m%d%H%M').astype('int64')
+        
         full_index = pd.date_range(start=start_time, end=end_time, freq='1min')
         full_index = full_index.strftime('%Y%m%d%H%M').astype('int64')
         columns = ['open', 'high', 'low', 'close', 'volume']
@@ -137,9 +128,9 @@ class QMT:
         full_df['volume'] = full_df['volume'].fillna(0)
         missing_mask = full_df['open'].isna()
         full_df.loc[missing_mask, ['open', 'high', 'low']] = full_df.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
-        full_df = full_df[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
-        return full_df
-    
+        full_df = full_df.loc[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
+        return True, full_df
+
     def subscribe(self, assets: List[str]):
         def on_subscribed_data(data):
             print(data)
@@ -148,7 +139,32 @@ class QMT:
             xtdata.subscribe_quote(asset, period='tick', start_time='',
                                    end_time='', count=1, callback=on_subscribed_data)
         return
-
+# def subscribe_QMT_etf(self, filename='full-tick.txt'):
+#     # Define callback for subscription data
+#     def subscribed_data_callback(data):
+#         now = datetime.now()
+#         print(now, ': ', sys.getsizeof(data))
+#         self.print_to_file(data, filename)
+#
+#         # Uncomment to enable trading logic
+#         # for stock in data:
+#         #     if stock not in self.hsa:
+#         #         continue
+#         #     cuurent_price = data[stock][0]['lastPrice']
+#         #     pre_price = data[stock][0]['lastClose']
+#         #     ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
+#         #     if ratio > 0.09 and stock not in self.bought_list:
+#         #         print(f"{now} Latest price Buy {stock} 200 shares")
+#         #         # async_seq = self.trader.order_stock_async(self.account, stock,
+#         #         #                                          xtconstant.STOCK_BUY, 1,
+#         #         #                                          xtconstant.LATEST_PRICE, -1,
+#         #         #                                          'strategy_name', stock)
+#         #         self.bought_list.append(stock)
+#
+#     # Subscribe to whole market data
+#     xtdata.subscribe_whole_quote(
+#         ["SH", "SZ"], callback=subscribed_data_callback)
+#     print('[API]: Data Subscribed, DataFeed Start')
 
 class QMT_trader_callback(XtQuantTraderCallback):
     """Trading callback implementation handling various trading events"""
