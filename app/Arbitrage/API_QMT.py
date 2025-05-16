@@ -40,6 +40,9 @@ class QMT:
         self.trader.register_callback(self.callback)
 
         self.connect()
+        
+        self.log_file1 = None
+        self.log_file2 = None
 
     def connect(self):
         """
@@ -63,6 +66,7 @@ class QMT:
         
 
     def disconnect(self):
+        self.close_log_file()
         self.xt.disconnect()
         print(f'[API]: {BLUE}QMT{RESET}: Client Disconnected')
 
@@ -131,6 +135,12 @@ class QMT:
         full_df = full_df.loc[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
         return True, full_df
 
+        # t = '20240101'
+        # s = '513300.SH'
+        # self.qmt.xt.download_history_data(s,period='tick', start_time=t, incrementally=True)
+        # df:pd.DataFrame = self.qmt.xt.get_market_data_ex([],[s],period='tick',start_time=t)[s]
+        # df.to_csv(os.path.join(self.dir, "tick.csv"))
+
     def subscribe(self, assets: List[str]):
         def on_subscribed_data(data):
             print(data)
@@ -139,32 +149,75 @@ class QMT:
             xtdata.subscribe_quote(asset, period='tick', start_time='',
                                    end_time='', count=1, callback=on_subscribed_data)
         return
-# def subscribe_QMT_etf(self, filename='full-tick.txt'):
-#     # Define callback for subscription data
-#     def subscribed_data_callback(data):
-#         now = datetime.now()
-#         print(now, ': ', sys.getsizeof(data))
-#         self.print_to_file(data, filename)
-#
-#         # Uncomment to enable trading logic
-#         # for stock in data:
-#         #     if stock not in self.hsa:
-#         #         continue
-#         #     cuurent_price = data[stock][0]['lastPrice']
-#         #     pre_price = data[stock][0]['lastClose']
-#         #     ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
-#         #     if ratio > 0.09 and stock not in self.bought_list:
-#         #         print(f"{now} Latest price Buy {stock} 200 shares")
-#         #         # async_seq = self.trader.order_stock_async(self.account, stock,
-#         #         #                                          xtconstant.STOCK_BUY, 1,
-#         #         #                                          xtconstant.LATEST_PRICE, -1,
-#         #         #                                          'strategy_name', stock)
-#         #         self.bought_list.append(stock)
-#
-#     # Subscribe to whole market data
-#     xtdata.subscribe_whole_quote(
-#         ["SH", "SZ"], callback=subscribed_data_callback)
-#     print('[API]: Data Subscribed, DataFeed Start')
+    
+    def close_log_file(self):
+        if self.log_file1:
+            self.log_file1.close()
+        if self.log_file2:
+            self.log_file2.close()
+            
+    def subscribe_QMT_etf(self, symbols:List[str]):
+        import json
+        self.dir = os.path.dirname(os.path.abspath(__file__))
+        self.log_file_path1 = os.path.join(self.dir, "recording_qmt1.jsonl")
+        self.log_file1 = open(self.log_file_path1, "a", encoding="utf-8")  # keep file open
+        self.log_file_path2 = os.path.join(self.dir, "recording_qmt2.jsonl")
+        self.log_file2 = open(self.log_file_path2, "a", encoding="utf-8")  # keep file open
+        # Define callback for subscription data
+        def subscribed_data_callback1(data):
+            now = datetime.now()
+            print(now, ': ', sys.getsizeof(data))
+            print(data)
+
+            log_entry = {
+                "timestamp": now.isoformat(),
+                "size": sys.getsizeof(data),
+                "data": data
+            }
+
+            # Write one JSON object per line (no indent)
+            if self.log_file1:
+                self.log_file1.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+                self.log_file1.flush()  # optional: ensure it's written immediately
+
+        def subscribed_data_callback2(data):
+            now = datetime.now()
+            print(now, ': ', sys.getsizeof(data))
+            print(data)
+            log_entry = {
+                "timestamp": now.isoformat(),
+                "size": sys.getsizeof(data),
+                "data": data
+            }
+            # Write one JSON object per line (no indent)
+            if self.log_file2:
+                self.log_file2.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+                self.log_file2.flush()  # optional: ensure it's written immediately
+
+            # Uncomment to enable trading logic
+            # for stock in data:
+            #     if stock not in self.hsa:
+            #         continue
+            #     cuurent_price = data[stock][0]['lastPrice']
+            #     pre_price = data[stock][0]['lastClose']
+            #     ratio = cuurent_price / pre_price - 1 if pre_price > 0 else 0
+            #     if ratio > 0.09 and stock not in self.bought_list:
+            #         print(f"{now} Latest price Buy {stock} 200 shares")
+            #         # async_seq = self.trader.order_stock_async(self.account, stock,
+            #         #                                          xtconstant.STOCK_BUY, 1,
+            #         #                                          xtconstant.LATEST_PRICE, -1,
+            #         #                                          'strategy_name', stock)
+            #         self.bought_list.append(stock)
+
+        # Subscribe to whole market data
+        # xtdata.subscribe_whole_quote(
+        #     ["SH", "SZ"], callback=subscribed_data_callback)
+        
+        for i in symbols:
+            xtdata.subscribe_quote(i,period='1m',count=-1,callback=subscribed_data_callback1) # 订阅时设定回调函数
+            xtdata.subscribe_quote(i,period='tick',count=-1,callback=subscribed_data_callback2) # 订阅时设定回调函数
+        
+        print('[API]: Data Subscribed, DataFeed Start')
 
 class QMT_trader_callback(XtQuantTraderCallback):
     """Trading callback implementation handling various trading events"""

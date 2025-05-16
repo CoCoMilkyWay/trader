@@ -1,2 +1,5 @@
 misc/
 history/
+*.parquet
+*.jsonl
+fig/

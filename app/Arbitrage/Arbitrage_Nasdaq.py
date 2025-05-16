@@ -21,6 +21,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Arbitrage.API_TV import TV
 from Arbitrage.API_IBKR import IBKR
 from Arbitrage.API_QMT import QMT
+from Arbitrage.Backtest import Backtest
 from Arbitrage.Util import *
 
 pd.set_option('display.max_rows', None)
@@ -69,6 +70,11 @@ if today.strftime('%Y%m%d') in trade_days and (time(8, 0) < datetime.now().time(
 else:
     PCF_UPDATE_DATE = trade_days[-2] # worst case (today's morning(trading), last day not updated, so the 2nd last day pcf
     active = 0
+
+duration = 12*6  # months
+UPDATE = False
+DUMP = False
+BACKTEST = True
 
 HK_ETF = []  # 70+
 US_ETF = []  # 20+
@@ -178,7 +184,6 @@ class Main:
         print(f'[Main]: Secondary MNQ contract({self.sec_fut.exchange}:{self.sec_fut.currency}): {RED}{self.sec_fut.symbol}: {self.sec_fut.localSymbol}{RESET}: {self.sec_fut.lastTradeDateOrContractMonth}')
 
         # prepare recent history
-        duration = 6  # months
         fut_tz = "America/Chicago" # CME (Central time)
         stk_tz = "America/New_York" # NYSE/Nasdaq (Eastern time)
         etf_tz = "Asia/Shanghai" # SSE/SZSE/
@@ -187,7 +192,6 @@ class Main:
         # | **Shanghai**   | CST (China) | UTC+8                 | N/A              | —                              | —                         |
         # | **US Central** | CST / CDT   | UTC−6                 | UTC−5            | **+14 hours**                  | **+13 hours**             |
         # | **US Eastern** | EST / EDT   | UTC−5                 | UTC−4            | **+13 hours**                  | **+12 hours**             |
-
         
         fut_end_date = datetime.now(pytz.timezone(fut_tz)).date()
         fut_start_date = fut_end_date - timedelta(days=30*duration)
@@ -197,8 +201,15 @@ class Main:
         trade_days_sse = self.get_tradedays("XSHG", etf_start_date, etf_end_date, type='spot')
         print(f'[Main]: {YELLOW}CME     {RESET} trade days in last {duration} month: {len(trade_days_cme)}, sessions(America/Central): 17:00 - 15:59')
         print(f'[Main]: {YELLOW}SSE/SZSE{RESET} trade days in last {duration} month: {len(trade_days_sse)}, sessions(Asia/Shanghai):   09:30 - 14:57')
-
-        if active:
+        
+        if BACKTEST:
+            history = pd.read_parquet(os.path.join(self.dir, "history.parquet"))
+            print(history[-1000:])
+            self.bt = Backtest()
+            self.bt.backtest(history, [sym[0] for sym in nasdaq100])
+            return
+        
+        if active and UPDATE:
             # Prepare Futures history data ============================================================
             # =========================================================================================
             for fut in self.mnq_futures:
@@ -309,6 +320,8 @@ class Main:
         main_future_concat = []
         for i, (start_date, contract) in enumerate(fut_roll):
             end_date = fut_roll[i + 1][0] if i + 1 < len(fut_roll) else None
+            start_date = start_date*10000
+            end_date = end_date*10000 if end_date else None
             df = futures_concat.get(contract)
             if df is None:
                 print(f"[Main]: {RED} No data for main contract {contract}{RESET}")
@@ -321,12 +334,22 @@ class Main:
             df["main_contract"] = contract
             main_future_concat.append(df)
         
+        # 20230528: MNQU3
+        # 20230911: MNQZ3
+        # 20231211: MNQH4
+        # 20240311: MNQM4
+        # 20240605: MNQU4
+        # 20240916: MNQZ4
+        # 20241216: MNQH5
+        # 20250317: MNQM5
+        
         # Final concatenated main future DataFrame
         main_future_concat = pd.concat(main_future_concat).sort_index()
 
         for date, contract in fut_roll:
             print(f"{date}: {contract}")
-
+        # print(main_future_concat[:10000])
+        
         # Merge History Data ======================================================================
         # =========================================================================================
         main_future_concat.index = pd.to_datetime(main_future_concat.index.astype(str)).tz_localize(fut_tz).tz_convert(etf_tz).strftime('%Y%m%d%H%M').astype('int64')
@@ -338,14 +361,17 @@ class Main:
         etf_navs = [f"{sym}_nav" for sym in etf_symbols]
         
         history = pd.concat([main_future_concat] + list(etfs_concat.values()), axis=1).sort_index()
-        history[etf_closes] = history[etf_closes].ffill().bfill() # note: future info, but is okay
-        # history[etf_navs] = history[etf_navs].ffill().bfill() # note: future info, but is okay
-        # history['volume'] = history['volume'].fillna(0)
-        # missing_mask = history['open'].isna()
-        # history.loc[missing_mask, ['open', 'high', 'low']] = history.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
         
-        # missing_mask = df['open'].isna()
-        # df.loc[missing_mask, ['open', 'high', 'low']] = df.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
+        # FUT: for US holidays like Good Friday, CME is closed while SSE/SZSE is open
+        history['close'] = history['close'].ffill()
+        history['main_contract'] = history['main_contract'].ffill()
+        history['volume'] = history['volume'].fillna(0)
+        missing_mask = history['open'].isna()
+        history.loc[missing_mask, ['open', 'high', 'low']] = history.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1) 
+        
+        # ETFs
+        history[etf_closes] = history[etf_closes].ffill().round(4) # note: future info, but is okay
+        
         for sym in etf_symbols:
             # NAV calculation
             history[f'{sym}_nav_pointer'] = np.nan
@@ -368,7 +394,7 @@ class Main:
             history[f'{sym}_nav'] = (history[f'{sym}_nav_pointer'] * (history['close'] / history[f'{sym}_close_pointer'])).round(4)
             history = history.drop(columns=[f'{sym}_nav_pointer', f'{sym}_close_pointer'])
             
-            history[f"{sym}_premium"] = ((history[f"{sym}_close"] - history[f"{sym}_nav"])/history[f"{sym}_nav"]*100).round(3)
+            history[f"{sym}_premium"] = ((history[f"{sym}_close"] - history[f"{sym}_nav"])/history[f"{sym}_nav"]*100).round(4)
 
         # Filter tradable session =================================================================
         # =========================================================================================
@@ -380,16 +406,25 @@ class Main:
         )
         filtered = history[mask] # only during this time arbitrage is possible
         plot_index = pd.to_datetime(filtered.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
-        print(history[['close', '159509_close', '159509_nav', '159509_premium']])
+        # print(history[['close', '159509_close', '159509_nav', '159509_premium']]) # [-10000:])
+        if DUMP:
+            history.to_parquet(os.path.join(self.dir, "history.parquet"))
         
-        # Filter tradable session =================================================================
+        # self.qmt.subscribe_QMT_etf([f"{syn[0]}.{syn[1]}" for syn in nasdaq100])
+        # self.qmt.run()
+        
+        
+        # interactive web GUI =====================================================================
         # =========================================================================================
+        import plotly.express as px
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
         
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.8, 0.2])
         
         for sym in etf_symbols:
+            if DUMP:
+                px.line(x=plot_index, y=filtered[f"{sym}_premium"], width=1800, height=900).write_image(os.path.join(self.dir, f"fig/premium_{sym}.png"))
             fig.add_trace(go.Scatter(x=plot_index, y=filtered[f"{sym}_premium"], mode='lines', name=f"{sym}_premium"), row=1, col=1)
             
         fig.add_trace(go.Scatter(x=plot_index, y=filtered[f"close"], mode='lines', name=f"Main_Contract: {filtered.iloc[-1]['main_contract']}"), row=2, col=1)
@@ -417,6 +452,23 @@ class Main:
         self.qmt.disconnect()
         self.ibkr.disconnect()
         # self.run()
+
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
+        # =========================================================================================
 
     def get_etf_info(self, sector_list: List[str]) -> Dict[int, Dict[str, Any]]:
         etf_info: Dict[int, Dict[str, Any]] = {}

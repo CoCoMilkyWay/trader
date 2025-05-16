@@ -2699,10 +2699,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 272602234,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 268435456,
-        "ContractOpenInterestQuota": 14646,
+        "ProductTradeQuota": 875703856,
+        "ContractTradeQuota": 808464443,
+        "ProductOpenInterestQuota": 775043126,
+        "ContractOpenInterestQuota": 808213075,
         "MarketCap": 116
     },
     "159217": {
@@ -2732,10 +2732,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ProductTradeQuota": 909848622,
+        "ContractTradeQuota": 875706424,
+        "ProductOpenInterestQuota": 1213410873,
+        "ContractOpenInterestQuota": 808333356,
         "MarketCap": 3076
     },
     "159302": {
@@ -2765,10 +2765,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 3551760,
-        "ContractOpenInterestQuota": 2,
+        "ProductTradeQuota": 1395537206,
+        "ContractTradeQuota": 774909018,
+        "ProductOpenInterestQuota": 993473840,
+        "ContractOpenInterestQuota": 892481584,
         "MarketCap": 120
     },
     "159303": {
@@ -2798,10 +2798,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 3420928,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 3486465,
+        "ProductTradeQuota": 942813232,
+        "ContractTradeQuota": 1395537202,
+        "ProductOpenInterestQuota": 774909018,
+        "ContractOpenInterestQuota": 993407792,
         "MarketCap": 78
     },
     "159312": {
@@ -2831,10 +2831,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": -1,
-        "ContractTradeQuota": 2146435071,
-        "ProductOpenInterestQuota": -755914244,
-        "ContractOpenInterestQuota": 1062232653,
+        "ProductTradeQuota": 774909018,
+        "ContractTradeQuota": 993146416,
+        "ProductOpenInterestQuota": 909258800,
+        "ContractOpenInterestQuota": 1395536177,
         "MarketCap": 76
     },
     "159316": {
@@ -2864,10 +2864,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ProductTradeQuota": 808467254,
+        "ContractTradeQuota": 825766706,
+        "ProductOpenInterestQuota": 744117038,
+        "ContractOpenInterestQuota": 842018352,
         "MarketCap": 206
     },
     "159318": {
@@ -2897,10 +2897,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 13363,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 13619,
-        "ContractOpenInterestQuota": 0,
+        "ProductTradeQuota": 942944816,
+        "ContractTradeQuota": 1515400752,
+        "ProductOpenInterestQuota": 808333356,
+        "ContractOpenInterestQuota": 809185846,
         "MarketCap": 63
     },
     "159323": {
@@ -2930,10 +2930,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": -1,
-        "ContractTradeQuota": 2146435071,
-        "ProductOpenInterestQuota": -755914244,
-        "ContractOpenInterestQuota": 1062232653,
+        "ProductTradeQuota": 858795568,
+        "ContractTradeQuota": 808663865,
+        "ProductOpenInterestQuota": 942748464,
+        "ContractOpenInterestQuota": 744117038,
         "MarketCap": 125
     },
     "159329": {
@@ -2963,10 +2963,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 100684546,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 892483634,
-        "ContractOpenInterestQuota": 3146240,
+        "ProductTradeQuota": 959458864,
+        "ContractTradeQuota": 808663865,
+        "ProductOpenInterestQuota": 959787824,
+        "ContractOpenInterestQuota": 744117038,
         "MarketCap": 924
     },
     "159331": {
@@ -2996,10 +2996,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ProductTradeQuota": 775436592,
+        "ContractTradeQuota": 808213075,
+        "ProductOpenInterestQuota": 825569582,
+        "ContractOpenInterestQuota": 808465211,
         "MarketCap": 76
     },
     "159333": {
@@ -3029,10 +3029,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 0,
+        "ProductTradeQuota": 1395537972,
+        "ContractTradeQuota": 774909018,
+        "ProductOpenInterestQuota": 993081136,
+        "ContractOpenInterestQuota": 825241651,
         "MarketCap": 504
     },
     "159366": {
@@ -3062,10 +3062,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": -208723968,
-        "ProductOpenInterestQuota": 107,
-        "ContractOpenInterestQuota": 3739648,
+        "ProductTradeQuota": 825308466,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 29
     },
     "159501": {
@@ -3095,10 +3095,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 1090021888,
+        "ProductTradeQuota": 825308466,
+        "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 15,
         "MarketCap": 7916
     },
     "159502": {
@@ -3128,7 +3128,7 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 1536,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 15,
@@ -3161,10 +3161,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
+        "ProductTradeQuota": 959460658,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 2048
     },
     "159509": {
@@ -3194,10 +3194,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
+        "ProductTradeQuota": 959460658,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 13328,
+        "ContractOpenInterestQuota": 15,
         "MarketCap": 9459
     },
     "159513": {
@@ -3227,10 +3227,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
+        "ProductTradeQuota": 825243186,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 6060
     },
     "159518": {
@@ -3260,7 +3260,7 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 1778384896,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 15,
@@ -3293,7 +3293,7 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 823132160,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 15,
@@ -3326,10 +3326,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": -1,
-        "ContractTradeQuota": 2146435071,
-        "ProductOpenInterestQuota": -755914244,
-        "ContractOpenInterestQuota": 1062232653,
+        "ProductTradeQuota": 0,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 503
     },
     "159545": {
@@ -3362,7 +3362,7 @@
         "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 13328,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 1330
     },
     "159557": {
@@ -3392,10 +3392,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2304,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 260
     },
     "159561": {
@@ -3425,10 +3425,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 6,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 1501
     },
     "159567": {
@@ -3459,7 +3459,7 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 1090021888,
+        "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 1391
@@ -3491,10 +3491,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": -1,
-        "ContractTradeQuota": 2146435071,
-        "ProductOpenInterestQuota": -755914244,
-        "ContractOpenInterestQuota": 1062232653,
+        "ProductTradeQuota": 0,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 344
     },
     "159569": {
@@ -3526,8 +3526,8 @@
         "IsRecent": false,
         "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 1023424530,
-        "ContractOpenInterestQuota": 23866225,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 126
     },
     "159570": {
@@ -3557,10 +3557,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": -1780105794,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 3125
     },
     "159577": {
@@ -3590,10 +3590,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 4096,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": -457658138,
-        "ContractOpenInterestQuota": -1679182915,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 1117
     },
     "159605": {
@@ -3624,9 +3624,9 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 100675584,
-        "ProductOpenInterestQuota": 805306368,
-        "ContractOpenInterestQuota": 909719603,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 5034
     },
     "159607": {
@@ -3656,10 +3656,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": -1711261647,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 272607641,
-        "ContractOpenInterestQuota": 16789813,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 1254
     },
     "159612": {
@@ -3689,10 +3689,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 3486260,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 545
     },
     "159615": {
@@ -3755,10 +3755,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 100681728,
-        "ProductOpenInterestQuota": 805306368,
-        "ContractOpenInterestQuota": 909522995,
+        "ProductTradeQuota": 875574064,
+        "ContractTradeQuota": 1213410865,
+        "ProductOpenInterestQuota": 808333356,
+        "ContractOpenInterestQuota": 909850416,
         "MarketCap": 9376
     },
     "159636": {
@@ -3788,10 +3788,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 3682560,
-        "ProductOpenInterestQuota": 1202590843,
-        "ContractOpenInterestQuota": 1065646817,
+        "ProductTradeQuota": 892876080,
+        "ContractTradeQuota": 742937390,
+        "ProductOpenInterestQuota": 842214960,
+        "ContractOpenInterestQuota": 808860472,
         "MarketCap": 22015
     },
     "159655": {
@@ -3821,10 +3821,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 53,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 55,
-        "ContractOpenInterestQuota": 856686592,
+        "ProductTradeQuota": 909850672,
+        "ContractTradeQuota": 909717808,
+        "ProductOpenInterestQuota": 1213410869,
+        "ContractOpenInterestQuota": 808333356,
         "MarketCap": 3388
     },
     "159659": {
@@ -3854,10 +3854,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 808583168,
-        "ProductOpenInterestQuota": 909128497,
-        "ContractOpenInterestQuota": 33567537,
+        "ProductTradeQuota": 808860468,
+        "ContractTradeQuota": 909194035,
+        "ProductOpenInterestQuota": 742937390,
+        "ContractOpenInterestQuota": 808463920,
         "MarketCap": 5300
     },
     "159660": {
@@ -3887,10 +3887,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 1090021888,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 0,
+        "ProductTradeQuota": 959852595,
+        "ContractTradeQuota": 742937390,
+        "ProductOpenInterestQuota": 825241136,
+        "ContractOpenInterestQuota": 808860473,
         "MarketCap": 2955
     },
     "159687": {
@@ -3920,10 +3920,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 16789813,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ProductTradeQuota": 808465979,
+        "ContractTradeQuota": 775434552,
+        "ProductOpenInterestQuota": 808208467,
+        "ContractOpenInterestQuota": 942682158,
         "MarketCap": 578
     },
     "159688": {
@@ -3953,10 +3953,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
-        "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ProductTradeQuota": 808208467,
+        "ContractTradeQuota": 942682158,
+        "ProductOpenInterestQuota": 858797627,
+        "ContractOpenInterestQuota": 775108662,
         "MarketCap": 975
     },
     "159691": {
@@ -3986,10 +3986,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 0,
-        "ContractTradeQuota": 1090021888,
-        "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 0,
+        "ProductTradeQuota": 808860470,
+        "ContractTradeQuota": 960050224,
+        "ProductOpenInterestQuota": 742937390,
+        "ContractOpenInterestQuota": 892350000,
         "MarketCap": 6009
     },
     "159696": {
@@ -4020,9 +4020,9 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": -1931105280,
-        "ProductOpenInterestQuota": -1329665897,
-        "ContractOpenInterestQuota": -459362587,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 3176
     },
     "159699": {
@@ -4085,10 +4085,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 838991872,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 69
     },
     "159712": {
@@ -4121,7 +4121,7 @@
         "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 43
     },
     "159718": {
@@ -4152,7 +4152,7 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 1090021888,
+        "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 251
@@ -4185,7 +4185,7 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 1090021888,
+        "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 478
@@ -4251,8 +4251,8 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": -1546188288,
-        "ProductOpenInterestQuota": 855719912,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 7213
     },
@@ -4283,10 +4283,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 917
     },
     "159742": {
@@ -4316,10 +4316,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 82944,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 1919
     },
     "159747": {
@@ -4350,7 +4350,7 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 1090021888,
+        "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 406
@@ -4383,9 +4383,9 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 268453888,
-        "ProductOpenInterestQuota": 12339,
-        "ContractOpenInterestQuota": 268435456,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 562
     },
     "159751": {
@@ -4415,9 +4415,9 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 3486224,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 3617296,
+        "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 601
     },
@@ -4448,10 +4448,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 82944,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 126
     },
     "159788": {
@@ -4483,7 +4483,7 @@
         "IsRecent": false,
         "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 3609088,
+        "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 154
     },
@@ -4514,10 +4514,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 2147483647,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 71348224,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 48221
     },
     "159822": {
@@ -4581,8 +4581,8 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 18432,
-        "ProductOpenInterestQuota": 3224336,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
         "ContractOpenInterestQuota": 0,
         "MarketCap": 910
     },
@@ -4613,10 +4613,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 13057,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 668
     },
     "159892": {
@@ -4646,10 +4646,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": -1,
-        "ContractTradeQuota": 2146435071,
-        "ProductOpenInterestQuota": -755914244,
-        "ContractOpenInterestQuota": 1062232653,
+        "ProductTradeQuota": 0,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 4098
     },
     "159920": {
@@ -4679,10 +4679,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 393267,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
-        "ProductOpenInterestQuota": 3748151,
-        "ContractOpenInterestQuota": 3420944,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 16095
     },
     "159941": {
@@ -4712,10 +4712,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 21035114,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 25220
     },
     "159954": {
@@ -4745,10 +4745,10 @@
         "InstrumentStatus": 0,
         "IsTrading": false,
         "IsRecent": false,
-        "ProductTradeQuota": 1536,
+        "ProductTradeQuota": 0,
         "ContractTradeQuota": 0,
         "ProductOpenInterestQuota": 0,
-        "ContractOpenInterestQuota": 15,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 414
     },
     "159960": {
@@ -4779,9 +4779,9 @@
         "IsTrading": false,
         "IsRecent": false,
         "ProductTradeQuota": 0,
-        "ContractTradeQuota": 268435456,
-        "ProductOpenInterestQuota": 12339,
-        "ContractOpenInterestQuota": 268435456,
+        "ContractTradeQuota": 0,
+        "ProductOpenInterestQuota": 0,
+        "ContractOpenInterestQuota": 0,
         "MarketCap": 543
     }
 }
