@@ -113,7 +113,7 @@ class IBKR:
         return True, full_df
 
     def get_recent_bars(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai', Trim=True):
-        end_time = datetime.now(pytz.timezone(exg_timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_time = datetime.now(pytz.timezone(exg_timezone))
         df = util.df(self.ib.reqHistoricalData(
             contract,
             endDateTime=end_time,

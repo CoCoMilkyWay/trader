@@ -195,3 +195,13 @@ def get_A_stock_day_session(trade_day: str) -> Tuple[pd.DatetimeIndex, int]:
     s2 = curr_day + timedelta(hours=13)
     e2 = curr_day + timedelta(hours=14, minutes=59)
     return _build_session(s1.isoformat(), e1.isoformat(), s2.isoformat(), e2.isoformat())
+
+def filter_A_session(df:pd.DataFrame):
+    hour_min = df.index % 10000  # Get HHMM part
+    # Filter for Shanghai A-share session (09:30–11:29 and 13:00–14:59)
+    mask = (
+        ((hour_min >= 930) & (hour_min <= 1129)) |
+        ((hour_min >= 1300) & (hour_min <= 1459))
+    )
+    filtered = df[mask]  # only during this time arbitrage is possible
+    return filtered
