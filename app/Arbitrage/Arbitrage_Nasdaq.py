@@ -71,10 +71,10 @@ else:
     PCF_UPDATE_DATE = trade_days[-2] # worst case (today's morning(trading), last day not updated, so the 2nd last day pcf
     active = 0
 
-duration = 12*6  # months
-UPDATE = False
+duration = 3  # months
+UPDATE = True
 DUMP = False
-BACKTEST = True
+BACKTEST = False
 
 HK_ETF = []  # 70+
 US_ETF = []  # 20+
@@ -204,7 +204,7 @@ class Main:
         
         if BACKTEST:
             history = pd.read_parquet(os.path.join(self.dir, "history.parquet"))
-            print(history[-1000:])
+            print(history[-100:])
             self.bt = Backtest()
             self.bt.backtest(history, [sym[0] for sym in nasdaq100])
             return
@@ -220,7 +220,6 @@ class Main:
                     success, bars = self.ibkr.get_bars(fut, days=missing_days_fut, bar_size='1 min', exg_timezone=fut_tz)
                     if success:
                         self.store_bars(bars, fut.localSymbol, trade_days_cme, 'futures')
-
             # Prepare ETFs history data ===============================================================
             # =========================================================================================
             for etf in nasdaq100:
@@ -229,7 +228,6 @@ class Main:
                     success, bars = self.qmt.get_bars(f"{etf[0]}.{etf[1]}", days=missing_days_etf, period='1m', exg_timezone=etf_tz)
                     if success:
                         self.store_bars(bars, etf[0], trade_days_sse, 'spot')
-        
         # Synthesize Main Fut Contract ============================================================
         # =========================================================================================
         history_dir = os.path.join(self.dir, "history")
@@ -352,11 +350,11 @@ class Main:
         
         # Merge History Data ======================================================================
         # =========================================================================================
+        
         main_future_concat.index = pd.to_datetime(main_future_concat.index.astype(str)).tz_localize(fut_tz).tz_convert(etf_tz).strftime('%Y%m%d%H%M').astype('int64')
         for sym, df in etfs_concat.items():
             columns = ["close", "nav"] # ["open", "high", "low", "close", "volume", "nav"]
             etfs_concat[sym] = df.rename(columns={col: f"{sym}_{col}" for col in columns})[[f"{sym}_{col}" for col in columns]]
-        
         etf_closes = [f"{sym}_close" for sym in etf_symbols]
         etf_navs = [f"{sym}_nav" for sym in etf_symbols]
         
@@ -413,7 +411,14 @@ class Main:
         # self.qmt.subscribe_QMT_etf([f"{syn[0]}.{syn[1]}" for syn in nasdaq100])
         # self.qmt.run()
         
+        print(history[-50:])
         
+        bars_new_fut = self.ibkr.get_recent_bars(self.pri_fut, days=7, bar_size='1 min', exg_timezone=fut_tz, Trim=False)
+        print(bars_new_fut[-50:])
+        for etf in nasdaq100:
+            bars_new_etf = self.qmt.get_recent_bars(f"{etf[0]}.{etf[1]}", days=7, period='1m', exg_timezone=etf_tz)
+            print(etf, bars_new_etf[-50:])
+            
         # interactive web GUI =====================================================================
         # =========================================================================================
         import plotly.express as px

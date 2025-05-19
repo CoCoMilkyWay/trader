@@ -59,7 +59,7 @@ class IBKR:
         contracts.sort(key=parse_last_trade_date)
         return contracts
 
-    def get_bars(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai'):
+    def get_bars(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai', Trim=True):
         """
         data need to be handled/saved in exchange timezone for better organization
         doesn't include end(today's) data, as it is incomplete
@@ -108,8 +108,27 @@ class IBKR:
         full_df['volume'] = full_df['volume'].fillna(0)
         missing_mask = full_df['open'].isna()
         full_df.loc[missing_mask, ['open', 'high', 'low']] = full_df.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
-        full_df = full_df.loc[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
+        if Trim:
+            full_df = full_df.loc[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
         return True, full_df
+
+    def get_recent_bars(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai', Trim=True):
+        end_time = datetime.now(pytz.timezone(exg_timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
+        df = util.df(self.ib.reqHistoricalData(
+            contract,
+            endDateTime=end_time,
+            durationStr=f'{days} D',  # IBKR data on 1st day is not complete (from trading session start, no pre-session data)
+            barSizeSetting=bar_size,
+            whatToShow='TRADES',
+            useRTH=False,
+            formatDate=1,
+            timeout=0,  # wait forever
+        ))
+        assert df is not None, f"{RED} {contract} is empty at enddate {end_time}{RESET}"
+        df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+        df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype(int))
+        df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
+        return df
 
     # def get_bars_whole(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai'):
     #     """

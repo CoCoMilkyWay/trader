@@ -105,7 +105,7 @@ class QMT:
         """
         return xtdata.get_sector_list()
 
-    def get_bars(self, asset: str, days:int, period: str, exg_timezone: str = 'Asia/Shanghai'):
+    def get_bars(self, asset: str, days:int, period: str, exg_timezone: str = 'Asia/Shanghai', Trim=True):
         """
         data need to be handled/saved in exchange timezone for better organization
         """
@@ -132,8 +132,27 @@ class QMT:
         full_df['volume'] = full_df['volume'].fillna(0)
         missing_mask = full_df['open'].isna()
         full_df.loc[missing_mask, ['open', 'high', 'low']] = full_df.loc[missing_mask, 'close'].values[:, None].repeat(3, axis=1)
-        full_df = full_df.loc[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
+        if Trim:
+            full_df = full_df.loc[full_df.index >= int(start_time.strftime('%Y%m%d%H%M'))]
         return True, full_df
+
+    def get_recent_bars(self, asset: str, days:int, period: str, exg_timezone: str = 'Asia/Shanghai', Trim=True):
+        """
+        data need to be handled/saved in exchange timezone for better organization
+        """
+        print(f'[API]: {BLUE}QMT{RESET}: Pulling {days} days {asset} ETF data...')
+        end_time = datetime.now(pytz.timezone(exg_timezone)).replace(hour=0, minute=0, second=0, microsecond=0)
+        start_time = end_time - timedelta(days=days)
+        s = start_time.strftime('%Y%m%d')
+        e = end_time.strftime('%Y%m%d')
+
+        self.xt.download_history_data(asset, period, start_time=s, incrementally=True)
+        df:pd.DataFrame = xtdata.get_market_data_ex([],[asset],period=period,start_time=s)[asset]
+        # IBKR and other American brokers use open time (we use this)
+        # XT and other Chinese brokers use close time
+        df.index = (pd.to_datetime(df.index).tz_localize(exg_timezone)-timedelta(minutes=1)).strftime('%Y%m%d%H%M').astype('int64')
+        df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
+        return df
 
         # t = '20240101'
         # s = '513300.SH'

@@ -12,6 +12,7 @@ class Backtest:
     
     def backtest(self, history:pd.DataFrame, symbols:List[str]):
         W = 4*60*7*5  # n week of market hours
+        n = 30
         history = self.filter_cn(history)
         # for idx, symbol in enumerate(tqdm(symbols)):
         #     df[f'{symbol}_pct_90_rolling'] = df[f'{symbol}_premium'].rolling(window=W, min_periods=1).quantile(0.90)
@@ -20,16 +21,23 @@ class Backtest:
         symbol = '513300'
         df = history[[f'close', f'{symbol}_close', f'{symbol}_premium']].copy()
         df['premium_ma'] = df[f'{symbol}_premium'].rolling(window=W, min_periods=1).mean()
+        df['low_n'] = df[f'{symbol}_premium'].rolling(window=n, min_periods=1).min()
+        df['high_n'] = df[f'{symbol}_premium'].rolling(window=n, min_periods=1).max()
+        df['atr_n'] = (df['high_n'] - df['low_n']).rolling(window=n, min_periods=1).mean()
         df[f'pct_90_rolling'] = df[f'{symbol}_premium'].rolling(window=W, min_periods=1).quantile(0.90)
         df[f'pct_10_rolling'] = df[f'{symbol}_premium'].rolling(window=W, min_periods=1).quantile(0.10)
-
+        
+        RMB = 1000000
+        USD = 1000000
+        
+        df['mid'] = float('nan')
         df['pos_open'] = float('nan')
         df['pos_close'] = float('nan')
         df['RMB'] = float('nan')
         df['USD'] = float('nan')
-        
-        RMB = 1000000
-        USD = 1000000
+        first_index = df.index[0]
+        df.loc[first_index, 'RMB'] = RMB
+        df.loc[first_index, 'USD'] = USD
         
         hold = False
         entry_price_equity = 0  # Price when position is entered
@@ -40,22 +48,36 @@ class Backtest:
         tax_fut = 5  # per contract
         # Equities:
         comm_eqt_rate = 0.0001
+        last_levels = [0]
+        
         for index, row in df.iterrows():
             time = index
             pct10 = row['pct_10_rolling']
             pct90 = row['pct_90_rolling']
             premium_ma = row['premium_ma']
+            atr_n = row['atr_n']
+            mid = (row['high_n'] + row['low_n'])/2
             premium = row[f'{symbol}_premium']
             equity_price = row[f'{symbol}_close']
             future_price = row['close']
             open_position = False
             close_position = False
-            open = (premium < pct10) and (premium < 2)
-            close = (premium > pct90)
-            if open:
-                df.at[index, 'pos_open'] = row['close']
-            if close:
-                df.at[index, 'pos_close'] = row['close']
+            
+            try:
+                level = round((premium - mid) / (atr_n/8))
+            except:
+                level = 0
+            if level != last_levels[-1]:
+                last_levels.append(level)
+
+            open = level < -2 and (last_levels[-1] > last_levels[-2])
+            close = (level > 2) or (int(str(index)[-4:])>1455)
+
+            # open = level < -2 and (last_levels[-1] > last_levels[-2] > last_levels[-3])
+            # close = (level > 2 and (last_levels[-1] < last_levels[-2])) or (int(str(index)[-4:])>1455)
+            
+            # open = (premium < pct10) and (premium < 2)
+            # close = (premium > pct90)
             # Open positions when abs(premium_ma) < 5 and premium is low
             if open and not hold:
                 open_position = True
@@ -65,6 +87,7 @@ class Backtest:
                 if position_amount < 100000:
                     assert False, f"RMB: {RMB}, USD: {USD}"
                 # Open the combined position (long equity + short futures)
+                equity_price += 0.001 # taker order
                 long_position = int(RMB // equity_price)  # Amount of both equity and futures (same size for both)
                 short_position = int(USD // future_price)  # Amount of both equity and futures (same size for both)
                 entry_price_equity = equity_price  # Record the price when the position was opened
@@ -79,7 +102,7 @@ class Backtest:
                 close_position = True
                 hold = False
                 # Close the combined position (long equity + short futures)
-                sell_equity_price = equity_price
+                sell_equity_price = equity_price - 0.001
                 cover_futures_price = future_price
                 # Profit from the long equity position
                 close_value_equity = sell_equity_price * long_position
@@ -95,6 +118,15 @@ class Backtest:
                 df.at[index, 'RMB'] = RMB
                 df.at[index, 'USD'] = USD
                 print(f"Closing at {time}: equity:{sell_equity_price:2.4f}, futures:{cover_futures_price:5.2f}, premium:{premium:+2.2f}, RMB:{RMB:8.2f}, USD:{USD:8.2f}, profit:{profit_equity:6.2f}/{profit_futures:6.2f}")
+            
+            if open_position:
+                df.at[index, 'pos_open'] = premium
+            if close_position:
+                df.at[index, 'pos_close'] = premium
+            df.at[index, 'mid'] = mid
+                
+        df['RMB'] = df['RMB'].ffill()
+        df['USD'] = df['USD'].ffill()
         
         plot_index = pd.to_datetime(df.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
         
@@ -102,18 +134,27 @@ class Backtest:
         import plotly.graph_objects as go
         from plotly.subplots import make_subplots
 
-        # fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.7, 0.3])
-        fig = go.Figure()
-        fig.add_trace(go.Scattergl(y=df[f'pct_90_rolling'],         mode='lines', line=dict(width=2)                , name='pct_90_rolling'))#, row=1, col=1)
-        fig.add_trace(go.Scattergl(y=df[f'premium_ma'],             mode='lines', line=dict(width=2)                , name='premium_ma')    )#, row=1, col=1)
-        fig.add_trace(go.Scattergl(y=df[f'pct_10_rolling'],         mode='lines', line=dict(width=2)                , name='pct_10_rolling'))#, row=1, col=1)
-        fig.add_trace(go.Scattergl(y=df[f'{symbol}_premium'],       mode='lines', line=dict(width=1), opacity=0.5   , name='premium')       )#, row=1, col=1)
-        # fig.add_trace(go.Scattergl(y=df[df['pos_open'].notna()],    mode='markers', marker=dict(size=8)             , name='pos_open')      )#, row=1, col=1)
-        # fig.add_trace(go.Scattergl(y=df[df['pos_close'].notna()],   mode='markers', marker=dict(size=8)             , name='pos_close')     )#, row=1, col=1)
+        fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.7, 0.3])
+        # fig = go.Figure()
+        
+        # fig.add_trace(go.Scatter(y=df[f'pct_90_rolling'],         mode='lines', line=dict(width=2)                , name='up'),     row=1, col=1)
+        # fig.add_trace(go.Scatter(y=df[f'pct_10_rolling'],         mode='lines', line=dict(width=2)                , name='down'),   row=1, col=1)
+        # fig.add_trace(go.Scatter(y=df[f'premium_ma'],             mode='lines', line=dict(width=2)                , name='mid'),    row=1, col=1)
+        
+        fig.add_trace(go.Scatter(y=df[f'mid']+df['atr_n']/2,         mode='lines', line=dict(width=2)                , name='up'),     row=1, col=1)
+        fig.add_trace(go.Scatter(y=df[f'mid'],         mode='lines', line=dict(width=2)                , name='down'),   row=1, col=1)
+        fig.add_trace(go.Scatter(y=df[f'mid']-df['atr_n']/2,             mode='lines', line=dict(width=2)                , name='mid'),    row=1, col=1)
 
-        # fig.add_trace(go.Scattergl(y=df['RMB'], mode='lines', name='RMB'), row=2, col=1)
-        # fig.add_trace(go.Scattergl(y=df['USD'], mode='lines', name='USD'), row=2, col=1)
-        # fig.add_trace(go.Scattergl(y=df['RMB']+df['USD'], mode='lines', name='total'), row=2, col=1)
+        fig.add_trace(go.Scatter(y=df[f'{symbol}_premium'],       mode='lines', line=dict(width=1), opacity=0.5   , name='premium'),row=1, col=1)
+        fig.add_trace(go.Scatter(y=df['pos_open'],    mode='markers', marker=dict(size=10)             , name='pos_open')      ,    row=1, col=1)
+        fig.add_trace(go.Scatter(y=df['pos_close'],   mode='markers', marker=dict(size=10)             , name='pos_close')     ,    row=1, col=1)
+
+        fig.add_trace(go.Scatter(y=df['RMB'], mode='lines', name='RMB'), row=2, col=1)
+        fig.add_trace(go.Scatter(y=df['USD'], mode='lines', name='USD'), row=2, col=1)
+        fig.add_trace(go.Scatter(y=df['RMB']+df['USD'], mode='lines', name='total'), row=2, col=1)
+        
+        # print(df[df['pos_open'].notna()])
+        # print(df[df['pos_close'].notna()])
         
         fig.update_layout(
             title='trading backtest',
@@ -130,7 +171,7 @@ class Backtest:
         #     gridcolor='lightgray',
         #     gridwidth=0.5
         # )
-        fig.to_html(os.path.join(self.dir, "fig.html"))
+        # fig.to_html(os.path.join(self.dir, "fig.html"))
         fig.show()
         
         return
