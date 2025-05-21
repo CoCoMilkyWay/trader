@@ -19,7 +19,7 @@ class Backtest:
         #     df[f'{symbol}_pct_10_rolling'] = df[f'{symbol}_premium'].rolling(window=W, min_periods=1).quantile(0.10)
         
         symbol = '513300'
-        df = history[[f'close', f'{symbol}_close', f'{symbol}_premium']].copy()
+        df = history.loc[:, [f'close', f'{symbol}_close', f'{symbol}_premium']].copy()
         df['premium_ma'] = df[f'{symbol}_premium'].rolling(window=W, min_periods=1).mean()
         df['low_n'] = df[f'{symbol}_premium'].rolling(window=n, min_periods=1).min()
         df['high_n'] = df[f'{symbol}_premium'].rolling(window=n, min_periods=1).max()

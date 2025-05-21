@@ -86,7 +86,7 @@ class IBKR:
                 assert df is not None, f"{RED} {contract} is empty at enddate {incr_time}{RESET}"
                 if not df.empty:
                     df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-                    df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype(int))
+                    df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype('int64'))
                     df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
                     all_dfs.append(df)
                 incr_time -= timedelta(days=increment)
@@ -114,6 +114,7 @@ class IBKR:
 
     def get_recent_bars(self, contract: Contract, days: int, bar_size: str = '1 min', exg_timezone: str = 'Asia/Shanghai', Trim=True):
         end_time = datetime.now(pytz.timezone(exg_timezone))
+        print(f'[API]: {BLUE}IBKR{RESET}: Pulling {days} days {contract.localSymbol} futures data...')
         df = util.df(self.ib.reqHistoricalData(
             contract,
             endDateTime=end_time,
@@ -126,7 +127,7 @@ class IBKR:
         ))
         assert df is not None, f"{RED} {contract} is empty at enddate {end_time}{RESET}"
         df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-        df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype(int))
+        df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M').astype('int64'))
         df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
         return df
 
@@ -152,7 +153,7 @@ class IBKR:
     #     assert df is not None, f"Failed to get bars for {contract} at end date {end_date}"
     #     if not df.empty:
     #         df['datetime'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-    #         df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M%S').astype(int))
+    #         df = df.set_index(df['datetime'].dt.strftime('%Y%m%d%H%M%S').astype('int64'))
     #         df = df.rename(columns={'': ''})[['open', 'high', 'low', 'close', 'volume']]
     #     df = df.sort_index()
     #     df = df[int(end_date.strftime('%Y%m%d%H%M%S')) > df.index >= int(start_date.strftime('%Y%m%d%H%M%S'))]

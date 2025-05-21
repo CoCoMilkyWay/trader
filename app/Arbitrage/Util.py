@@ -197,11 +197,93 @@ def get_A_stock_day_session(trade_day: str) -> Tuple[pd.DatetimeIndex, int]:
     return _build_session(s1.isoformat(), e1.isoformat(), s2.isoformat(), e2.isoformat())
 
 def filter_A_session(df:pd.DataFrame):
+    print(df.index.dtype)
     hour_min = df.index % 10000  # Get HHMM part
     # Filter for Shanghai A-share session (09:30–11:29 and 13:00–14:59)
     mask = (
         ((hour_min >= 930) & (hour_min <= 1129)) |
         ((hour_min >= 1300) & (hour_min <= 1459))
     )
-    filtered = df[mask]  # only during this time arbitrage is possible
-    return filtered
+    return df[mask]
+
+def plot_df_heatmap(df:pd.DataFrame, label:str, value:str):
+    import plotly.graph_objects as go
+    
+    x = pd.to_datetime(df.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
+    
+    # Normalize 'b' for color mapping
+    norm_b = (df[label] - df[label].min()) / (df[label].max() - df[label].min())
+    # Create a 2-row heatmap background using b
+    z = np.tile(norm_b.values, (2, 1))  # shape (2, N)
+
+    # Create figure
+    fig = go.Figure()
+
+    # Add background as heatmap
+    fig.add_trace(go.Heatmap(
+        z=z,
+        x=x,
+        y=[df[value].min(), df[value].max()],
+        colorscale='Viridis',
+        showscale=False,
+        zmin=0,
+        zmax=1,
+        opacity=0.6
+    ))
+
+    # Overlay the line for column 'a'
+    fig.add_trace(go.Scatter(
+        x=x,
+        y=df[value],
+        mode='lines',
+        line=dict(color='black'),
+        name=value
+    ))
+
+    fig.update_layout(
+        title="Plot of 'a' with 'b' as vertical background color",
+        xaxis_title="Time",
+        yaxis_title=value,
+        yaxis=dict(range=[df[value].min(), df[value].max()]),
+        # xaxis=dict(showgrid=False, type='category'),  # Categorical axis spacing
+        template='plotly_white'
+    )
+
+    fig.show()
+
+def plot_premium(etf_symbols:List[str], df:pd.DataFrame, hours:int=4):
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    
+    index = pd.to_datetime(df.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
+    
+    session = np.where(df['is_etf_session'], 10, 0)
+    
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.8, 0.2])
+    
+    # px.line(x=plot_index, y=df[f"{sym}_premium"], width=1800, height=900).write_image(os.path.join(self.dir, f"fig/premium_{sym}.png"))
+    for sym in etf_symbols:
+        fig.add_trace(go.Scatter(x=index, y=df[f"{sym}_premium"], mode='lines', name=f"{sym}_premium"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=index, y=session, mode='lines', name=f"ETF_Session", line=dict(width=1)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=index, y=df[f"close"], mode='lines', name=f"Main_Contract: {df.iloc[-1]['main_contract']}"), row=2, col=1)
+    
+    # fig.add_trace(go.Scatter(x=[date*10000 for date, contract in fut_roll], y=[0] * len(fut_roll), mode='markers', name='Future Rolls'))
+    fig.update_layout(
+        title='QDII NASDAQ100 price premium to NAV',
+        # xaxis=dict(showgrid=False, type='category'),  # Categorical axis spacing
+        xaxis_title='timestamp(min)',
+        yaxis_title='premium(percent)',
+        template='plotly_white',
+        showlegend=True,
+        height=700,  # This affects the absolute pixel height of the whole figure
+    )
+    
+    fig.update_xaxes(
+        showgrid=True,
+        tickmode='linear', # Force evenly spaced ticks
+        dtick=60*hours, # Set tick interval (e.g., every 1 unit)
+        gridcolor='lightgray',
+        gridwidth=0.5
+    )
+    fig.show()
