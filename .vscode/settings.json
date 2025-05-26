@@ -1,6 +1,7 @@
 {
     "files.associations": {
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "define.h": "c"
     },
     "python.analysis.autoImportCompletions": false,
     "python.analysis.typeCheckingMode": "basic",

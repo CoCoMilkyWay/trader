@@ -22,7 +22,7 @@ def load_data_and_label():
     np.random.seed(42)  # For reproducibility
 
     df = pd.read_parquet(os.path.join(os.path.dirname(__file__), 'volume_run_bar.parquet'))
-    df = df[-int(60/5*24*5*4*5):]
+    df = df[-int(60/5*24*5*4*1):]
     df = df.set_index('time')
     series = df["close"]
     df['ref'] = np.log((series / series.iloc[0]).fillna(1))
@@ -76,7 +76,7 @@ def load_data_and_label():
     fig.show()
 
     df = df[['data', 'label']]  # use data because it is stationary
-    df.to_parquet(filepath)
+    # df.to_parquet(filepath)
     return df
 
 

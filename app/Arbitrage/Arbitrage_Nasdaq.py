@@ -72,7 +72,7 @@ else:
     PCF_UPDATE_DATE = trade_days[-2]  # worst case (today's morning(trading), last day not updated, so the 2nd last day pcf
     active = 0
 duration = 3  # months
-UPDATE = False
+UPDATE = True
 DUMP = False
 BACKTEST = False
 
@@ -466,7 +466,7 @@ class Main:
         plot_premium(etf_symbols, self.history, 23)
         self.history = filter_A_session(self.history)
         plot_premium(etf_symbols, self.history, 4)
-
+        print(self.history[-500:])
         # interactive web GUI =====================================================================
         # =========================================================================================
 
