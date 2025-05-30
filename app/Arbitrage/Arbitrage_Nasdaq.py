@@ -374,7 +374,6 @@ class Main:
         # set the etf/fut pointer for later update
         history = pd.concat([main_future_concat] + list(etfs_concat.values()), axis=1).sort_index()
         
-        
         # get the full n+3 df for later intra-day trading
         for i in [1,2,3]:
             day_session = get_cme_day_session(self.trade_days_cme[-5:], i)[0].tz_localize(self.fut_tz).tz_convert(self.etf_tz).strftime('%Y%m%d%H%M').astype('int64')
@@ -455,18 +454,16 @@ class Main:
 
         # asyncio.run(self.run_data_loop())
         
-        # 
-        
         # Filter tradable session(for trading/plotting) ===========================================
         # =========================================================================================
 
-        # print(self.history[['close', '159509_close', '159509_nav', '159509_premium']][-1000:])
-
         # plot_df_heatmap(self.history, '159509_premium', '159509_close')
+        # plot_nav(etf_symbols, self.history, 23)
         plot_premium(etf_symbols, self.history, 23)
         self.history = filter_A_session(self.history)
         plot_premium(etf_symbols, self.history, 4)
-        print(self.history[-500:])
+        print(self.history[['close', '159509_close', '159509_nav', '159509_premium', '159509_nav_pointer', '159509_close_pointer']][-1000:])
+        # print(self.history[-500:])
         # interactive web GUI =====================================================================
         # =========================================================================================
 

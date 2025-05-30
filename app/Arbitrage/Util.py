@@ -287,3 +287,37 @@ def plot_premium(etf_symbols:List[str], df:pd.DataFrame, hours:int=4):
         gridwidth=0.5
     )
     fig.show()
+
+def plot_nav(etf_symbols:List[str], df:pd.DataFrame, hours:int=4):
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    
+    index = pd.to_datetime(df.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
+        
+    fig = go.Figure()
+    
+    # px.line(x=plot_index, y=df[f"{sym}_premium"], width=1800, height=900).write_image(os.path.join(self.dir, f"fig/premium_{sym}.png"))
+    for sym in etf_symbols:
+        fig.add_trace(go.Scatter(x=index, y=df[f"{sym}_nav"], mode='lines', name=f"{sym}_nav"))
+        fig.add_trace(go.Scatter(x=index, y=df[f"{sym}_nav_pointer"], mode='lines', name=f"{sym}_nav_pointer"))
+    
+    # fig.add_trace(go.Scatter(x=[date*10000 for date, contract in fut_roll], y=[0] * len(fut_roll), mode='markers', name='Future Rolls'))
+    fig.update_layout(
+        title='QDII NASDAQ100 NAV to index',
+        # xaxis=dict(showgrid=False, type='category'),  # Categorical axis spacing
+        xaxis_title='timestamp(min)',
+        yaxis_title='NAV',
+        template='plotly_white',
+        showlegend=True,
+        height=700,  # This affects the absolute pixel height of the whole figure
+    )
+    
+    fig.update_xaxes(
+        showgrid=True,
+        tickmode='linear', # Force evenly spaced ticks
+        dtick=60*hours, # Set tick interval (e.g., every 1 unit)
+        gridcolor='lightgray',
+        gridwidth=0.5
+    )
+    fig.show()
