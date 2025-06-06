@@ -21,7 +21,7 @@ pd.set_option('display.max_colwidth', None)
 
 weeks = 12
 
-filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"tsfresh_features_and_label_{weeks}weeks.parquet")
+filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"features_and_label(tsfresh_calmar).parquet")
 df = pd.read_parquet(filepath)
 print(df.head().transpose())
 

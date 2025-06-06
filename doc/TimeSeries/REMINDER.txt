@@ -1,6 +1,0 @@
-NEVER EVER use price to predict logreturns(price).
-Only 1st year college student do that, it is NOT working(due to extremely low SNR).
-use mined alphas(not raw indicators) (passed quality checking metrics) as input !!!
-
-output is logreturn(curve)?
-HELL NO, output should be some kind of operation, like long/short
