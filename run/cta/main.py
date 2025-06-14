@@ -39,6 +39,7 @@ def main():
 
     print(input_array)
     print("Num bars:", input_array.shape[0])
+    print("Bytes per record:", input_array.dtype.itemsize)
 
     from cpp import Pipeline  # type: ignore
     try:
