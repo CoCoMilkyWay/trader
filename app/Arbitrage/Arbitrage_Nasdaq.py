@@ -457,11 +457,11 @@ class Main:
         # Filter tradable session(for trading/plotting) ===========================================
         # =========================================================================================
 
-        # plot_df_heatmap(self.history, '159509_premium', '159509_close')
-        # plot_nav(etf_symbols, self.history, 23)
         # plot_premium(etf_symbols, self.history, 23)
         self.history = filter_A_session(self.history)
         plot_premium(etf_symbols, self.history, 4)
+        # plot_nav(etf_symbols, self.history, 23)
+        plot_heatmap(self.history, ['159509', '159941', '159696'])
         print(self.history[['close', '159509_close', '159509_nav', '159509_premium', '159509_nav_pointer', '159509_close_pointer']][-1000:])
         # print(self.history[-500:])
         # interactive web GUI =====================================================================
@@ -542,7 +542,6 @@ class Main:
             await asyncio.sleep(0)  # yield control
 
     # Async main routine
-
     async def run_data_loop(self):
         data_feed_task = asyncio.create_task(self.data_feed())
         data_analyze_task = asyncio.create_task(self.data_analyze())

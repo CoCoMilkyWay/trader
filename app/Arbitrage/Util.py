@@ -197,7 +197,6 @@ def get_A_stock_day_session(trade_day: str) -> Tuple[pd.DatetimeIndex, int]:
     return _build_session(s1.isoformat(), e1.isoformat(), s2.isoformat(), e2.isoformat())
 
 def filter_A_session(df:pd.DataFrame):
-    print(df.index.dtype)
     hour_min = df.index % 10000  # Get HHMM part
     # Filter for Shanghai A-share session (09:30–11:29 and 13:00–14:59)
     mask = (
@@ -206,51 +205,58 @@ def filter_A_session(df:pd.DataFrame):
     )
     return df[mask]
 
-def plot_df_heatmap(df:pd.DataFrame, label:str, value:str):
+def plot_heatmap(df:pd.DataFrame, assets:List[str]):
     import plotly.graph_objects as go
-    
-    x = pd.to_datetime(df.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
-    
-    # Normalize 'b' for color mapping
-    norm_b = (df[label] - df[label].min()) / (df[label].max() - df[label].min())
-    # Create a 2-row heatmap background using b
-    z = np.tile(norm_b.values, (2, 1))  # shape (2, N)
-
-    # Create figure
     fig = go.Figure()
-
-    # Add background as heatmap
-    fig.add_trace(go.Heatmap(
-        z=z,
-        x=x,
-        y=[df[value].min(), df[value].max()],
-        colorscale='Viridis',
-        showscale=False,
-        zmin=0,
-        zmax=1,
-        opacity=0.6
-    ))
-
-    # Overlay the line for column 'a'
-    fig.add_trace(go.Scatter(
-        x=x,
-        y=df[value],
-        mode='lines',
-        line=dict(color='black'),
-        name=value
-    ))
-
-    fig.update_layout(
-        title="Plot of 'a' with 'b' as vertical background color",
-        xaxis_title="Time",
-        yaxis_title=value,
-        yaxis=dict(range=[df[value].min(), df[value].max()]),
-        # xaxis=dict(showgrid=False, type='category'),  # Categorical axis spacing
-        template='plotly_white'
-    )
-
+    for i, asset in enumerate(assets):
+        fig.add_trace(go.Scatter(y=df['close'] - i*1000, mode='lines+markers', marker=dict(color=df[f'{asset}_premium'], colorscale='RdBu', showscale=True, colorbar=dict(title="premium"), size=4), name=f"{asset}",))
     fig.show()
 
+# def plot_df_heatmap(df:pd.DataFrame, label:str, value:str):
+#     import plotly.graph_objects as go
+#     
+#     x = pd.to_datetime(df.index.astype(str), format='%Y%m%d%H%M').strftime('%H%M-%Y%m%d')
+#     
+#     # Normalize 'b' for color mapping
+#     norm_b = (df[label] - df[label].min()) / (df[label].max() - df[label].min())
+#     # Create a 2-row heatmap background using b
+#     z = np.tile(norm_b.values, (2, 1))  # shape (2, N)
+# 
+#     # Create figure
+#     fig = go.Figure()
+# 
+#     # Add background as heatmap
+#     fig.add_trace(go.Heatmap(
+#         z=z,
+#         x=x,
+#         y=[df[value].min(), df[value].max()],
+#         colorscale='Viridis',
+#         showscale=False,
+#         zmin=0,
+#         zmax=1,
+#         opacity=0.6
+#     ))
+# 
+#     # Overlay the line for column 'a'
+#     fig.add_trace(go.Scatter(
+#         x=x,
+#         y=df[value],
+#         mode='lines',
+#         line=dict(color='black'),
+#         name=value
+#     ))
+# 
+#     fig.update_layout(
+#         title="Plot of 'a' with 'b' as vertical background color",
+#         xaxis_title="Time",
+#         yaxis_title=value,
+#         yaxis=dict(range=[df[value].min(), df[value].max()]),
+#         # xaxis=dict(showgrid=False, type='category'),  # Categorical axis spacing
+#         template='plotly_white'
+#     )
+# 
+#     fig.show()
+# 
 def plot_premium(etf_symbols:List[str], df:pd.DataFrame, hours:int=4):
     import plotly.express as px
     import plotly.graph_objects as go
@@ -287,6 +293,7 @@ def plot_premium(etf_symbols:List[str], df:pd.DataFrame, hours:int=4):
         gridwidth=0.5
     )
     fig.show()
+
 
 def plot_nav(etf_symbols:List[str], df:pd.DataFrame, hours:int=4):
     import plotly.express as px

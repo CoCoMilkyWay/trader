@@ -106,7 +106,7 @@ model = ShallowWideNN(input_dim, hidden_dim, n_classes).to(device)
 
 # Training setup
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
+optimizer = optim.Adam(model.parameters(), lr=1e-2, weight_decay=1e-4)
 epochs = 200
 batch_size = 64 # would impact model performance by batchnorm1d
 

@@ -4,12 +4,14 @@
             "name": "Linux",
             "includePath": [
                 "${default}",
-                "app/wtcpp_dep/include/**"
+                "C:/Users/chuyin.wang/AppData/Local/Programs/Python/Python313/include/",
+                "app/wtcpp_dep/include/**",
+                "${workspaceFolder}/run/cta/cpp/include",
+                "${workspaceFolder}/run/cta/cpp/src"
             ],
             "defines": [],
-            //"compilerPath": "/usr/bin/gcc-8",
             "cStandard": "c17",
-            "cppStandard": "c++14",
+            "cppStandard": "c++23",
             "intelliSenseMode": "linux-gcc-x64"
         }
     ],
