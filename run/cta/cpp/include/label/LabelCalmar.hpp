@@ -9,7 +9,7 @@
 #include <numeric>
 #include <cassert>
 
-#include <misc/misc.hpp>
+#include <define/DataType.hpp>
 
 class LabelCalmar
 {
@@ -175,14 +175,12 @@ public:
             best_close_indices[i] = short_res.best_idx;
         }
 
-        // misc::print(long_res.max_rr, long_res.max_dr, short_res.max_rr, short_res.max_dr, bar.label_calmar);
-
         prev_close = bar.close;
 
-        if (i % int(bars.size() * 0.05f) == 0 || i == bars.size() - 1) [[unlikely]]
-        {
-            misc::print_progress(i + 1, bars.size());
-        }
+        // if (i % int(bars.size() * 0.05f) == 0 || i == bars.size() - 1) [[unlikely]]
+        // {
+        //     misc::print_progress(i + 1, bars.size());
+        // }
 
         return true;
     }

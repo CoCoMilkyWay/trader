@@ -61,53 +61,23 @@ def main():
 
     # fig = go.Figure()
     # fig.add_trace(go.Scatter(x=time_bar['time'], y=time_bar['close'], mode='lines', name='Time bar'))
-    # fig.add_trace(go.Candlestick(x=vrun_bar['time'], open=vrun_bar['open'], high=vrun_bar['high'], low=vrun_bar['low'], close=vrun_bar['close'], name='Volume run bar'))
-    # fig.update_layout(
-    #     title='Sampling methods',
-    #     xaxis_title='Date',
-    #     yaxis_title='Price',
-    #     xaxis_rangeslider_visible=False,
-    #     xaxis=dict(type='category')
-    # )
-
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=vrun_bar.index,
-        y=vrun_bar['high'],
-        line=dict(width=0),
-        mode='lines',
-        showlegend=False,
-        hoverinfo='skip'
-    ))
-    fig2.add_trace(go.Scatter(
-        x=vrun_bar.index,
-        y=vrun_bar['low'],
-        fill='tonexty',
-        fillcolor='rgba(200, 200, 200, 0.5)',
-        line=dict(width=0),
-        mode='lines',
-        name='High-Low Range',
-        hoverinfo='skip'
-    ))
-    fig2.add_trace(go.Scatter(
-        x=vrun_bar.index,
-        y=vrun_bar['close'],
-        mode='lines+markers',
-        marker=dict(color=vrun_bar['label_discrete'], colorscale='RdBu', showscale=True, size=10),
-        name="data",
-    ))
-    fig2.add_trace(go.Scatter(y=vrun_bar['close']-3000, mode='lines+markers', marker=dict(color=vrun_bar['label_uniqueness'], colorscale='Plasma'), name="data"))
-    fig2.show()
+    # fig.add_trace(go.Scatter(x=vrun_bar['time'], y=vrun_bar['high'], line=dict(width=0), mode='lines', showlegend=False, hoverinfo='skip'))
+    # fig.add_trace(go.Scatter(x=vrun_bar['time'], y=vrun_bar['low'], fill='tonexty', fillcolor='rgba(200, 200, 200, 0.5)', line=dict(width=0), mode='lines', name='High-Low Range', hoverinfo='skip'))
+    # fig.add_trace(go.Scatter(x=vrun_bar['time'], y=vrun_bar['close'], mode='lines+markers', marker=dict(color=vrun_bar['label_discrete'], colorscale='RdBu', showscale=True, size=10), name="data",))
+    # fig.add_trace(go.Scatter(x=vrun_bar['time'], y=vrun_bar['close']-3000, mode='lines+markers', marker=dict(color=vrun_bar['label_uniqueness'], colorscale='Plasma'), name="data"))
+    # fig.update_layout(xaxis=dict(type='category'))
+    # fig.show()
 
     from scipy.stats import gaussian_kde
     x = vrun_bar['label_continuous']
     kde = gaussian_kde(x)
     x_vals = np.linspace(x.min(), x.max(), 1000)
     y_vals = kde(x_vals)
-    fig3 = go.Figure()
-    fig3.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='KDE'))
-    fig3.update_layout(title='KDE of label', xaxis_title='Label', yaxis_title='Density')
-    fig3.show()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name='KDE'))
+    fig.update_layout(title='KDE of label', xaxis_title='Label', yaxis_title='Density')
+    fig.show()
+
 
 if __name__ == "__main__":
     main()

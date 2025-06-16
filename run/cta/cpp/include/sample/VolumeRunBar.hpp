@@ -10,6 +10,8 @@
 #include <ranges>
 #include <vector>
 
+#include <define/DataType.hpp>
+
 class VolumeRunBar
 {
 public:
