@@ -69,8 +69,8 @@ def main():
     print(vrun_bar)
 
     from collections import deque
-    lookback = 24
-    n_pips = int(lookback/6)
+    lookback = 8
+    n_pips = int(lookback/2)
     hold_period = int(lookback/2)
 
     # # Set parameters
@@ -468,7 +468,7 @@ class PIPPatternMiner:
         """
         data = np.log(arr.astype(np.float32))  # work on log price for pattern recognition
         self._data = data[:10000]
-        self._test = data[10000:300000]
+        self._test = data[10000:50000]
         # self._returns = np.append(np.diff(self._data)[1:], np.nan)
 
         # Step 1: Find all unique PIP patterns

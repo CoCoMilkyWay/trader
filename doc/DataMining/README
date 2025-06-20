@@ -1,0 +1,54 @@
+| **Category**                          | **Sub-Category**                    | **Sub-Type / Domain**            | **Representative Techniques / Methods**                                 |
+| ------------------------------------- | ----------------------------------- | -------------------------------- | ----------------------------------------------------------------------- |
+| **1. Feature Selection**              | **Filter Methods**                  | Statistical                      | Chi-Square, ANOVA F-Test, Pearson/Spearman, Kendall Tau                 |
+|                                       |                                     | Information-Theoretic            | Entropy, Information Gain, Gain Ratio, Symmetric Uncertainty, JMI, CMIM |
+|                                       |                                     | Distance-Based                   | Relief, ReliefF, Fisher Score, Laplacian Score, Trace Ratio             |
+|                                       |                                     | Spectral Methods                 | SPEC, Multi-Cluster Feature Selection (MCFS)                            |
+|                                       | **Wrapper Methods**                 | Search-Based                     | SFS, SBS, RFE, Genetic Algorithms, Simulated Annealing                  |
+|                                       |                                     | Classifier-Driven                | RF Feature Importance, SVM-RFE, XGBoost Gain, Permutation Importance    |
+|                                       | **Embedded Methods**                | Regularization                   | LASSO (L1), Ridge (L2), Elastic Net                                     |
+|                                       |                                     | Tree-Based                       | Decision Trees, Random Forests, GBDT                                    |
+|                                       |                                     | Embedded in ML Models            | L1-SVM, Logistic Regression Weights, Embedded Neural Feature Selection  |
+|                                       | **Stability-Aware Methods**         | Robust Selection                 | Ensemble FS, Bootstrap FS, Stability Selection                          |
+|                                       | **Hybrid Methods**                  |                                  | mRMR, Boruta, Ensemble Feature Ranking, Greedy + Filter Hybrids         |
+| **2. Feature Construction**           | **Polynomial & Interaction**        |                                  | Polynomial Expansion, Feature Crosses, Interaction Terms                |
+|                                       | **Statistical Features**            |                                  | Mean, Variance, Skew, Kurtosis, Peak-to-Peak, MAD                       |
+|                                       | **Ratio & Differential Features**   |                                  | Normalized Ratios, Log-Ratios, Change Rates, Rolling Differences        |
+|                                       | **Aggregation & Grouping**          |                                  | Groupby Aggregates, Time Window Aggregates, Lag-Based Aggregation       |
+|                                       | **Domain-Specific Formulas**        | Finance                          | RSI, MACD, Bollinger Bands, ATR, Z-score, Sharpe Ratio                  |
+|                                       |                                     | Healthcare                       | Clinical Scores, Risk Scores, Lab Ratios                                |
+|                                       |                                     | NLP                              | POS Ratios, TF Ratios, Readability Features                             |
+|                                       | **Frequency Features**              | Time Series / Signal             | FFT Coefficients, Power Spectral Density, Dominant Frequencies          |
+|                                       | **Wavelet Features**                | Time Series / Signal             | DWT Coefficients (Haar, Daubechies), Wavelet Entropy                    |
+|                                       | **Shape-Based Features**            | Time Series                      | Peak Count, Trough Count, Area Under Curve, Zero-Crossings              |
+|                                       | **Texture Features**                | Image                            | GLCM, LBP, HOG                                                          |
+|                                       | **Graph Features**                  | Structured                       | Node Degree, Betweenness, PageRank, Centrality, Graphlet Counts         |
+|                                       | **Functional Features**             | Functional / Longitudinal Data   | Functional Principal Component Scores, Basis Coefficient Projections    |
+| **3. Feature Extraction**             | **Linear Methods**                  |                                  | PCA, ICA, LDA, CCA                                                      |
+|                                       | **Nonlinear Manifold**              |                                  | t-SNE, UMAP, Isomap, LLE                                                |
+|                                       | **Dictionary Learning**             |                                  | Sparse Coding, K-SVD                                                    |
+|                                       | **Autoencoders**                    |                                  | Vanilla AE, Sparse AE, Denoising AE, VAE                                |
+|                                       | **Deep Feature Extractors**         | Text                             | BERT, GPT, Transformer Hidden States                                    |
+|                                       |                                     | Images                           | ResNet, VGG, EfficientNet Embeddings                                    |
+|                                       |                                     | Audio                            | MFCC, Spectrogram-based CNN Features                                    |
+| **4. Feature Transformation**         | **Normalization / Scaling**         |                                  | Min-Max, Z-Score, Quantile, Power Transform                             |
+|                                       | **Encoding**                        | Categorical                      | One-Hot, Label, Ordinal, Frequency, Target, Leave-One-Out Encoding      |
+|                                       | **Discretization**                  | Continuous → Categorical         | Equal-Width, Equal-Frequency, CAIM, MDL-Based                           |
+|                                       | **Embedding**                       | Categorical/Graph/Text           | Entity Embeddings, Node2Vec, DeepWalk, doc2vec, Sentence-BERT           |
+|                                       | **Quantization**                    |                                  | Scalar Quantization, Vector Quantization, PQ                            |
+| **5. Feature Mining for Time Series** | **Statistical + Rolling**           |                                  | Rolling Mean/Std, EWMA, Z-score, Trend/Seasonal Decomposition           |
+|                                       | **Autocorrelation & Lags**          |                                  | ACF, PACF, Lag Features, Seasonal Lag Features                          |
+|                                       | **Shapelets & Motifs**              |                                  | Shapelet Transform, Learning Time-Series Shapelets                      |
+|                                       | **Entropy-Based**                   |                                  | Sample Entropy, Permutation Entropy, Approximate Entropy                |
+|                                       | **Frequency Domain**                |                                  | STFT, FFT, Power Spectrum Slope                                         |
+|                                       | **Time-Frequency Domain**           |                                  | Continuous Wavelet Transform, Wigner-Ville, Scalogram Features          |
+|                                       | **Complexity Measures**             |                                  | Hurst Exponent, Fractal Dimension, Lyapunov Exponent                    |
+|                                       | **Change Point Features**           |                                  | BOCPD, PELT, Binary Segmentation                                        |
+|                                       | **Symbolic Methods**                |                                  | SAX, SFA, Symbolic Aggregate Approximation                              |
+|                                       | **TDA (Topological Data Analysis)** |                                  | Persistence Diagrams, Betti Numbers, PH Embeddings                      |
+| **6. Cross-Domain Feature Mining**    | **Multimodal Feature Fusion**       | Text + Image, Text + Time Series | Canonical Correlation Analysis (CCA), Tensor Fusion Network (TFN)       |
+|                                       | **Joint Embedding Spaces**          |                                  | Deep Canonical Correlation Analysis, Contrastive Learning               |
+|                                       | **Graph + Tabular**                 |                                  | GNN Augmented Features, Graph Feature Propagation                       |
+| **7. Meta-Features**                  | **Model-Derived Features**          |                                  | Feature Importance, SHAP Values, Learned Embeddings                     |
+|                                       | **Learning Curve Features**         |                                  | Train/Test Loss Slope, Convergence Features                             |
+|                                       | **Unsupervised Meta-Features**      |                                  | Intrinsic Dimensionality, Clustering Tendency, Class Separability       |
