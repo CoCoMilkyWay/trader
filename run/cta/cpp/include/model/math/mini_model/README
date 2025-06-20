@@ -1,0 +1,3 @@
+1. these models will only record data in the first iteration
+2. only when they are trained, they will output values as features (both previous training value and future prediction values)
+3. this is to ease pressure on the final models (also better performance as they perform filtering on features with domain knowledge)
