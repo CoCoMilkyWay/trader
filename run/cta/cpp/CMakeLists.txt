@@ -23,6 +23,8 @@ add_library(Pipeline SHARED ${SRC_MAIN})
 # Precompiled header setup
 target_precompile_headers(Pipeline PRIVATE ${CMAKE_SOURCE_DIR}/include/model/sample/ResampleRunBar.hpp)
 target_precompile_headers(Pipeline PRIVATE ${CMAKE_SOURCE_DIR}/include/model/label/LabelCalmar.hpp)
+target_precompile_headers(Pipeline PRIVATE ${CMAKE_SOURCE_DIR}/include/model/math/minimodel/PipPatternMiner.hpp)
+target_precompile_headers(Pipeline PRIVATE ${CMAKE_SOURCE_DIR}/include/pybind11/pybind11.h)
 target_precompile_headers(Pipeline PRIVATE ${CMAKE_SOURCE_DIR}/include/umappp/umappp.hpp)
 
 target_include_directories(Pipeline PRIVATE

@@ -15,35 +15,11 @@ from typing import List
 # dir = os.getcwd()
 dir = os.path.dirname(__file__)
 
+from dtype import time_bar_dtype, run_bar_dtype
+
 
 def main():
     data_path = os.path.join(dir, "data/bars.parquet")
-
-    time_bar_dtype = {
-        'time': 'int64',
-        'open': 'float32',
-        'high': 'float32',
-        'low': 'float32',
-        'close': 'float32',
-        'volume': 'float32',
-    }
-
-    run_bar_dtype = {
-        'time': 'int64',
-        'timedelta': 'int32',
-        'open': 'float32',
-        'high': 'float32',
-        'low': 'float32',
-        'close': 'float32',
-        'vwap': 'float32',
-        'threshold': 'float32',
-        'label_continuous': 'float32',
-        'label_discrete': 'int32',
-        'label_uniqueness': 'float32',
-        'umap_x': 'float32',
-        'umap_y': 'float32',
-        'umap_z': 'float32',
-    }
 
     input_dtype = np.dtype([(k, v) for k, v in time_bar_dtype.items()])
     output_dtype = np.dtype([(k, v) for k, v in run_bar_dtype.items()])
@@ -69,19 +45,10 @@ def main():
     print(vrun_bar)
 
     from collections import deque
-    lookback = 8
-    n_pips = int(lookback/2)
+    lookback = 24
+    bars_per_pip = 4
+    n_pips = int(lookback/bars_per_pip)
     hold_period = int(lookback/2)
-
-    # # Set parameters
-    # n = 5000  # number of time steps
-    # mu = 0.0  # drift
-    # sigma = 1.0  # volatility (standard deviation)
-    # dt = 1.0  # time step
-    # np.random.seed(42)  # for reproducibility
-    # dW = np.random.normal(loc=mu * dt, scale=sigma * np.sqrt(dt), size=n)
-    # price = np.cumsum(dW) + 100  # start at arbitrary price like 100
-    # price = price.astype(np.float32)
 
     price = ((time_bar['high'] + time_bar['low'])/2).to_numpy(dtype=np.float32)
     miner = PIPPatternMiner(n_pips, lookback, hold_period)
@@ -145,7 +112,7 @@ class PIPPatternMiner:
         # Data storage
         self._data = np.array([])                           # Array of log closing prices
 
-    def find_pips(self, data: np.ndarray):
+    def _find_pips(self, data: np.ndarray):
         """
         Find 'n_pips' perceptually important points (PIPs) from a 1D price data array.
         Returns:
@@ -200,7 +167,7 @@ class PIPPatternMiner:
 
         return pips_x, pips_y
 
-    def find_martin(self, data: np.ndarray) -> float:
+    def _find_martin(self, data: np.ndarray) -> float:
         """
         Compute the Martin ratio from a price series using only NumPy.
         Equivalent to _get_martin(), which expects log-returns.
@@ -250,12 +217,15 @@ class PIPPatternMiner:
 
         # Slide window through data
         for i in tqdm(range(self._lookback - 1, len(self._data) - self._hold_period)):
+            if (i % 4) != 0:
+                continue
+            
             start_i = i - self._lookback + 1
             window_lookback = self._data[start_i: i + 1]
             window_hold = self._data[i: i + self._hold_period]
 
             # Find PIPs in current window
-            pips_x, pips_y = self.find_pips(window_lookback)
+            pips_x, pips_y = self._find_pips(window_lookback)
             pips_x = [j + start_i for j in pips_x]  # Convert to global indices
             # pips_y = np.concatenate([pips_y, window_hold])
 
@@ -274,9 +244,9 @@ class PIPPatternMiner:
                 # Normalize pattern by z-scoring
                 pips_y = list((np.array(pips_y) - np.mean(pips_y)) / (np.std(pips_y) + 1e-8))
                 self._unique_pip_indices.append(i)
-                self._unique_pip_patterns.append(pips_y[:self._n_pips])
+                self._unique_pip_patterns.append(pips_y)
                 # self._unique_pip_futures.append(pips_y)
-                self._unique_pip_martins.append(self.find_martin(window_hold))
+                self._unique_pip_martins.append(self._find_martin(window_hold))
 
             last_pips_x = pips_x
 
@@ -312,148 +282,98 @@ class PIPPatternMiner:
         self._short_clusters = long_to_short[-good_clusters:]
         print(f"best patterns from long to short: {long_to_short}:{[float(self._labels_mean[i]) for i in long_to_short]}")
 
-    def plot_unique_samples(self):
+    def train_VAE(self):
+        from VAE import VAE
+        import numpy as np
         import plotly.graph_objects as go
+        from scipy.stats import gaussian_kde
+        import umap
+        from sklearn.mixture import GaussianMixture
 
-        patterns = self._unique_pip_patterns
-        print(f'Plotting {len(patterns)} unique patterns')
+        # Step 1: Prepare data
+        X = np.array(self._unique_pip_patterns, dtype=np.float32)
+        # Apply exponential weights to columns (features): heavier on recent points
+        num_features = X.shape[1]
+        exp_weights = np.linspace(1.0, 10.0, num_features, dtype=np.float32)  # or use np.geomspace(1.0, 2.0, num=num_features)
 
+        X_weighted = X * exp_weights  # shape: (N, D), element-wise weighting
+        
+        vae = VAE(input_dim=X_weighted.shape[1], hidden_dim=64, latent_dim=8, epochs=200)
+        vae.train_model(X_weighted)
+        latent_means = vae.encode_data(X_weighted)  # (N, latent_dim)
+
+        # Step 2: UMAP to 3D
+        n_neighbors = min(15, X_weighted.shape[0] - 1)
+        algo_umap = umap.UMAP(n_components=3, n_neighbors=n_neighbors, min_dist=0.1)
+        X_3d = algo_umap.fit_transform(latent_means)  # (N, 3)
+
+        # Step 3: GMM Clustering in Latent Space
+        self._num_clusters = 40  # change as needed
+        gmm = GaussianMixture(n_components=self._num_clusters, covariance_type='full', random_state=42)
+        gmm.fit(latent_means)
+        cluster_labels = gmm.predict(latent_means)
+
+        self._pip_clusters_centers = gmm.means_  # shape: (n_components, latent_dim)
+        self._pip_clusters_indexes = [
+            np.where(cluster_labels == i)[0].tolist()
+            for i in range(self._num_clusters)
+        ]
+
+        # Step 4: 3D KDE
+        kde = gaussian_kde(X_3d.T)
+        grid_size = 50
+        x = np.linspace(X_3d[:, 0].min(), X_3d[:, 0].max(), grid_size)
+        y = np.linspace(X_3d[:, 1].min(), X_3d[:, 1].max(), grid_size)
+        z = np.linspace(X_3d[:, 2].min(), X_3d[:, 2].max(), grid_size)
+        Xg, Yg, Zg = np.meshgrid(x, y, z, indexing="ij")
+        coords = np.vstack([Xg.ravel(), Yg.ravel(), Zg.ravel()])
+        density = kde(coords).reshape(grid_size, grid_size, grid_size)
+
+        # Step 5: Create Plot
         fig = go.Figure()
-        for i, pattern in enumerate(patterns):
-            fig.add_trace(go.Scatter(
-                x=list(range(len(pattern))),
-                y=pattern,
-                mode="lines",
-                line=dict(width=1),
-                showlegend=False,
-                opacity=0.5
-            ))
+
+        # Volumetric KDE
+        fig.add_trace(go.Volume(
+            x=Xg.flatten(),
+            y=Yg.flatten(),
+            z=Zg.flatten(),
+            value=density.flatten(),
+            isomin=density.min(),
+            isomax=density.max(),
+            opacity=0.05,
+            surface_count=15,
+            colorscale='Viridis',
+            showscale=False
+        ))
+
+        # Clustered points in 3D
+        fig.add_trace(go.Scatter3d(
+            x=X_3d[:, 0],
+            y=X_3d[:, 1],
+            z=X_3d[:, 2],
+            mode='markers',
+            marker=dict(
+                size=4,
+                color=cluster_labels,  # categorical color
+                colorscale='Rainbow',
+                opacity=0.9,
+                colorbar=dict(title='Cluster')
+            ),
+            text=[f"Cluster {label}" for label in cluster_labels],
+            name='Clustered Samples'
+        ))
 
         fig.update_layout(
-            title="Overlapped Normalized Unique PIP Patterns",
-            xaxis_title="PIP Index",
-            yaxis_title="Normalized Price",
-            template="plotly_dark",
-            height=600
+            title="3D Volumetric KDE with GMM Clustered Latent Points",
+            scene=dict(
+                xaxis_title='UMAP 1',
+                yaxis_title='UMAP 2',
+                zaxis_title='UMAP 3'
+            )
         )
-
         fig.show()
 
-    def plot_clusters(self):
-        import plotly.graph_objects as go
-        import plotly.express as px
 
-        cluster_colors = px.colors.qualitative.Plotly
-
-        for clusters in [self._long_clusters, self._short_clusters]:
-            fig = go.Figure()
-            for i in clusters:
-                color = cluster_colors[i % len(cluster_colors)]
-                for index in self._pip_clusters_indexes[i]:
-                    pattern = self._unique_pip_patterns[index]
-                    # pattern += self._unique_pip_futures[index]
-
-                    fig.add_trace(go.Scatter(
-                        x=list(range(len(pattern))),
-                        y=pattern,
-                        mode="lines",
-                        line=dict(width=1, color=color),
-                        showlegend=False,
-                        opacity=0.5
-                    ))
-
-            fig.update_layout(
-                title="Overlapped Normalized Unique PIP Patterns",
-                xaxis_title="PIP Index",
-                yaxis_title="Normalized Price",
-                template="plotly_dark",
-                height=600
-            )
-
-            fig.show()
-
-    def plot_cluster_samples(self, cluster_i: int, grid_size: int = 5):
-        """
-        Plot example PIP patterns from a specific cluster using only internal log-price data.
-
-        Parameters:
-        -----------
-        cluster_i : int
-            Cluster index to visualize.
-        grid_size : int
-            Number of rows/columns in the subplot grid.
-        """
-        import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
-
-        total_plots = grid_size * grid_size
-        fig = make_subplots(
-            rows=grid_size, cols=grid_size,
-            subplot_titles=[f"Pattern {i + 1}" for i in range(total_plots)],
-            shared_xaxes=False, shared_yaxes=False
-        )
-
-        assert self._data
-
-        for i in range(total_plots):
-            if i >= len(self._pip_clusters_indexes[cluster_i]):
-                break
-
-            pat_i = self._unique_pip_indices[self._pip_clusters_indexes[cluster_i][i]]
-            start_i = pat_i - self._lookback + 1
-            end_i = pat_i + 1
-
-            if start_i < 0 or end_i > len(self._data):
-                continue  # skip if out of bounds
-
-            data_slice = self._data[start_i:end_i]
-            time_idx = list(range(start_i, end_i))
-
-            # Find PIPs (vertical distance by default)
-            plot_pip_x, plot_pip_y = self.find_pips(data_slice)
-            plot_pip_x = [time_idx[x] for x in plot_pip_x]
-
-            row = i // grid_size + 1
-            col = i % grid_size + 1
-
-            # Add raw price trace
-            fig.add_trace(
-                go.Scatter(
-                    x=time_idx,
-                    y=data_slice,
-                    mode="lines",
-                    line=dict(color='lightblue', width=2),
-                    showlegend=False
-                ),
-                row=row, col=col
-            )
-
-            # Add PIP lines
-            for j in range(self._n_pips - 1):
-                fig.add_trace(
-                    go.Scatter(
-                        x=[plot_pip_x[j], plot_pip_x[j + 1]],
-                        y=[plot_pip_y[j], plot_pip_y[j + 1]],
-                        mode="lines+markers",
-                        line=dict(color='white', width=2),
-                        marker=dict(color='white', size=5),
-                        showlegend=False
-                    ),
-                    row=row, col=col
-                )
-
-        fig.update_layout(
-            height=grid_size * 300,
-            width=grid_size * 300,
-            title_text=f"Cluster {cluster_i} - Example Patterns (Line Plot)",
-            template="plotly_dark",
-            margin=dict(t=100)
-        )
-
-        fig.update_xaxes(showticklabels=False)
-        fig.update_yaxes(showticklabels=False)
-
-        fig.show()
 
     def train(self, arr: np.ndarray):
         """
@@ -466,68 +386,20 @@ class PIPPatternMiner:
         n_reps : int
             Number of permutation tests to run (-1 for none)
         """
-        data = np.log(arr.astype(np.float32))  # work on log price for pattern recognition
+        data = arr.astype(np.float32)  # work on log price for pattern recognition
         self._data = data[:10000]
-        self._test = data[10000:50000]
+        self._test = data[10000:20000]
         # self._returns = np.append(np.diff(self._data)[1:], np.nan)
 
         # Step 1: Find all unique PIP patterns
         self._find_unique_patterns()
         # self.plot_unique_samples()
 
-        # Step 2: Cluster patterns using silhouette method for optimal k
-        search_instance = silhouette_ksearch(self._unique_pip_patterns, 15, 40, algorithm=silhouette_ksearch_type.KMEANS).process()
-        self._num_clusters = search_instance.get_amount()
-        print(f'Got {self._num_clusters} clusters (Silhouette Ksearch)')
+        self.train_VAE()
+        
 
-        # Step 3: Perform k-means clustering
-        self._kmeans_cluster_patterns()
-
-        # Step 4: Analyze clusters performance
         self._get_cluster_performance()
 
-        # self.plot_clusters()
-
-        # self.plot_cluster_samples(0,7)
-
-        # Step 4: Generate trading signals for each cluster
-        # self._get_cluster_signals()
-        #
-        # # Step 5: Select best performing clusters
-        # self._assign_clusters()
-        #
-        # # Step 6: Evaluate overall performance
-        # self._fit_martin = self._get_total_performance()
-        # print(self._fit_martin)
-        # # Optional permutation testing
-        # if n_reps <= 1:
-        #     return
-        # # Store original data for permutation testing
-        # data_copy = self._data.copy()
-        # returns_copy = self._returns.copy()
-        #
-        # # Run multiple permutations
-        # for rep in range(1, n_reps):
-        #     # Create shuffled version of returns
-        #     x = np.diff(data_copy).copy()
-        #     np.random.shuffle(x)
-        #     x = np.concatenate([np.array([data_copy[0]]), x])
-        #     self._data = np.cumsum(x)
-        #     self._returns = pd.Series(self._data).diff().shift(-1)
-        #
-        #     print("rep", rep)
-        #     # Repeat training process on shuffled data
-        #     self._find_unique_patterns()
-        #     search_instance = silhouette_ksearch(
-        #             self._unique_pip_patterns, 5, 40, algorithm=silhouette_ksearch_type.KMEANS).process()
-        #     amount = search_instance.get_amount()
-        #     self._kmeans_cluster_patterns(amount)
-        #     self._get_cluster_signals()
-        #     self._assign_clusters()
-        #
-        #     # Store permutation result
-        #     perm_martin = self._get_total_performance()
-        #     self._perm_martins.append(perm_martin)
 
     def predict(self):
         """
@@ -541,7 +413,7 @@ class PIPPatternMiner:
             start_i = i - self._lookback + 1
             window_lookback = self._test[start_i: i + 1]
 
-            pips_x, pips_y = self.find_pips(window_lookback)
+            pips_x, pips_y = self._find_pips(window_lookback)
             pips_x = [j + start_i for j in pips_x]  # Convert to global indices
 
             norm_y = (np.array(pips_y) - np.mean(pips_y)) / (np.std(pips_y) + 1e-8)

@@ -129,8 +129,22 @@ public:
             std::span(data_.data(), length - contig_size)};
     }
 
+    template <size_t M>
+    std::array<T, M> to_array(size_t logical_start) const
+    {
+        auto split = subspan(logical_start, M); // M is known at compile time
+        std::array<T, M> arr;
+        std::copy(split.head.begin(), split.head.end(), arr.begin());
+        std::copy(split.tail.begin(), split.tail.end(), arr.begin() + split.head.size());
+        return arr;
+    }
+
     size_t size() const noexcept
     {
         return size_;
+    }
+    bool full() const noexcept
+    {
+        return size_ == N;
     }
 };

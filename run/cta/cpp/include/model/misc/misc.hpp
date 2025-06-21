@@ -34,7 +34,7 @@ namespace misc
         }
     }
 
-    class Timer
+        class Timer
     {
     public:
         Timer(const std::string &label = "")
@@ -46,7 +46,7 @@ namespace misc
         ~Timer()
         {
             auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start_;
+            std::chrono::duration<float> elapsed = end - start_;
             std::cout << "\n[Timer] " << label_ << " Elapsed time: " << elapsed.count() << " seconds\n";
         }
 
@@ -54,20 +54,5 @@ namespace misc
         std::string label_;
         std::chrono::time_point<std::chrono::high_resolution_clock> start_;
     };
-
-    // Helper function to print any number of arguments with a separator
-    template <typename... Args>
-    void print(const Args &...args)
-    {
-        const std::string &sep = " ";
-        std::ostringstream oss;
-        ((oss << args << sep), ...); // Fold expression (C++17)
-        std::string result = oss.str();
-        if (!result.empty())
-        {
-            result.erase(result.size() - sep.size()); // Remove trailing separator
-        }
-        std::cout << result << '\n';
-    }
 
 } // namespace progress

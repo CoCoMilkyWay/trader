@@ -15,7 +15,7 @@
 #include <model/sample/ResampleRunBar.hpp>
 #include <model/label/LabelCalmar.hpp>
 
-#include <model/math/mini_model/CandlePattern.hpp>
+#include <model/math/minimodel/PIPPatternMiner.hpp>
 
 #include <umappp/umappp.hpp>
 
@@ -63,7 +63,7 @@ py::bytes process_bars(const py::bytes input_data, const size_t input_rows)
     RunBar bar_out;
 
     ResampleRunBar ResRunBar(&time_1, &timedelta_1, &open_1, &high_1, &low_1, &close_1, &vwap_1);
-    CandlePattern CandPat(&open_1, &high_1, &low_1, &close_1, &candlesthregth, &timedelta_1);
+    PipPatternMiner PipMiner(&high_1, &low_1);
     {
         misc::Timer t("run bar");
         for (size_t i = 0; i < input_rows; ++i)
@@ -74,7 +74,7 @@ py::bytes process_bars(const py::bytes input_data, const size_t input_rows)
             if (ResRunBar.process(bars[i]))
             {
 
-                CandPat.process();
+                PipMiner.process();
 
                 bar_out.time = time_1.back();
                 bar_out.timedelta = timedelta_1.back();
