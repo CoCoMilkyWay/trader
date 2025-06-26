@@ -99,5 +99,12 @@
         "./run/run_cpt",
         "./run/run_stk",
     ],
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "cursorpyright.analysis.autoImportCompletions": false,
+    "cursorpyright.analysis.extraPaths": [
+        "./app",
+        "./run/run_cpt",
+        "./run/run_stk"
+    ],
+    "cursorpyright.analysis.typeCheckingMode": "basic"
 }

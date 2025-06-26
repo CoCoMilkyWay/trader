@@ -1,28 +1,28 @@
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
-#include <cstdint>
+// System headers
 #include <cstring>
-#include <vector>
-#include <chrono>
-#include <iostream>
-#include <cmath>
 #include <stdexcept>
+#include <string>
 
-#include <model/misc/misc.hpp>
-#include <model/define/DataType.hpp>
-#include <model/define/CBuffer.hpp>
-#include <model/sample/ResampleRunBar.hpp>
-#include <model/label/LabelCalmar.hpp>
-
-#include <model/math/minimodel/PIPPatternMiner.hpp>
-
+// Third-party libraries
+#include <pybind11/pybind11.h>
 #include <umappp/umappp.hpp>
+
+// Project headers - core definitions first
+#include <model/define/CBuffer.hpp>
+#include <model/define/DataType.hpp>
+
+// Project headers - utilities and debug
+#include <model/debug/backward.hpp>
+#include <model/misc/misc.hpp>
+
+// Project headers - model components
+#include <model/label/LabelCalmar.hpp>
+#include <model/math/minimodel/PipPatternMiner.hpp>
+#include <model/sample/ResampleRunBar.hpp>
 
 namespace py = pybind11;
 
 #define BACKWARD_HAS_DW 1
-#include <model/debug/backward.hpp>
 namespace bw = backward;
 bw::SignalHandling sh;
 

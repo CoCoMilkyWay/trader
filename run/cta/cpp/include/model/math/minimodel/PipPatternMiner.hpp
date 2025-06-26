@@ -1,14 +1,13 @@
 #ifndef PIP_PATTERN_HPP
 #define PIP_PATTERN_HPP
 
-#include <vector>
-#include <cmath>
+// System headers
 #include <algorithm>
-#include <numeric>
-#include <limits>
+#include <cmath>
 
-#include <model/define/DataType.hpp>
+// Project headers
 #include <model/define/CBuffer.hpp>
+#include <model/define/DataType.hpp>
 #include <model/misc/print.hpp>
 
 /**
@@ -272,7 +271,7 @@ private:
         float mean = 0.0f;
         float m2 = 0.0f; // sum of squares of differences from the mean
 
-        // One-pass numerically stable mean & variance (Welford’s algorithm)
+        // One-pass numerically stable mean & variance (Welford's algorithm)
         for (std::size_t i = 0; i < M; ++i)
         {
             float delta = arr[i] - mean;

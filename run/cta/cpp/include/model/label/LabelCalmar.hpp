@@ -1,14 +1,14 @@
 #ifndef LABEL_CALMAR_HPP
 #define LABEL_CALMAR_HPP
 
-#include <vector>
-#include <cmath>
+// System headers
 #include <algorithm>
-#include <cstdint>
-#include <limits>
-#include <numeric>
 #include <cassert>
+#include <cmath>
+#include <numeric>
+#include <vector>
 
+// Project headers
 #include <model/define/DataType.hpp>
 #include <model/misc/misc.hpp>
 

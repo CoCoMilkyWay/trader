@@ -1,17 +1,16 @@
 #pragma once
-#include <cstdint>
-#include <cmath>
+
+// System headers
 #include <algorithm>
+#include <cmath>
 #include <limits>
-#include <functional>
 #include <numeric>
-#include <iostream>
 #include <tuple>
-#include <ranges>
 #include <vector>
 
-#include <model/define/DataType.hpp>
+// Project headers
 #include <model/define/CBuffer.hpp>
+#include <model/define/DataType.hpp>
 
 template <typename T1, typename T2, typename T3, size_t N> // compiler auto derive
 class ResampleRunBar

@@ -8,6 +8,7 @@ project(Pipeline LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # set(Python3_ROOT_DIR "C:/Users/chuyin.wang/.pyenv/pyenv-win/versions/3.12.9/")
 find_package(Python3 ${} REQUIRED COMPONENTS Interpreter Development)
