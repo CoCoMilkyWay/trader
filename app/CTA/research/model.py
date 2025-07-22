@@ -98,7 +98,6 @@ class ShallowWideNN(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-
 input_dim = X_train_pca.shape[1]
 hidden_dim = 64  # wide layer; adjust as needed
 n_classes = len(np.unique(np.asarray(y)))

@@ -25,7 +25,7 @@ def run_bt():
     enable_logging()
     
     wt_asset = prepare_all_files()
-    
+        
     wt_assets: List[str] = []
     ipo_dates: List[str] = []
     for exg in cfg_stk.exchg:
@@ -46,7 +46,7 @@ def run_bt():
 
     # 2. init precess manager
     P = Parallel_Process_Core(code_info)
-    
+        
 if __name__ == '__main__':
     run_bt()
 

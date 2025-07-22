@@ -2,11 +2,12 @@
 
 class cfg_stk:  # Constants Configs
     import os
-    strategy = 'Strategy_Fund'
+    strategy = 'Strategy_Small_Cap_20'
+    # strategy = 'Strategy_Fund'
     # strategy = 'Strategy_Alpha'
 
     # use m1, m5, m30, m60 (wtpy requires that both 1m and 5m are present)
-    period_u, period_l, n = 'min', 'm', 5
+    period_u, period_l, n = 'min', 'm', 1
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
     num = 10000  # number of assets (int/None)
@@ -40,8 +41,10 @@ class cfg_stk:  # Constants Configs
         STOCK_DB_BAR_DIR = WT_DATABASE_DIR + '/stock/bars'
         STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
     else: # Windows
-        STOCK_CSV_DIR = 'D:/data/stock_csv'
-        STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
+        STOCK_CSV_DIR = 'E:/raw_m1/stk'
+        # STOCK_CSV_DIR = 'D:/data/stock_csv'
+        STOCK_DB_BAR_DIR = 'E:/stock_db/bars'
+        # STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
         STOCK_DB_FUND_DIR = 'D:/data/stock_fundamental'
 
     # config files

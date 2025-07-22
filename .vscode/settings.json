@@ -106,5 +106,7 @@
         "./run/run_cpt",
         "./run/run_stk"
     ],
-    "cursorpyright.analysis.typeCheckingMode": "basic"
+    "cursorpyright.analysis.typeCheckingMode": "basic",
+    "python-envs.defaultEnvManager": "ms-python.python:pyenv",
+    "python-envs.pythonProjects": []
 }

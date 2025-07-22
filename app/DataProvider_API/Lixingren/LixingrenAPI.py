@@ -19,7 +19,8 @@ class LixingrenAPI:
             "link": "https://open.lixinger.com/api/cn/company",
             "description": "获取股票详细信息",
             "payload": {
-                "token": f"{self.LICENSE}"
+                "token": f"{self.LICENSE}",
+                "includeDelisted": True,  # include delisted stocks
             }
         }
 

@@ -16,7 +16,7 @@ import pandas as pd
 
 from tqdm import tqdm
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 from DataProvider_API.Lixingren.LixingrenAPI import LixingrenAPI
 from DataProvider_API.Baostock.BaostockAPI import BaostockAPI
@@ -110,23 +110,22 @@ LXR_API = LixingrenAPI()
 BS_API = BaostockAPI()
 
 
-def prepare_all_files():
+def prepare_all_files(filter_list: Optional[List[str]] = None):
     """
     wt: wondertrader/wtpy
     lxr: lixingren
     """
 
-    wt_asset = _wt_asset_file(
-        cfg_stk.wt_asset_file)
-    lxr_profile, wt_asset = _lxr_profile_file(
-        cfg_stk.lxr_profile_file, wt_asset)
-    lxr_industry, wt_asset = _lxr_industry_file(
-        cfg_stk.lxr_industry_file, wt_asset)
-    wt_adj_factor, wt_asset = _wt_adj_factor_file(
-        cfg_stk.wt_adj_factor_file, wt_asset)
-    wt_tradedays, wt_holidays = _wt_tradedays_holidays_file(
-        cfg_stk.wt_tradedays_file,
-        cfg_stk.wt_holidays_file)
+    # 问题:
+    # 1. stk_assets.json 一般是静态, 但变动时不会自动更新(比如退市)(但是更新日期有记录)
+    # 1. stk_adjfactors.json 可能没有更新(但是更新日期有记录)
+    # 2. fundamental meta 可以被更新. 并且精确根据年内天数创建numpy array, 但是老的数据不会被更新
+
+    wt_asset = _wt_asset_file(cfg_stk.wt_asset_file)
+    lxr_profile, wt_asset = _lxr_profile_file(cfg_stk.lxr_profile_file, wt_asset)
+    lxr_industry, wt_asset = _lxr_industry_file(cfg_stk.lxr_industry_file, wt_asset)
+    wt_adj_factor, wt_asset = _wt_adj_factor_file(cfg_stk.wt_adj_factor_file, wt_asset)
+    wt_tradedays, wt_holidays = _wt_tradedays_holidays_file(cfg_stk.wt_tradedays_file, cfg_stk.wt_holidays_file)
 
     dump_json(cfg_stk.wt_asset_file, wt_asset, "wt_asset")
     dump_json(cfg_stk.lxr_profile_file, lxr_profile, "lxr_profile")
@@ -135,10 +134,17 @@ def prepare_all_files():
     dump_json(cfg_stk.wt_tradedays_file, wt_tradedays, "wt_tradedays")
     dump_json(cfg_stk.wt_holidays_file, wt_holidays, "wt_holidays")
 
-    lxr_meta = _lxr_fundamental_file(
-        cfg_stk.STOCK_DB_FUND_DIR, wt_asset, wt_tradedays)
-    dump_json(f"{cfg_stk.STOCK_DB_FUND_DIR}/meta.json",
-              lxr_meta, 'lxr_index_meta')
+    lxr_meta = _lxr_fundamental_file(cfg_stk.STOCK_DB_FUND_DIR, wt_asset, wt_tradedays)
+    dump_json(f"{cfg_stk.STOCK_DB_FUND_DIR}/meta.json", lxr_meta, 'lxr_index_meta')
+
+    if filter_list:
+        filtered_wt_asset = {}
+        for exg in wt_asset:
+            filtered_wt_asset[exg] = {}
+            for key in wt_asset[exg]:
+                if wt_asset[exg][key]['code'] in filter_list:
+                    filtered_wt_asset[exg][key] = wt_asset[exg][key]
+        wt_asset = filtered_wt_asset
 
     process_bar_data(wt_asset, force_sync=False)
 
@@ -229,29 +235,51 @@ def _wt_asset_file(path: str) -> Dict:
     tradable = {
         'normally_listed',
         'special_treatment',
-        # 'delisting_risk_warning',
-        # 'delisting_transitional_period',
-        # 'normally_transferred',
-        # 'investor_suitability_management_implemented'
+        'delisting_risk_warning',
+        'delisted',
     }
 
     def get_sub_exchange(code):
-        if code.startswith('60'):
-            return 'SSE.A'
-        elif code.startswith('900'):
-            return 'SSE.B'
-        elif code.startswith('68'):
-            return 'SSE.STAR'
-        elif code.startswith('000') or code.startswith('001'):
-            return 'SZSE.A'
-        elif code.startswith('200'):
-            return 'SZSE.B'
-        elif code.startswith('300') or code.startswith('301'):
-            return 'SZSE.SB'
-        elif code.startswith('002') or code.startswith('003'):
-            return 'SZSE.A'
-        elif code.startswith('440') or code.startswith('430') or code.startswith('83') or code.startswith('87'):
-            return 'NQ'
+        # https://www.cnstock.com/image/202311/24/20231124175032784.pdf
+        if code.startswith('600') or code.startswith('601') or code.startswith('603') or code.startswith('605'):  # 沪市主板
+            return 'SSE.1.A'
+        elif code.startswith('900'):  # 沪市B股
+            return 'SSE.1.B'
+        elif code.startswith('688'):  # 科创板 (普通+成长层) (Sci-Tech innovAtion boaRd) (2019/03)
+            return 'SSE.2.STAR'
+        elif code.startswith('689'):  # 科创板存托凭证 (Depository Receipt)
+            return 'SSE.2.STAR.CDR'
+        # https://github.com/jincheng9/finance_tutorial/blob/main/workspace/securities/szse_securities_code_allocation_2024.pdf
+        elif code.startswith('000'):  # 深市主板
+            return 'SZSE.1.A'
+        elif code.startswith('001'):  # 深市主板 或 存托凭证(001001-001199)
+            return 'SZSE.1.A'
+        elif code.startswith('002') or code.startswith('003') or code.startswith('004'):  # 深市中小板 (SME Board) (2004/06)
+            return 'SZSE.1.A.SME'
+        elif code.startswith('200') or code.startswith('201'):  # 深市B股
+            return 'SZSE.1.B'
+        elif code.startswith('300') or code.startswith('301') or code.startswith('302'):  # 创业板 (ChiNext) (2009/09)
+            return 'SZSE.2.CN'
+        elif code.startswith('309'):  # 创业板存托凭证
+            return 'SZSE.2.CN.CDR'
+        # https://www.bseinfo.net/uploads/6/file/public/202404/20240419121551_vhsa4vwi0q.pdf
+        # 新三板(National Equities Exchange and Quotations) (2013/12)
+        elif code.startswith('400'):  # 两网公司(STAQ、NET)及退市公司A股
+            return 'NEEQ.3.DL_A'
+        elif code.startswith('420'):  # 退市B股
+            return 'NEEQ.3.DL_B'
+        elif code.startswith('430'):  # 新三板.基础层 (< 2014/05/19)
+            return 'NEEQ.5.FND'
+        elif code.startswith('82'):  # 新三板.创新层.优先股(Preferred) (> 2014/05/19)
+            return 'NEEQ.5.INV.PREF'
+        elif code.startswith('83'):  # 新三板.创新层.普通股(Ordinary) (> 2014/05/19)
+            return 'NEEQ.5.INV.ORDI'
+        elif code.startswith('87'):  # 新三板.精选层(北交所).普通发行(私募/协议转让/定向增发) (> 2020/07/27)
+            return 'BJSE.3.SEL.ORDI'
+        elif code.startswith('88'):  # 新三板.精选层(北交所).公开发行 (> 2020/07/27)
+            return 'BJSE.3.SEL.PUBLIC'
+        elif code.startswith('92'):  # 北交所
+            return 'BJSE.3'
         else:
             print('Unknown sub-exchange: ', code)
             return 'Unknown'
@@ -285,10 +313,11 @@ def _wt_asset_file(path: str) -> Dict:
         stockCode = symbol.get('stockCode')
         fsTableType = symbol.get('fsTableType')
         ipoDate = symbol.get('ipoDate')
+        delistedDate = symbol.get('delistedDate')
         listingStatus = symbol.get('listingStatus')
         mutualMarkets = symbol.get('mutualMarkets')
         if not (name and market and exchange and areaCode and stockCode and fsTableType and ipoDate and listingStatus):
-            print('Skipping for incomplete info: ', name)
+            print('Skipping for incomplete info: ', name, listingStatus)
             continue
 
         if listingStatus not in tradable:
@@ -300,9 +329,9 @@ def _wt_asset_file(path: str) -> Dict:
             print('Skipping for areaCode:', name, areaCode)
             continue
 
-        if market not in ['a']:
-            print('Skipping for market:', name, market)
-            continue
+        # if market not in ['a']:
+        #     print('Skipping for market:', name, market)
+        #     continue
 
         if exchange not in ['sh', 'sz', 'bj']:
             print('Skipping for exchange:', name, exchange)
@@ -312,10 +341,10 @@ def _wt_asset_file(path: str) -> Dict:
         #     print('Skipping for fsTableType:', name, fsTableType)
         #     continue
 
-        ipo_date_s = datetime.fromisoformat(ipoDate).timestamp()
-        if abs(int(time.time()) - ipo_date_s) <= SEC_IN_HALF_YEAR:
-            print('Skipping for recency(half year):', name)
-            continue
+        # ipo_date_s = datetime.fromisoformat(ipoDate).timestamp()
+        # if abs(int(time.time()) - ipo_date_s) <= SEC_IN_HALF_YEAR:
+        #     print('Skipping for recency(half year):', name)
+        #     continue
 
         exg = map[exchange]
         output[exg][stockCode] = {
@@ -325,6 +354,7 @@ def _wt_asset_file(path: str) -> Dict:
             "product": "STK",
             "extras": {
                 "ipoDate": ipoDate,
+                "delistedDate": delistedDate,
                 "subexchg": get_sub_exchange(stockCode),
                 "industry_names": None,
                 "industry_codes": None,
@@ -451,8 +481,7 @@ def _lxr_industry_file(path: str, wt_asset: Dict):
                     codes[level] = code
                     names[level] = name
             if "" in codes or "" in names:
-                print(
-                    f"Err updating industries for {key}:{wt_asset[exg][key]["name"]}")
+                print(f"Err updating industries for {key}:{wt_asset[exg][key]["name"]}-{wt_asset[exg][key]["extras"]["subexchg"]}")
             wt_asset[exg][key]['extras']['industry_codes'] = codes
             wt_asset[exg][key]['extras']['industry_names'] = names
 
@@ -620,12 +649,10 @@ def _check_state(file_path: str, file_name: str, days: int = 1) -> int:
     updated_within_x_day = \
         abs(time.time() - timestamp_last_update_s) <= (3600*24*days)
     if updated_within_x_day:
-        print(
-            f'{file_name} Already Updated: {dt.year}-{dt.month}-{dt.day}')
+        print(f'{file_name} Already Updated: {dt.year}-{dt.month}-{dt.day}')
         return 2
     else:
-        print(
-            f'Old {file_name}: {dt.year}-{dt.month}-{dt.day}')
+        print(f'Old {file_name}: {dt.year}-{dt.month}-{dt.day}')
         return 1
 
 
@@ -794,10 +821,8 @@ class BarProcessor:
             force_sync: Whether to force processing even if already processed
         """
         # print('Analyzing/Generating L1(CSV)/L2(DSB) database files...')
-        print(
-            f"SRC_CSV:            {GREEN}{cfg_stk.STOCK_CSV_DIR}/<year>/<symbol>/{DEFAULT}")
-        print(
-            f"DB_DSB:             {GREEN}{cfg_stk.STOCK_DB_BAR_DIR}/<symbol>/1m/{DEFAULT}")
+        print(f"SRC_CSV:            {GREEN}{cfg_stk.STOCK_CSV_DIR}/<year>/<symbol>/{DEFAULT}")
+        print(f"DB_DSB:             {GREEN}{cfg_stk.STOCK_DB_BAR_DIR}/<symbol>/1m/{DEFAULT}")
 
         # Determine which assets need processing
         unprocessed_assets = self._get_unprocessed_assets(
@@ -925,10 +950,8 @@ class BarProcessor:
             assets: List of assets to process
         """
         # print('Analyzing/Generating L3(DSB)/L4(DSB) database files...')
-        print(
-            f"MERGED_DB_DSB:      {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/min1/<exchange>/<symbol>.dsb{DEFAULT}")
-        print(
-            f"RESAMPLED_DB_DSB:   {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/{'min'+str(cfg_stk.n)}/<exchange>/<symbol>.dsb{DEFAULT}")
+        print(f"MERGED_DB_DSB:      {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/min1/<exchange>/<symbol>.dsb{DEFAULT}")
+        print(f"RESAMPLED_DB_DSB:   {GREEN}{cfg_stk.WT_STORAGE_DIR}/his/{'min'+str(cfg_stk.n)}/<exchange>/<symbol>.dsb{DEFAULT}")
 
         # Prepare parameters for parallel processing
         unprocessed_asset_list = []
