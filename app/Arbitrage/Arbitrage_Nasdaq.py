@@ -71,7 +71,7 @@ if today.strftime('%Y%m%d') in trade_days and (time(8, 0) < datetime.now().time(
 else:
     PCF_UPDATE_DATE = trade_days[-2]  # worst case (today's morning(trading), last day not updated, so the 2nd last day pcf
     active = 0
-duration = 3  # months
+duration = 4  # months
 UPDATE = True
 DUMP = False
 BACKTEST = False

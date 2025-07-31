@@ -163,18 +163,15 @@ class TimeSeriesAnalysis:
 
         # Update the selected slice (features, codes, timestamps)
         result_vector = torch.tensor(self.result_list, dtype=torch.float16)
-        self.shared_tensor[self._timestamp_idx,
-                           :, self._code_idx,] = result_vector
+        self.shared_tensor[self._timestamp_idx, :, self._code_idx,] = result_vector
 
         # formatted_result = [f"{x:.5f}" for x in result_list]
         # print(formatted_result)
 
-        s_long_switch, s_short_switch = self.AdaptiveSuperTrend.update(
-            self.highs[0][-1], self.lows[0][-1], self.closes[0][-1], self.timestamp[-1])
+        s_long_switch, s_short_switch = self.AdaptiveSuperTrend.update(self.highs[0][-1], self.lows[0][-1], self.closes[0][-1], self.timestamp[-1])
 
         # if self._train:
-        self.ts_label.update(self.timestamp[-1], self.closes[0][-1],
-                             self.atr_10.atr[-1], s_long_switch, s_short_switch)# type: ignore
+        self.ts_label.update(self.timestamp[-1], self.closes[0][-1], self.atr_10.atr[-1], s_long_switch, s_short_switch)  # type: ignore
 
     def parse_kline(self, open: float, high: float, low: float, close: float, vol: float, time: int) -> dict[KL_TYPE, List[CKLine_Unit]]:
         # Extract bar data
@@ -193,8 +190,7 @@ class TimeSeriesAnalysis:
                 self.day = day
                 self.hour = hour
                 self.minute = minute
-                print(
-                    f'{self._code:<22}:{year:04}-{month:>02}-{day:>02}-{hour:>02}-{minute:>02}')
+                print(f'{self._code:<22}:{year:04}-{month:>02}-{day:>02}-{hour:>02}-{minute:>02}')
 
         self.timestamp[-1] = ctime.ts
 
@@ -208,8 +204,7 @@ class TimeSeriesAnalysis:
 
         # Pre-allocate results with singleton list
         results = {
-            KL_TYPE.K_1M: [CKLine_Unit(
-                self._bar_template.copy(), autofix=True)]
+            KL_TYPE.K_1M: [CKLine_Unit(self._bar_template.copy(), autofix=True)]
         }
 
         # Use local references for speed

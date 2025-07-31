@@ -92,7 +92,7 @@ def set_cpu_affinity_and_process_priority(cpu_id: int):
     p = psutil.Process()
     p.cpu_affinity([cpu_id])
     if sys.platform.startswith("win"):
-        p.nice(psutil.HIGH_PRIORITY_CLASS) # type: ignore
+        p.nice(psutil.HIGH_PRIORITY_CLASS)  # type: ignore
     else:
         try:  # need privileges, may fail
             p.nice(-10)  # lower = higher priority
@@ -114,8 +114,7 @@ class Parallel_Process_Core:
         self.workers = []                    # Worker processes
 
         # get config data from dummy class
-        self.C_dummy = Parallel_Process_Worker(
-            -1, {'dummy_code': {'idx': -1}}, torch.zeros((1)), True)
+        self.C_dummy = Parallel_Process_Worker(-1, {'dummy_code': {'idx': -1}}, torch.zeros((1)), True)
         self.shared_tensor = self._init_shared_tensor()
 
         logical_cpus = psutil.cpu_count(logical=True)
@@ -145,10 +144,8 @@ class Parallel_Process_Core:
             self.worker_code_num[worker_id] += 1
 
         # Initialize shared memory and workers
-        print(
-            f"Initializing: [Main  (Cross-Section)]  1 process -> Logical CPU0,")
-        print(
-            f"              [Worker(Time-Series  )] {self.num_workers:>2} process -> Logical CPU{[(i+1)*HYPER_THREAD for i in range(self.num_workers)]} (disable hyper-threading)")
+        print(f"Initializing: [Main  (Cross-Section)]  1 process -> Logical CPU0,")
+        print(f"              [Worker(Time-Series  )] {self.num_workers:>2} process -> Logical CPU{[(i+1)*HYPER_THREAD for i in range(self.num_workers)]} (disable hyper-threading)")
         self.shared_control = sharedctypes.RawValue(SharedControl)
         self.shared_control.init[:] = [CONTROL_CLEAR] * MAX_WORKER
         self.shared_control.stop = CONTROL_CLEAR
@@ -196,11 +193,9 @@ class Parallel_Process_Core:
         N_columns = N_TS_features + N_CS_features + N_labels
         N_codes = len(self.code_info.keys())
 
-        print(
-            f"Initializing Pytorch Tensor: (timestamp({N_timestamps}), feature({N_TS_features}+{N_CS_features}) + label({N_labels}), codes({N_codes}))")
+        print(f"Initializing Pytorch Tensor: (timestamp({N_timestamps}), feature({N_TS_features}+{N_CS_features}) + label({N_labels}), codes({N_codes}))")
         # float16 = 2 Bytes
-        print(
-            f"Memory reserving: {(N_timestamps * N_columns * N_codes)*2/(1024**2):.2f} MB")
+        print(f"Memory reserving: {(N_timestamps * N_columns * N_codes)*2/(1024**2):.2f} MB")
         # tensor(a,b,c) is stored like:
         #   for each value a, we have a matrix(b,c):
         #   for each value b, we have a vector(c): thus c are stored continuously in memory
@@ -304,7 +299,7 @@ class Parallel_Process_Core:
         # Set highest priority with thread scheduling policy: FIFO
         # os.sched_setscheduler(0, os.SCHED_FIFO, 99)
         C = Process_Worker(worker_id, worker_code_info, shared_tensor)
-        
+
         thread = threading.Thread(target=C.run)
         thread.start()
 

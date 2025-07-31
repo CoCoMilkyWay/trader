@@ -7,13 +7,13 @@ class cfg_stk:  # Constants Configs
     # strategy = 'Strategy_Alpha'
 
     # use m1, m5, m30, m60 (wtpy requires that both 1m and 5m are present)
-    period_u, period_l, n = 'min', 'm', 1
+    period_u, period_l, n = 'min', 'm', 30
     wt_period_u = period_u + str(n)
     wt_period_l = period_l + str(n)
-    num = 10000  # number of assets (int/None)
-    start = 202401010000 # at least 1 asset has data
-    end = 202402010000 # can be in future
-    capital = 10000000
+    # num = 10000  # number of assets (int/None)
+    start = 202001010000 # at least 1 asset has data
+    end = 202101010000 # can be in future
+    capital = 10000000.0
 
     wt_tradedays = 'CHINA'
     wt_session = 'SD0930'
@@ -25,7 +25,7 @@ class cfg_stk:  # Constants Configs
     profile = False
     stat = False
     plot = False
-    analyze = False
+    analyze = True
     snoop = False
     panel = False
 
@@ -42,8 +42,9 @@ class cfg_stk:  # Constants Configs
         STOCK_DB_FUND_DIR = WT_DATABASE_DIR + '/stock/fundamentals'
     else: # Windows
         STOCK_CSV_DIR = 'E:/raw_m1/stk'
+        STOCK_DB_BAR_DIR = 'E:/stock/bars'
+        
         # STOCK_CSV_DIR = 'D:/data/stock_csv'
-        STOCK_DB_BAR_DIR = 'E:/stock_db/bars'
         # STOCK_DB_BAR_DIR = 'D:/data/stock_db/bars'
         STOCK_DB_FUND_DIR = 'D:/data/stock_fundamental'
 

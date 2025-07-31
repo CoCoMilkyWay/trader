@@ -51,6 +51,12 @@ def dump_json(file_path, df, desc=None):
         # Flush the file and force the OS to write to disk.
         temp_file.flush()
         os.fsync(temp_file.fileno())
+        temp_path = temp_file.name
+
+    while True:
+        if os.path.exists(temp_path):
+            break
+        time.sleep(0.05)
 
     # Atomically replace the target file with the temporary file.
     os.replace(temp_file.name, file_path)
