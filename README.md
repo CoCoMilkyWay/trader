@@ -1,4 +1,4 @@
-# Calculation Architecture
+# Computation Architecture
 
 ## **Layer 1** (for both backtesting and trading)
 ### **Flow:**
